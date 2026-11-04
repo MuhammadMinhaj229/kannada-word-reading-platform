@@ -1,32 +1,45 @@
 # Deployment and release model
 
-## Vercel preview vs field release
+## Vercel project settings
 
-- Vercel Preview is for UX and engineering review only. Use synthetic demo content only.
-- Production PWA distribution requires HTTPS and institutional access controls.
-- Do not use the app with children until protocol, ethics, item-bank, voice and data approvals are documented.
+Connect the private GitHub repository to your Vercel account/team.
 
-## Vercel setup
+| Setting | Value |
+|---|---|
+| Framework preset | Next.js |
+| Root directory | `/` |
+| Production branch | `main` |
+| Node.js | 22.x |
+| Install command | `npm install --no-audit --no-fund` (or Vercel default) |
+| Build command | `npm run build` |
+| Output directory | Next.js default; leave override unset |
+| Environment variables | None required by the current app |
 
-1. Connect this private GitHub repository to the approved Vercel team.
-2. Framework preset: Next.js.
-3. Root directory: `/`.
-4. Node.js: 22.x.
-5. Build command: `npm run build`.
-6. No database environment variables are required by this version.
+The app uses no cloud database, API key or backend environment variables. Do not add REDCap credentials to the browser build.
 
-## Install on Android
+## What Vercel provides
 
-1. Open the HTTPS deployment on the target tablet.
-2. Install the PWA using the browser's install option.
-3. Open it while online and allow the service worker to cache the shell and bundled assets.
-4. Confirm the installed app launches cold while airplane mode is enabled.
-5. Do not begin testing until app, item bank, font and audio readiness checks pass.
+Git integration creates Preview deployments for commits/branches and Production deployments from the configured production branch. Use Preview deployments for internal UX review with synthetic data only. Keep this private project protected with the team's normal deployment access controls.
 
-## Release updates
+## Android install
 
-Service-worker updates must not interrupt a live assessment. Apply app updates only from the assessor workspace after all sessions are closed and local data is exported. Keep a record of the exact app and item-bank versions used for every child.
+1. Open the approved HTTPS deployment in Chrome on the target Android phone/tablet.
+2. Use the app's Install app prompt when available, or Chrome's Install app / Add to Home Screen option.
+3. Open the installed PWA once while online so the service worker can precache the app shell.
+4. Confirm the status shows Offline ready.
+5. Force-close, enable airplane mode and reopen from the home screen.
+6. Verify every needed route and asset is available before starting any field assessment.
 
-## Current limitation
+iOS installation behavior differs; this build's primary field target is Android.
 
-This is a starter implementation and has not been build-verified in this environment. Install dependencies, commit a lockfile, run lint/typecheck/build, then perform the tablet acceptance plan in `docs/offline-validation.md`.
+## Offline integrity and updates
+
+- Keep the child assessment session on a single loaded app version.
+- Do not allow app/service-worker updates to take control during an active block.
+- Only update the installed app after all sessions on the device have ended and data has been exported.
+- Verify that the PWA precache includes the relevant route chunks, Kannada font assets and approved local audio.
+- The service-worker status alone does not replace the full offline validation procedure in `docs/offline-validation.md`.
+
+## Release gate
+
+Before research use, test on the exact Android device and browser build. Confirm cold offline launch, audio offline, Kannada text shaping, touch targets, RT capture, IndexedDB durability, exports, update behavior and data-protection rules. Do not use this demo build with participants until protocol, ethics, item-bank and security approval are complete.
