@@ -75,7 +75,8 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
                             children: <Widget>[
                               Expanded(flex: 11, child: _introduction(context)),
                               const SizedBox(width: 22),
-                              Expanded(flex: 10, child: _participantForm(context)),
+                              Expanded(
+                                  flex: 10, child: _participantForm(context)),
                             ],
                           ),
                   ),
@@ -483,3 +484,4 @@ class _BrandMark extends StatelessWidget {
     );
   }
 }
+
