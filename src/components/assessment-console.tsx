@@ -385,7 +385,7 @@ export default function AssessmentConsole() {
               {settingsSection === "bank" && (
                 <section className="panel form settings-panel">
                   <label>02 · STIMULUS MANAGEMENT</label><h2>Import approved item bank</h2>
-                  <p>Upload the study team's final workbook. It is validated and stored only in this browser.</p>
+                  <p>Upload the study team&apos;s final workbook. It is validated and stored only in this browser.</p>
                   <div className="bank-summary"><b>540</b><span>planned items</span><b>6</b><span>blocks</span><b>45 + 45</b><span>words / non-words per block</span></div>
                   <a className="secondary" href="/templates/kannada-item-bank-template.xlsx" download>Download Excel template ↓</a>
                   <label className="upload">Select approved .xlsx workbook<input type="file" accept=".xlsx" onChange={(event) => void importBank(event.target.files?.[0])} /></label>
@@ -438,7 +438,7 @@ export default function AssessmentConsole() {
                     <li>540 scored items in total: 270 real words and 270 non-words.</li>
                     <li>Reward every five completed scored responses, independent of correctness.</li>
                     <li>Five practice items are proposed before each block. Confirm with the PI whether they are additional to the 90 scored items.</li>
-                    <li>REDCap remains the study's main data system. This app stores trial data locally and exports files for the approved REDCap workflow.</li>
+                    <li>REDCap remains the study&apos;s main data system. This app stores trial data locally and exports files for the approved REDCap workflow.</li>
                     <li>No cloud database is required for the current design.</li>
                   </ul>
                   <p className="warning">The live item bank, full 90-trial blocks, session locking/recovery, approved Kannada female recordings, REDCap mapping and real-tablet validation are not yet complete.</p>
