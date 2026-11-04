@@ -51,11 +51,39 @@ function getKannadaVoice(): SpeechSynthesisVoice | undefined {
     ?? voices.find((voice) => voice.lang.toLowerCase().startsWith("kn"));
 }
 
+/** Wait briefly because Android/Chrome may populate its voice catalogue asynchronously. */
+function waitForKannadaVoice(timeoutMs = 1500): Promise<SpeechSynthesisVoice | undefined> {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return Promise.resolve(undefined);
+  const existing = getKannadaVoice();
+  if (existing) return Promise.resolve(existing);
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (voice?: SpeechSynthesisVoice) => {
+      if (settled || !voice) return;
+      settled = true;
+      window.clearTimeout(timeoutId);
+      window.speechSynthesis.removeEventListener("voiceschanged", onVoicesChanged);
+      resolve(voice);
+    };
+    const onVoicesChanged = () => finish(getKannadaVoice());
+    const timeoutId = window.setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      window.speechSynthesis.removeEventListener("voiceschanged", onVoicesChanged);
+      resolve(getKannadaVoice());
+    }, timeoutMs);
+
+    window.speechSynthesis.addEventListener("voiceschanged", onVoicesChanged);
+    onVoicesChanged();
+  });
+}
+
 /** Browser speech is used only for short instructions and reward cues, never for test stimuli. */
-function speakKannada(text: string): Promise<boolean> {
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) return Promise.resolve(false);
-  const voice = getKannadaVoice();
-  if (!voice) return Promise.resolve(false);
+async function speakKannada(text: string): Promise<boolean> {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return false;
+  const voice = getKannadaVoice() ?? await waitForKannadaVoice();
+  if (!voice) return false;
 
   return new Promise((resolve) => {
     const utterance = new SpeechSynthesisUtterance(text);
