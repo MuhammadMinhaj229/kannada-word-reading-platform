@@ -11,7 +11,7 @@ declare const self: ServiceWorkerGlobalScope;
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
   skipWaiting: false,
-  clientsClaim: false,
+  clientsClaim: true,
   navigationPreload: false,
   runtimeCaching: [
     {
@@ -35,3 +35,7 @@ const serwist = new Serwist({
   }
 });
 serwist.addEventListeners();
+
+self.addEventListener("message",(event:ExtendableMessageEvent)=>{
+  if(event.data?.type==="SKIP_WAITING")void self.skipWaiting();
+});
