@@ -64,3 +64,17 @@ test("item-bank template endpoint returns an Excel workbook", async ({request}) 
   expect(response.headers()["content-type"]).toContain("spreadsheetml.sheet");
   expect((await response.body()).byteLength).toBeGreaterThan(5_000);
 });
+
+test("internal app sets security headers and no-index policy", async ({page,request}) => {
+  const response = await page.goto("/");
+  expect(response?.status()).toBe(200);
+  const headers = response?.headers() ?? {};
+  expect(headers["x-content-type-options"]).toBe("nosniff");
+  expect(headers["x-frame-options"]).toBe("DENY");
+  expect(headers["referrer-policy"]).toBe("strict-origin-when-cross-origin");
+  expect(headers["permissions-policy"]).toContain("camera=()");
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
+  const robots = await request.get("/robots.txt");
+  expect(robots.ok()).toBe(true);
+  expect(await robots.text()).toContain("Disallow: /");
+});
