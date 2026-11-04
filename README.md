@@ -2,7 +2,7 @@
 
 **Repository status:** starter implementation — not yet build-verified  
 **Build:** 0.1.0 · **Framework:** Next.js App Router + TypeScript  
-**Target:** Android tablets with Chrome/Chromium installed PWA support
+**Target:** Android phones and tablets with current Chrome/Chromium installed PWA support
 
 ## Product decision
 
@@ -61,7 +61,9 @@ npm run start
 - Five practice examples followed by a 10-item demonstration block.
 - Progress/reward milestone after every fifth scored demonstration response.
 - Dexie IndexedDB persistence.
-- PWA manifest and Serwist service worker.
+- Responsive phone/tablet layouts with phone bottom navigation, safe-area padding, accessible zoom, and a dedicated full-screen child trial view.
+- PWA manifest, install prompt, network/offline status, and Serwist service worker with local static-resource caching.
+- Bundled Noto Sans Kannada font files via Fontsource (OFL-1.1).
 - Six-block item-bank validator: 540 total, 270/270, 45/45 per block, unique IDs/text, complete order, approval metadata.
 - ExcelJS workbook parser and local item-bank storage.
 - Blank 540-item authoring template.
