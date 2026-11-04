@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   description: "Offline-first Kannada word-reading assessment for supervised research sessions.",
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "ಪದLab" },
   formatDetection: { telephone: false },
+  robots: { index: false, follow: false, nocache: true },
   icons: {
     icon: [
       { url: "/icons/icon-192.svg", type: "image/svg+xml", sizes: "192x192" },
