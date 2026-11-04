@@ -1,5 +1,5 @@
 declare module "@/lib/jspsych/ldt-choice-plugin.js" {
-  import type { JsPsych, JsPsychPlugin, TrialType } from "jspsych";
+  import type { JsPsych, JsPsychPlugin } from "jspsych";
   type Trial = {
     stimulusText: string; itemId: string; itemKind: "word"|"nonword";
     phase: "practice"|"scored"; trialNo: number; responseWindowMs: number;
