@@ -38,7 +38,7 @@ export default function PwaRegistration() {
           if (active) setOnline(navigator.onLine);
         });
     } else {
-      setOnline(navigator.onLine);
+      Promise.resolve().then(() => { if (active) setOnline(navigator.onLine); });
     }
 
     return () => {
