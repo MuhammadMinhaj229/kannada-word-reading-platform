@@ -1,7 +1,5 @@
 "use client";
 import { useMemo, useRef, useState } from "react";
-import { initJsPsych } from "jspsych";
-import LdtChoicePlugin from "@/lib/jspsych/ldt-choice-plugin.js";
 import { PROTOCOL, type ItemKind, type TrialResponse } from "@/lib/protocol";
 import { localDb, persistTrial } from "@/lib/storage/db";
 import { parseItemBankWorkbook } from "@/lib/item-bank/import-xlsx";
@@ -43,7 +41,14 @@ export default function AssessmentConsole(){
  const title=useMemo(()=>nav.find(x=>x.id===screen)?.label??"Overview",[screen]);
  const progressMax=phase==="practice"?5:10;
  async function startDemo(){
-   if(!mount.current||running)return;sessionId.current=uid();setRunning(true);setFinished(false);setProgress(0);setPhase("practice");setReward(null);
+   if(!mount.current||running)return;
+   // jsPsych is browser-only; import it after the user starts the child game
+   // so Next.js can safely prerender the assessor shell on the server.
+   const [{initJsPsych},{default:LdtChoicePlugin}] = await Promise.all([
+     import("jspsych"),
+     import("@/lib/jspsych/ldt-choice-plugin.js")
+   ]);
+   sessionId.current=uid();setRunning(true);setFinished(false);setProgress(0);setPhase("practice");setReward(null);
    const jsPsych=initJsPsych({display_element:mount.current,on_finish:()=>{setRunning(false);setFinished(true);}});
    const trial=(item:Demo,index:number,trialPhase:"practice"|"scored")=>({
     type:LdtChoicePlugin,stimulusText:item.text,itemId:item.itemId,itemKind:item.itemKind,phase:trialPhase,
