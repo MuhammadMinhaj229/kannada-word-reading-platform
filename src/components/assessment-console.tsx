@@ -23,15 +23,15 @@ const demo:Demo[]=[
  {itemId:"DEMO-09",text:"ನದಿ",itemKind:"word"},{itemId:"DEMO-10",text:"ಕಿಮನೆ",itemKind:"nonword"}
 ];
 const nav:{id:Screen;label:string;kn:string;icon:string}[]=[
- {id:"overview",label:"Overview",kn:"ಅವಲೋಕನ",icon:"⌂"},{id:"setup",label:"Session setup",kn:"ಮಕ್ಕಳ ವಿವರ",icon:"◎"},
- {id:"bank",label:"Word bank",kn:"ಪದಗಳ ಪಟ್ಟಿ",icon:"▤"},{id:"game",label:"Child game",kn:"ಮಕ್ಕಳ ಆಟ",icon:"✳"},
- {id:"reports",label:"Reports & export",kn:"ವರದಿಗಳು",icon:"▥"},{id:"settings",label:"Settings",kn:"ಸೆಟ್ಟಿಂಗ್‌ಗಳು",icon:"⚙"}
+ {id:"overview",label:"Home",kn:"ಅವಲೋಕನ",icon:"⌂"},{id:"setup",label:"Setup",kn:"ಮಕ್ಕಳ ವಿವರ",icon:"◎"},
+ {id:"bank",label:"Items",kn:"ಪದಗಳ ಪಟ್ಟಿ",icon:"▤"},{id:"game",label:"Game",kn:"ಮಕ್ಕಳ ಆಟ",icon:"✳"},
+ {id:"reports",label:"Export",kn:"ವರದಿಗಳು",icon:"▥"},{id:"settings",label:"Settings",kn:"ಸೆಟ್ಟಿಂಗ್‌ಗಳು",icon:"⚙"}
 ];
 const uid=()=>globalThis.crypto?.randomUUID?.()??`demo-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 type Reward={count:number;resume:()=>void}|null;
 export default function AssessmentConsole(){
  const [screen,setScreen]=useState<Screen>("overview");
- const [running,setRunning]=useState(false);const [finished,setFinished]=useState(false);
+ const [running,setRunning]=useState(false);const [launching,setLaunching]=useState(false);const [finished,setFinished]=useState(false);const [gameError,setGameError]=useState("");
  const [phase,setPhase]=useState<"practice"|"scored">("practice");const [progress,setProgress]=useState(0);
  const [reward,setReward]=useState<Reward>(null);const [studyId,setStudyId]=useState("");const [assessorId,setAssessorId]=useState("");
  const [visit,setVisit]=useState("1");const [block,setBlock]=useState("1");const [notes,setNotes]=useState("");
@@ -41,27 +41,33 @@ export default function AssessmentConsole(){
  const title=useMemo(()=>nav.find(x=>x.id===screen)?.label??"Overview",[screen]);
  const progressMax=phase==="practice"?5:10;
  async function startDemo(){
-   if(!mount.current||running)return;
-   // jsPsych is browser-only; import it after the user starts the child game
-   // so Next.js can safely prerender the assessor shell on the server.
-   const [{initJsPsych},{default:LdtChoicePlugin}] = await Promise.all([
-     import("jspsych"),
-     import("@/lib/jspsych/ldt-choice-plugin.js")
-   ]);
-   sessionId.current=uid();setRunning(true);setFinished(false);setProgress(0);setPhase("practice");setReward(null);
-   const jsPsych=initJsPsych({display_element:mount.current,on_finish:()=>{setRunning(false);setFinished(true);}});
-   const trial=(item:Demo,index:number,trialPhase:"practice"|"scored")=>({
-    type:LdtChoicePlugin,stimulusText:item.text,itemId:item.itemId,itemKind:item.itemKind,phase:trialPhase,
-    trialNo:index+1,responseWindowMs:PROTOCOL.provisionalResponseWindowMs,
-    scoredCompletedAfterThis:trialPhase==="scored"?index+1:0,
-    onResponse:async(result:{itemId:string;stimulusText:string;itemKind:ItemKind;phase:"practice"|"scored";trialNo:number;response:ItemKind|"none";correct:boolean|null;rtMs:number|null;startedAt:string;respondedAt:string})=>{
-      const row:TrialResponse={...result,sessionId:sessionId.current,childStudyId:"DEMO-ONLY",assessorId:"DEMO-ONLY",
-        visitNo:1,blockNo:1,appVersion:"0.1.0-demo",bankVersion:"DEMO-NOT-APPROVED",isDemo:true};
-      await persistTrial(row);setPhase(trialPhase);setProgress(index+1);
-    },
-    onMilestone:async(count:number)=>new Promise<void>(resolve=>setReward({count,resume:resolve}))
-   });
-   jsPsych.run([...practice.map((x,i)=>trial(x,i,"practice")),...demo.map((x,i)=>trial(x,i,"scored"))] as never[]);
+   if(!mount.current||running||launching)return;
+   setLaunching(true);setGameError("");
+   try {
+     // Load browser-only jsPsych only after an assessor starts the demo.
+     const [{initJsPsych},{default:LdtChoicePlugin}] = await Promise.all([
+       import("jspsych"),
+       import("@/lib/jspsych/ldt-choice-plugin.js")
+     ]);
+     sessionId.current=uid();setRunning(true);setFinished(false);setProgress(0);setPhase("practice");setReward(null);
+     const jsPsych=initJsPsych({display_element:mount.current,on_finish:()=>{setRunning(false);setFinished(true);}});
+     const trial=(item:Demo,index:number,trialPhase:"practice"|"scored")=>({
+       type:LdtChoicePlugin,stimulusText:item.text,itemId:item.itemId,itemKind:item.itemKind,phase:trialPhase,
+       trialNo:index+1,responseWindowMs:PROTOCOL.provisionalResponseWindowMs,
+       scoredCompletedAfterThis:trialPhase==="scored"?index+1:0,
+       onResponse:async(result:{itemId:string;stimulusText:string;itemKind:ItemKind;phase:"practice"|"scored";trialNo:number;response:ItemKind|"none";correct:boolean|null;rtMs:number|null;startedAt:string;respondedAt:string})=>{
+         const row:TrialResponse={...result,sessionId:sessionId.current,childStudyId:"DEMO-ONLY",assessorId:"DEMO-ONLY",
+           visitNo:1,blockNo:1,appVersion:"0.1.0-demo",bankVersion:"DEMO-NOT-APPROVED",isDemo:true};
+         await persistTrial(row);setPhase(trialPhase);setProgress(index+1);
+       },
+       onMilestone:async(count:number)=>new Promise<void>(resolve=>setReward({count,resume:resolve}))
+     });
+     jsPsych.run([...practice.map((x,i)=>trial(x,i,"practice")),...demo.map((x,i)=>trial(x,i,"scored"))] as never[]);
+   } catch(error) {
+     setRunning(false);setGameError(error instanceof Error?error.message:"Could not start the demo.");
+   } finally {
+     setLaunching(false);
+   }
  }
  async function importBank(file?:File){
    if(!file)return;setFileName(file.name);setBankErrors([]);setBusy(true);setBankStatus("Validating workbook…");
@@ -74,11 +80,11 @@ export default function AssessmentConsole(){
    }catch(e){setBankStatus("Could not read workbook");setBankErrors([e instanceof Error?e.message:"Unknown parsing error"]);}
    finally{setBusy(false);}
  }
- return <main className="shell">
+ return <main className={running ? "shell is-playing" : "shell"}>
   <aside className="sidebar">
    <div className="brand"><span className="brand-mark">ಪ</span><div><b>ಪದ<span>Lab</span></b><small>KANNADA WORD READING</small></div></div>
    <div className="study-tag">● PHFI · CDLR <small>REVIEW BUILD</small></div><p className="nav-title">WORKSPACE</p>
-   <nav>{nav.map(n=><button key={n.id} onClick={()=>setScreen(n.id)} className={screen===n.id?"nav active":"nav"}><i>{n.icon}</i><span>{n.label}<small>{n.kn}</small></span></button>)}</nav>
+   <nav aria-label="Main navigation">{nav.map(n=><button type="button" key={n.id} onClick={()=>setScreen(n.id)} aria-current={screen===n.id?"page":undefined} className={screen===n.id?"nav active":"nav"}><i aria-hidden="true">{n.icon}</i><span>{n.label}<small>{n.kn}</small></span></button>)}</nav>
    <div className="sidebar-bottom"><b>Offline-first</b><small>Local tablet storage</small><p>Assessor workspace · Demo only</p></div>
   </aside>
   <section className="main">
@@ -114,7 +120,7 @@ export default function AssessmentConsole(){
     <div className="panel audio"><div><label>KANNADA VOICE INSTRUCTIONS</label><h2>ಮೊದಲು ಅಭ್ಯಾಸ ಮಾಡೋಣ</h2><p>Approved female Kannada recordings have not yet been added.</p></div><b>♫ Audio pending</b></div>
     <div className="game-layout"><section className="game-stage"><div className="stage-top"><b>ಕನ್ನಡ ಪದ ಓದು</b><span>DEMO MODE · NOT FOR PARTICIPANTS</span></div>
       {running&&<div className="game-progress"><div><span>{phase==="practice"?"ಅಭ್ಯಾಸ (Practice)":"ಪರೀಕ್ಷೆ (Test)"}</span><b>{progress} / {progressMax}</b></div><div className="bar"><i style={{width:`${progress/progressMax*100}%`}}/></div></div>}
-      <div className="game-mount" ref={mount}>{!running&&!finished&&<div className="game-intro"><div className="collectibles">🧁　⭐　🍫</div><h2>ಆಟ ಆಡಲು ಸಿದ್ಧವೇ?</h2><p>ಮೊದಲು 5 ಅಭ್ಯಾಸ ಪದಗಳು. ನಂತರ ಚಿಕ್ಕ ಮಾದರಿ ಪರೀಕ್ಷೆ.</p><button className="primary" onClick={()=>void startDemo()}>ಆಟ ಪ್ರಾರಂಭಿಸಿ (Start demo) →</button></div>}
+      <div className="game-mount" ref={mount}>{!running&&!finished&&<div className="game-intro"><div className="collectibles" aria-hidden="true">🧁　⭐　🍫</div><h2>ಆಟ ಆಡಲು ಸಿದ್ಧವೇ?</h2><p>ಮೊದಲು 5 ಅಭ್ಯಾಸ ಪದಗಳು. ನಂತರ ಚಿಕ್ಕ ಮಾದರಿ ಪರೀಕ್ಷೆ.</p>{gameError&&<p className="warning" role="alert">{gameError}</p>}<button className="primary" disabled={launching} onClick={()=>void startDemo()}>{launching?"ಲೋಡ್ ಆಗುತ್ತಿದೆ…":"ಆಟ ಪ್ರಾರಂಭಿಸಿ (Start demo) →"}</button></div>}
       {finished&&<div className="game-intro"><div className="collectibles">🧁　⭐　🍫</div><h2>ಚೆನ್ನಾಗಿ ಮಾಡಿದ್ದೀರಿ!</h2><p>ಮಾದರಿ ಆಟ ಮುಗಿದಿದೆ. (Demo complete.)</p><button className="primary" onClick={()=>void startDemo()}>ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ</button></div>}</div>
       <footer>One stimulus at a time · Rewards are not linked to correctness</footer>
     </section><aside className="panel game-rules"><label>GAME RULES</label><h2>Research-first game design</h2><ul><li>Five practice trials.</li><li>90 scored items per real test block.</li><li>Reward every five completed scored trials.</li><li>No correctness feedback in scored trials.</li><li>Silence during stimulus presentation.</li></ul><p className="warning">Fictional demo strings are not approved study stimuli.</p></aside></div>
