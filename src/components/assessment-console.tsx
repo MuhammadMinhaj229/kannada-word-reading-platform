@@ -102,7 +102,7 @@ export default function AssessmentConsole(){
    <div className="sidebar-bottom"><b>Offline-first</b><small>Local tablet storage</small><p>Assessor workspace · Demo only</p></div>
   </aside>
   <section className="main">
-   <header><span>Research workspace　/　<b>{title}</b></span><div><label className="demo-tag">● DEMO DATA ONLY</label><PwaRegistration/></div></header>
+   <header><span>Research workspace　/　<b>{title}</b></span><div><label className="demo-tag">● DEMO DATA ONLY</label><PwaRegistration sessionActive={running}/></div></header>
    {screen==="overview"&&<div className="content">
     <div className="heading"><div><label>ASSESSMENT WORKSPACE · NEXT.JS OFFLINE PWA</label><h1>Kannada word reading <em>assessment</em></h1><p>A child-friendly lexical-decision experience with a controlled research workflow.</p></div><button className="primary" onClick={()=>setScreen("game")}>Preview child game →</button></div>
     <div className="stats">{[["540","Scored items","270 real + 270 non-words"],["03","Visits","Two blocks per visit"],["06","Test blocks","90 scored items each"],["45 / 45","Block balance","Real words / non-words"]].map(x=><article key={x[0]}><small>{x[1]}</small><strong>{x[0]}</strong><span>{x[2]}</span></article>)}</div>
