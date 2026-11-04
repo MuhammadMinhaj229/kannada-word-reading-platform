@@ -47,9 +47,16 @@ export default function PwaRegistration({sessionActive=false}:PwaRegistrationPro
             });
           });
           await navigator.serviceWorker.ready;
+          let templateCached = false;
+          if (navigator.serviceWorker.controller && navigator.onLine) {
+            try {
+              const response = await fetch("/templates/kannada-item-bank-template.xlsx", { cache: "no-store" });
+              templateCached = response.ok;
+            } catch { templateCached = false; }
+          }
           if(active){
             setOnline(navigator.onLine);
-            setOfflineReady(Boolean(navigator.serviceWorker.controller));
+            setOfflineReady(Boolean(navigator.serviceWorker.controller) && templateCached);
           }
           // Ask the browser to preserve this app's local assessment storage where supported.
           try { await navigator.storage?.persist?.(); } catch { /* Browser may deny persistent storage. */ }
