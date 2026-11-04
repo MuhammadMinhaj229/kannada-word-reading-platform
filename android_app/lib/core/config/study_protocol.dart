@@ -11,8 +11,7 @@ abstract final class StudyProtocol {
       realWordsPerSession + nonWordsPerSession;
   static const int practiceItemsPerSession = 5;
 
-  static const int allocatedNonWords =
-      sessionCount * nonWordsPerSession;
+  static const int allocatedNonWords = sessionCount * nonWordsPerSession;
   static const int reserveNonWords =
       plannedNonWordPoolCount - allocatedNonWords;
 
@@ -26,8 +25,9 @@ abstract final class StudyProtocol {
 
   static const bool allocationArithmeticIsValid =
       sessionCount * realWordsPerSession == realWordPoolCount &&
-      sessionCount * nonWordsPerSession + reserveNonWords ==
-          plannedNonWordPoolCount &&
-      scoredItemsPerSession == 77 &&
-      reserveNonWords == 2;
+          sessionCount * nonWordsPerSession + reserveNonWords ==
+              plannedNonWordPoolCount &&
+          scoredItemsPerSession == 77 &&
+          reserveNonWords == 2;
 }
+
