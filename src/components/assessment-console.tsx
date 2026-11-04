@@ -3,6 +3,7 @@ import { useMemo, useRef, useState } from "react";
 import { PROTOCOL, type ItemKind, type TrialResponse } from "@/lib/protocol";
 import { localDb, persistTrial } from "@/lib/storage/db";
 import { parseItemBankWorkbook } from "@/lib/item-bank/import-xlsx";
+import { exportLocalTrials } from "@/lib/export/local-export";
 import PwaRegistration from "@/components/pwa-registration";
 
 type Screen="overview"|"setup"|"bank"|"game"|"reports"|"settings";
@@ -37,6 +38,7 @@ export default function AssessmentConsole(){
  const [visit,setVisit]=useState("1");const [block,setBlock]=useState("1");const [notes,setNotes]=useState("");
  const [fileName,setFileName]=useState("");const [bankStatus,setBankStatus]=useState("No item bank imported");
  const [bankErrors,setBankErrors]=useState<string[]>([]);const [busy,setBusy]=useState(false);
+ const [exportFilter,setExportFilter]=useState("");const [exportBusy,setExportBusy]=useState(false);const [exportStatus,setExportStatus]=useState("");
  const mount=useRef<HTMLDivElement>(null);const sessionId=useRef(uid());
  const title=useMemo(()=>nav.find(x=>x.id===screen)?.label??"Overview",[screen]);
  const progressMax=phase==="practice"?5:10;
@@ -69,18 +71,30 @@ export default function AssessmentConsole(){
      setLaunching(false);
    }
  }
+ async function runExport(format:"csv"|"xlsx"){
+   if(exportBusy)return;
+   setExportBusy(true);setExportStatus("");
+   try{
+     const result=await exportLocalTrials(format,exportFilter);
+     setExportStatus(`Downloaded ${result.filename} · ${result.trials} trial records · original local records retained.`);
+   }catch(error){
+     setExportStatus(error instanceof Error?error.message:"Export failed. Local records were not deleted.");
+   }finally{
+     setExportBusy(false);
+   }
+ }
  async function importBank(file?:File){
    if(!file)return;setFileName(file.name);setBankErrors([]);setBusy(true);setBankStatus("Validating workbook…");
    try{
     const result=await parseItemBankWorkbook(file);setBankErrors(result.errors.slice(0,15));
     if(!result.valid){setBankStatus(`Rejected — ${result.errors.length} issue(s)`);return;}
     await localDb.banks.put({bankVersion:result.bankVersion,importedAt:new Date().toISOString(),itemCount:result.items.length,
-      approvedBy:"Reviewer IDs are recorded per item",approvalReference:result.bankVersion,payload:JSON.stringify(result.items)});
+      approvedBy:"Reviewer approval metadata supplied in workbook; not independently verified",approvalReference:result.bankVersion,payload:JSON.stringify(result.items)});
     setBankStatus(`Accepted locally · ${result.items.length} items · ${result.bankVersion}`);
    }catch(e){setBankStatus("Could not read workbook");setBankErrors([e instanceof Error?e.message:"Unknown parsing error"]);}
    finally{setBusy(false);}
  }
- return <main className={running ? "shell is-playing" : "shell"}>
+ return <><a className="skip-link" href="#main-content">Skip to content</a><main className={running ? "shell is-playing" : "shell"}>
   <aside className="sidebar">
    <div className="brand"><span className="brand-mark">ಪ</span><div><b>ಪದ<span>Lab</span></b><small>KANNADA WORD READING</small></div></div>
    <div className="study-tag">● PHFI · CDLR <small>REVIEW BUILD</small></div><p className="nav-title">WORKSPACE</p>
@@ -112,22 +126,33 @@ export default function AssessmentConsole(){
    </article></div>}
    {screen==="bank"&&<div className="content narrow"><label>STIMULUS MANAGEMENT</label><h1>Word bank</h1><article className="panel form"><h2>Import approved 540-item workbook</h2><p>Six blocks · 90 items per block · 45 real words + 45 non-words.</p><a className="secondary" href="/templates/kannada-item-bank-template.xlsx" download>Download Excel template ↓</a>
     <label className="upload">Select .xlsx workbook<input type="file" accept=".xlsx" onChange={e=>void importBank(e.target.files?.[0])}/></label>
-    {fileName&&<p>{fileName} · {busy?"Checking…":bankStatus}</p>}{bankErrors.length>0&&<ul className="errors">{bankErrors.map((e,i)=><li key={i}>{e}</li>)}</ul>}
+    {fileName&&<p role="status" aria-live="polite">{fileName} · {busy?"Checking…":bankStatus}</p>}{bankErrors.length>0&&<ul className="errors">{bankErrors.map((e,i)=><li key={i}>{e}</li>)}</ul>}
     <p className="warning">Structural validation does not prove a non-word is linguistically invalid. Native Kannada reviewer approval must be genuine and documented. Accepted bank stays in this browser only.</p>
    </article></div>}
    {screen==="game"&&<div className="content">
     <div className="heading"><div><label>CHILD-FACING EXPERIENCE · DEMONSTRATION ONLY</label><h1>ಮಕ್ಕಳ ಆಟ <em>Child game</em></h1><p>Five practice trials followed by a short ten-item demo block.</p></div><button className="secondary" onClick={()=>setScreen("overview")}>← Workspace</button></div>
     <div className="panel audio"><div><label>KANNADA VOICE INSTRUCTIONS</label><h2>ಮೊದಲು ಅಭ್ಯಾಸ ಮಾಡೋಣ</h2><p>Approved female Kannada recordings have not yet been added.</p></div><b>♫ Audio pending</b></div>
     <div className="game-layout"><section className="game-stage"><div className="stage-top"><b>ಕನ್ನಡ ಪದ ಓದು</b><span>DEMO MODE · NOT FOR PARTICIPANTS</span></div>
-      {running&&<div className="game-progress"><div><span>{phase==="practice"?"ಅಭ್ಯಾಸ (Practice)":"ಪರೀಕ್ಷೆ (Test)"}</span><b>{progress} / {progressMax}</b></div><div className="bar"><i style={{width:`${progress/progressMax*100}%`}}/></div></div>}
+      {running&&<div className="game-progress" role="group" aria-label="Assessment progress"><div><span>{phase==="practice"?"ಅಭ್ಯಾಸ (Practice)":"ಪರೀಕ್ಷೆ (Test)"}</span><b>{progress} / {progressMax}</b></div><div className="bar" role="progressbar" aria-label="Trial progress" aria-valuemin={0} aria-valuemax={progressMax} aria-valuenow={progress}><i style={{width:`${progress/progressMax*100}%`}}/></div></div>}
       <div className="game-mount" ref={mount}>{!running&&!finished&&<div className="game-intro"><div className="collectibles" aria-hidden="true">🧁　⭐　🍫</div><h2>ಆಟ ಆಡಲು ಸಿದ್ಧವೇ?</h2><p>ಮೊದಲು 5 ಅಭ್ಯಾಸ ಪದಗಳು. ನಂತರ ಚಿಕ್ಕ ಮಾದರಿ ಪರೀಕ್ಷೆ.</p>{gameError&&<p className="warning" role="alert">{gameError}</p>}<button className="primary" disabled={launching} onClick={()=>void startDemo()}>{launching?"ಲೋಡ್ ಆಗುತ್ತಿದೆ…":"ಆಟ ಪ್ರಾರಂಭಿಸಿ (Start demo) →"}</button></div>}
       {finished&&<div className="game-intro"><div className="collectibles">🧁　⭐　🍫</div><h2>ಚೆನ್ನಾಗಿ ಮಾಡಿದ್ದೀರಿ!</h2><p>ಮಾದರಿ ಆಟ ಮುಗಿದಿದೆ. (Demo complete.)</p><button className="primary" onClick={()=>void startDemo()}>ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ</button></div>}</div>
       <footer>One stimulus at a time · Rewards are not linked to correctness</footer>
     </section><aside className="panel game-rules"><label>GAME RULES</label><h2>Research-first game design</h2><ul><li>Five practice trials.</li><li>90 scored items per real test block.</li><li>Reward every five completed scored trials.</li><li>No correctness feedback in scored trials.</li><li>Silence during stimulus presentation.</li></ul><p className="warning">Fictional demo strings are not approved study stimuli.</p></aside></div>
     {reward&&<div className="reward-layer"><div className="reward-card"><strong>{reward.count%3===0?"🧁":reward.count%2===0?"🍫":"⭐"}</strong><h2>ಚೆನ್ನಾಗಿದೆ!</h2><p>ಚಿಕ್ಕ ಬಹುಮಾನ! · You completed {reward.count} demo items.</p><button className="primary" onClick={()=>{const f=reward.resume;setReward(null);f();}}>ಮುಂದುವರಿಸಿ →</button></div></div>}
    </div>}
-   {screen==="reports"&&<div className="content narrow"><label>LOCAL REPORTING</label><h1>Reports & export</h1><article className="panel"><h2>Export for existing REDCap workflow</h2><p>Trial responses are written to IndexedDB locally. CSV/XLSX export controls and REDCap field mapping are still pending.</p><div className="stats mini"><article><strong>Local</strong><small>Trial storage</small></article><article><strong>CSV</strong><small>Planned REDCap import</small></article><article><strong>No API</strong><small>Current architecture</small></article></div></article></div>}
+   {screen==="reports"&&<div className="content narrow"><label>LOCAL REPORTING</label><h1>Reports & export</h1>
+    <article className="panel export-panel">
+     <div className="export-heading"><div><h2>Download local assessment records</h2><p>Files are generated inside this browser. Nothing is uploaded and exporting never deletes local records.</p></div><span className="local-only">DEVICE ONLY</span></div>
+     <label className="export-filter">Optional child study ID filter<input value={exportFilter} onChange={e=>setExportFilter(e.target.value)} placeholder="Leave blank to export all local records"/></label>
+     <div className="export-actions">
+      <button type="button" className="primary" disabled={exportBusy} onClick={()=>void runExport("xlsx")}>{exportBusy?"Preparing…":"Download Excel workbook"}</button>
+      <button type="button" className="secondary" disabled={exportBusy} onClick={()=>void runExport("csv")}>Download trial CSV</button>
+     </div>
+     {exportStatus&&<p className="export-status" role="status" aria-live="polite">{exportStatus}</p>}
+     <div className="stats mini"><article><strong>Local</strong><small>IndexedDB storage</small></article><article><strong>XLSX</strong><small>Trials + sessions</small></article><article><strong>CSV</strong><small>UTF-8 with BOM</small></article></div>
+     <p className="warning">Only synthetic demo records are currently produced by the game preview. The full participant/session workflow, approved trial bank, and REDCap field mapping remain pending. Do not use these demo exports as study data.</p>
+    </article></div>}
    {screen==="settings"&&<div className="content narrow"><label>APPLICATION CONFIGURATION</label><h1>Settings</h1><article className="panel settings"><p><b>Offline readiness</b><span>Requires tablet test</span></p><p><b>Kannada audio</b><span>Pending approved recordings</span></p><p><b>Response window</b><span>10 seconds · provisional</span></p><p><b>Cloud database</b><span>Not configured</span></p><p><b>Research integration</b><span>Manual REDCap import first</span></p></article></div>}
   </section><footer className="app-footer">ಪದLab · Research assessment prototype · No live participant data · Build 0.1.0</footer>
- </main>;
+ </main></>;
 }
