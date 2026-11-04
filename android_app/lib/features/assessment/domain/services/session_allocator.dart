@@ -39,13 +39,9 @@ class SessionAllocator {
 
     final allocations = <SessionAllocation>[];
 
-    for (var session = 1;
-        session <= StudyProtocol.sessionCount;
-        session += 1) {
-      final wordStart =
-          (session - 1) * StudyProtocol.realWordsPerSession;
-      final nonWordStart =
-          (session - 1) * StudyProtocol.nonWordsPerSession;
+    for (var session = 1; session <= StudyProtocol.sessionCount; session += 1) {
+      final wordStart = (session - 1) * StudyProtocol.realWordsPerSession;
+      final nonWordStart = (session - 1) * StudyProtocol.nonWordsPerSession;
 
       final sessionWords = shuffledWords
           .skip(wordStart)
@@ -121,3 +117,4 @@ class SessionAllocator {
     }
   }
 }
+
