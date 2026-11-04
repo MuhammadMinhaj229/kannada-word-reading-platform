@@ -44,7 +44,6 @@ jobs:
         with:
           channel: stable
           cache: true
-          cache-dependency-path: android_app/pubspec.yaml
 
       - name: Generate Android host project
         working-directory: android_app
@@ -54,7 +53,20 @@ jobs:
         working-directory: android_app
         run: flutter pub get
 
-      - name: Check formatting
+      - name: Temporary formatter diagnostic
+        working-directory: android_app
+        run: |
+          dart format lib test
+          for file in \
+            lib/core/config/study_protocol.dart \
+            lib/features/assessment/domain/services/session_allocator.dart \
+            lib/features/assessor/presentation/assessor_home_screen.dart \
+            test/trial_record_test.dart; do
+            echo "===== FORMATTED SOURCE: $file ====="
+            cat "$file"
+          done
+
+      - name: Verify formatting
         working-directory: android_app
         run: dart format --output=none --set-exit-if-changed lib test
 
