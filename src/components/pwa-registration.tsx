@@ -1,14 +1,15 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 export default function PwaRegistration() {
-  const [status, setStatus] = useState("Checking offline support…");
   useEffect(() => {
-    if (!("serviceWorker" in navigator)) { setStatus("PWA unavailable in this browser"); return; }
+    if (!("serviceWorker" in navigator)) return;
     let cancelled = false;
-    navigator.serviceWorker.register("/sw.js", { scope: "/" })
-      .then(() => { if (!cancelled) setStatus("Offline shell registered"); })
-      .catch(() => { if (!cancelled) setStatus("Offline cache not ready"); });
+    navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {
+      if (!cancelled) {
+        // The assessor screen remains usable online; field readiness must be verified separately.
+      }
+    });
     return () => { cancelled = true; };
   }, []);
-  return <span className="pwa-status" title={status}><i />{status}</span>;
+  return <span className="pwa-status" title="Offline readiness must be checked on the target tablet"><i /> Offline-first PWA</span>;
 }
