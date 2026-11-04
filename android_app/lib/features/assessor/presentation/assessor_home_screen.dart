@@ -193,7 +193,7 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
             );
           },
         ),
-        const Spacer(),
+        const SizedBox(height: 18),
         Container(
           padding: const EdgeInsets.all(15),
           decoration: BoxDecoration(
@@ -309,7 +309,7 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
                 hint: 'Excluded from default exports',
                 icon: Icons.face_outlined,
               ),
-              const Spacer(),
+              const SizedBox(height: 18),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
