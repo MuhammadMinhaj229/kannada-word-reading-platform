@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from "dexie";
-import type { TrialResponse, StimulusItem } from "@/lib/protocol";
+import type { TrialResponse } from "@/lib/protocol";
 export interface LocalSession {
   sessionId: string; childStudyId: string; assessorId: string; visitNo: number; blockNo: number;
   bankVersion: string; startedAt: string; completedAt?: string;
