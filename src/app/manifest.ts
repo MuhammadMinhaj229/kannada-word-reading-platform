@@ -8,6 +8,8 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/",
     scope: "/",
     display: "standalone",
+    orientation: "any",
+    categories: ["education"],
     background_color: "#f7f8f4",
     theme_color: "#173d35",
     lang: "en-IN",
