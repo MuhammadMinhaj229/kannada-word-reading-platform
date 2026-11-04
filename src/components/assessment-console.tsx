@@ -401,7 +401,7 @@ export default function AssessmentConsole() {
                   <p>Short instructions and reward messages can be spoken automatically. The voice comes from the Kannada speech engine installed on this device.</p>
                   <div className="audio-setting-row">
                     <div><b>Automatic voice instructions</b><small>Welcome instructions, reward cues and completion message</small></div>
-                    <label className="switch-label"><input type="checkbox" checked={autoAudio} onChange={(event) => setAutoAudio(event.target.checked)} /><span>{autoAudio ? "On" : "Off"}</span></label>
+                    <label className="switch-label"><input aria-label="Automatic voice instructions" type="checkbox" checked={autoAudio} onChange={(event) => setAutoAudio(event.target.checked)} /><span>{autoAudio ? "On" : "Off"}</span></label>
                   </div>
                   <div className={voiceReady ? "voice-status available" : "voice-status unavailable"}>
                     <i />{voiceReady ? "A Kannada voice is available on this device." : "No Kannada voice detected yet on this device."}
