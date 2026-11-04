@@ -1,0 +1,71 @@
+name: Flutter Android quality
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "android_app/**"
+      - "docs/protocol/working-allocation-v1.md"
+      - "docs/decisions/ADR-001-flutter-native-android.md"
+      - ".github/workflows/flutter-android.yml"
+  push:
+    branches:
+      - main
+      - feat/flutter-android-foundation
+    paths:
+      - "android_app/**"
+      - "docs/protocol/working-allocation-v1.md"
+      - "docs/decisions/ADR-001-flutter-native-android.md"
+      - ".github/workflows/flutter-android.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flutter-android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze-test-build:
+    name: Analyze, test and build Android
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+          cache-dependency-path: android_app/pubspec.yaml
+
+      - name: Generate Android host project
+        working-directory: android_app
+        run: flutter create . --platforms=android --org org.phfi.cdlr --project-name padalab_android --no-pub
+
+      - name: Resolve dependencies
+        working-directory: android_app
+        run: flutter pub get
+
+      - name: Check formatting
+        working-directory: android_app
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      - name: Analyze
+        working-directory: android_app
+        run: flutter analyze --fatal-infos
+
+      - name: Unit and widget tests
+        working-directory: android_app
+        run: flutter test --reporter expanded
+
+      - name: Build debug APK
+        working-directory: android_app
+        run: flutter build apk --debug
