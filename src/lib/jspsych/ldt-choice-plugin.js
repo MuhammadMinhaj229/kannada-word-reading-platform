@@ -31,16 +31,21 @@ export default class LdtChoicePlugin {
   async trial(displayElement, trial) {
     const frame = document.createElement("section");
     frame.className = "ldt-trial-frame";
+    frame.lang = "kn-IN";
     const prompt = document.createElement("p");
     prompt.className = "ldt-trial-prompt";
+    prompt.lang = "kn-IN";
     prompt.textContent = "ಈ ಪದ ನಿಜವಾದ ಪದವೇ?";
     const stimulus = document.createElement("div");
     stimulus.className = "ldt-trial-stimulus kn-text";
+    stimulus.lang = "kn-IN";
     stimulus.textContent = trial.stimulusText;
     const actions = document.createElement("div");
     actions.className = "ldt-trial-actions";
     const wordButton = makeButton("ಪದ", "ldt-answer ldt-answer-word", "word");
+    wordButton.lang = "kn-IN";
     const nonwordButton = makeButton("ಪದವಲ್ಲ", "ldt-answer ldt-answer-nonword", "nonword");
+    nonwordButton.lang = "kn-IN";
     actions.append(wordButton, nonwordButton);
     frame.append(prompt, stimulus, actions);
     displayElement.replaceChildren(frame);
