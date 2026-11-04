@@ -1,6 +1,6 @@
 # ಪದLab — Kannada Word Reading Assessment PWA
 
-**Repository status:** responsive PWA review build — CI and production build checks available  
+**Repository status:** two-tab Game / Settings review build — CI and production build checks available  
 **Build:** 0.1.0 · **Framework:** Next.js App Router + TypeScript  
 **Target:** Android phones and tablets with current Chrome/Chromium installed PWA support
 
@@ -63,9 +63,11 @@ npm run test:e2e
 ## Implementation status
 
 - Next.js App Router project scaffold.
-- Assessor workspace and child-game demonstration.
+- Minimal two-destination navigation: Game opens by default; Settings contains session setup, item-bank import, audio, export and protocol sections.
+- Child-facing Game home with a playful Kannada-first hero, clear start action and distraction-free full-screen trial mode.
 - Custom jsPsych lexical-decision plugin; local response write is awaited before moving forward.
 - Five practice examples followed by a 10-item demonstration block.
+- Automatic Kannada instruction and reward narration using a Kannada voice exposed by the device browser, when available; voice playback is sequenced before the first trial and the next trial waits for reward narration to finish.
 - Progress/reward milestone after every fifth scored demonstration response.
 - Dexie IndexedDB persistence.
 - Responsive phone/tablet layouts with phone bottom navigation, safe-area padding, accessible zoom, and a dedicated full-screen child trial view.
@@ -80,13 +82,13 @@ npm run test:e2e
 
 - Final 540 approved stimuli and allocation/order file.
 - PI decision on whether five practice items are additional to the 90 scored items.
-- Final Kannada instruction scripts and native female voice recordings.
+- Final Kannada instruction scripts and PHFI/CDLR-approved native female voice recordings. The current browser speech voice is only a preview fallback and does not guarantee a female speaker or a consistent voice across tablets.
 - Full participant/session setup, session locking, recovery and field-grade export workflow. The current export screen exports existing local demo records only.
 - Final REDCap mapping/API integration.
 - Actual-tablet offline validation, RT validation, accessibility and field pilot.
 - Research validation: UI/CI tests do not replace the target-tablet offline, audio, reaction-time, data-integrity and field-pilot acceptance tests.
 
-The demo includes fictional non-word strings for visual demonstration only. They are not linguistically screened and must never be used with children.
+The demo includes fictional non-word strings for visual demonstration only. They are not linguistically screened and must never be used with children. Browser-generated Kannada narration is also a UI preview, not a substitute for the final approved audio recordings.
 
 ## Research and licensing
 
