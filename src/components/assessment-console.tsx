@@ -10,7 +10,7 @@ import PwaRegistration from "@/components/pwa-registration";
 type Screen = "game" | "settings";
 type SettingsSection = "session" | "bank" | "audio" | "export" | "protocol";
 type Demo = { itemId: string; text: string; itemKind: ItemKind };
-type Reward = { count: number; resume: () => void } | null;
+type Reward = { count: number; resume: () => void; audioDone: boolean } | null;
 
 const practice: Demo[] = [
   { itemId: "PRACTICE-01", text: "ಮನೆ", itemKind: "word" },
@@ -170,8 +170,12 @@ export default function AssessmentConsole() {
           setProgress(index + 1);
         },
         onMilestone: async (count: number) => new Promise<void>((resolve) => {
-          setReward({ count, resume: resolve });
-          if (autoAudio) void speakKannada("ಚೆನ್ನಾಗಿದೆ. ನಿಮಗೆ ಒಂದು ಚಿಕ್ಕ ಬಹುಮಾನ.");
+          setReward({ count, resume: resolve, audioDone: !autoAudio });
+          if (autoAudio) {
+            void speakKannada("ಚೆನ್ನಾಗಿದೆ. ನಿಮಗೆ ಒಂದು ಚಿಕ್ಕ ಬಹುಮಾನ.").then(() => {
+              setReward((current) => current?.count === count ? { ...current, audioDone: true } : current);
+            });
+          }
         })
       });
 
@@ -347,7 +351,7 @@ export default function AssessmentConsole() {
                   <div className="reward-card" role="dialog" aria-modal="true" aria-labelledby="reward-title" lang="kn-IN">
                     <strong>{reward.count % 3 === 0 ? "🧁" : reward.count % 2 === 0 ? "🍫" : "⭐"}</strong>
                     <h2 id="reward-title">ಚೆನ್ನಾಗಿದೆ!</h2><p>ಚಿಕ್ಕ ಬಹುಮಾನ! · You completed {reward.count} demo items.</p>
-                    <button className="primary" type="button" onClick={() => { const resume = reward.resume; setReward(null); resume(); }}>ಮುಂದುವರಿಸಿ →</button>
+                    <button className="primary" type="button" disabled={!reward.audioDone} onClick={() => { const resume = reward.resume; setReward(null); resume(); }}>{reward.audioDone ? "ಮುಂದುವರಿಸಿ →" : "ಧ್ವನಿ ಕೇಳಿ… "}</button>
                   </div>
                 </div>
               )}
