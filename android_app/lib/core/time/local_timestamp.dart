@@ -12,9 +12,7 @@ class LocalTimestamp {
       return iso;
     }
 
-    final localIso = value.isUtc
-        ? iso.substring(0, iso.length - 1)
-        : iso;
+    final localIso = value.isUtc ? iso.substring(0, iso.length - 1) : iso;
     final offset = offsetOverride ?? value.timeZoneOffset;
     final totalMinutes = offset.inMinutes.abs();
     final hours = (totalMinutes ~/ 60).toString().padLeft(2, '0');
