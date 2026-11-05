@@ -1,61 +1,114 @@
-# System architecture
+# Padalab architecture
 
-## Decision
+## Product decision
 
-**Next.js PWA + jsPsych + Serwist + Dexie. No cloud database in the current scope.** The app is an assessment client for the study's existing REDCap environment, not a replacement for REDCap.
+**The field product is a native Flutter/Dart Android application.** It is designed for assessor-operated tablets and must continue to work with Wi-Fi and mobile data switched off.
+
+The existing Next.js PWA remains in the repository as a design and behaviour reference. Vercel previews that web prototype; Vercel deployment status is not evidence that the Android app has compiled, installed or passed tablet acceptance testing.
+
+## Runtime architecture
 
 ```text
-Vercel HTTPS distribution
-  └── Next.js App Router PWA
-       ├── Assessor workspace (study ID, visit/block, notes, import/export)
-       ├── Child player (Kannada instruction, stimulus, two answers)
-       ├── Local approved Kannada audio
-       ├── jsPsych experiment timeline
-       │    ├── 5 practice trials (additional to 90 scored: PI confirmation pending)
-       │    ├── 90 scored trials per block
-       │    ├── 45 real words + 45 non-words
-       │    └── response, RT, timestamps
-       ├── Serwist service worker (precache app, audio, bank; offline fallback)
-       └── Dexie / IndexedDB (local participants, sessions, trials and bank)
-              └── CSV / XLSX export → authorised REDCap import
+Signed Android APK
+└── Flutter application
+    ├── Assessor workspace
+    │   ├── child identification and history
+    │   ├── assessor identity
+    │   ├── session selection / resume / restart
+    │   └── reports and protected export
+    ├── Child assessment experience
+    │   ├── Kannada instructions and bundled audio
+    │   ├── practice flow
+    │   ├── fixed scored-trial presentation
+    │   └── progress and approved rewards
+    ├── Assessment domain
+    │   ├── protocol configuration and gates
+    │   ├── immutable session allocation manifest
+    │   ├── response and correctness rules
+    │   ├── monotonic reaction-time capture
+    │   └── session metrics
+    ├── Data layer
+    │   ├── repositories (single application data boundary)
+    │   ├── SQLite in private app storage
+    │   ├── schema migrations and transactions
+    │   └── append-only export audit
+    └── Bundled assets
+        ├── approved/versioned item bank
+        ├── recorded Kannada audio
+        ├── Kannada font
+        └── licensed visual assets
 ```
 
-## Confirmed allocation
+## Separation of responsibilities
 
-- Three visits per child.
-- Two blocks per visit, six blocks overall.
-- Ninety scored items per block.
-- Forty-five real words and forty-five non-words in each block.
-- 540 unique scored items per child: 270 real words and 270 non-words.
-- Five practice examples before each block are proposed as additional trials; the PI must confirm this interpretation.
-- Progress reward after every five completed scored trials. Rewards are based on completion, never correctness or speed.
+- **Views** render assessor and child experiences; they do not choose stimuli, calculate scores or write raw SQL.
+- **View models/controllers** coordinate user actions and expose state to views.
+- **Domain services** enforce session rules, trial transitions, scoring, reaction time and summary calculations.
+- **Repositories** are the only application-facing path to stored data.
+- **SQLite services** own SQL, schema migrations, transactions and integrity constraints.
+- **Platform adapters** own audio, screen-awake/full-screen behaviour, file creation and Android share-sheet interactions.
 
-## Offline lifecycle
+This separation keeps the assessment rules independent of presentation and persistence details. It also lets unit tests exercise the scoring and trial logic without launching the UI.
 
-1. Assessor opens the approved HTTPS deployment online.
-2. PWA installs and service worker precaches required assets.
-3. Offline-readiness verifies app shell, approved item bank, Kannada font and audio pack.
-4. Assessor selects study ID, assessor ID, visit and block.
-5. App locks app version and item-bank version for the session.
-6. Each response is persisted to IndexedDB before the next stimulus is shown.
-7. Service-worker updates must not activate during an assessment.
-8. Assessor exports data for authorised REDCap import.
-9. App updates are applied only when all sessions are closed.
+## Critical trial lifecycle
 
-## Module boundaries
+1. Restore the exact session manifest and next trial from SQLite.
+2. Record a wall-clock timestamp with local UTC offset for the export record.
+3. Start a monotonic stopwatch at the moment the stimulus becomes visible.
+4. Accept only the configured response controls; distinguish a wrong answer from no response.
+5. Stop the monotonic clock on the accepted touch and calculate RT in milliseconds.
+6. Commit the response, correctness, RT, timestamps and updated progress in one awaited database transaction.
+7. Advance only after the transaction succeeds. On a write error, preserve the current stimulus and show an assessor-safe recovery state.
 
-- `src/components/assessment-console.tsx`: assessor and demo UI.
-- `src/lib/jspsych/ldt-choice-plugin.js`: two-choice word/non-word response and RT capture.
-- `src/lib/protocol.ts`: protocol constants and record types.
-- `src/lib/item-bank/validate.ts`: 540-item and 45/45 block validation.
-- `src/lib/item-bank/import-xlsx.ts`: Excel parsing and approval metadata checks.
-- `src/lib/storage/db.ts`: IndexedDB persistence.
-- `src/app/sw.ts`: offline caching policy.
+Wall-clock time is for audit chronology; it must not be used to calculate elapsed reaction time. A monotonic clock avoids clock adjustments changing the measured duration.
 
-## Privacy and integrity
+## Session and item-bank integrity
 
-No cloud DB, participant API, REDCap token, analytics or external tracking is required by the current app. Do not send trial records off-device automatically. Export is non-destructive. Store study IDs rather than child names unless the approved protocol requires otherwise.
+- Session order must be generated once, approved, versioned and persisted before administration.
+- Resume restores the persisted order; it never shuffles again.
+- Every session stores protocol version, item-bank version/hash and app version.
+- The packaged item bank is read-only at runtime.
+- No non-word candidates are packaged until native Kannada review and written approval are complete.
+- A bank change creates a new version and requires a controlled app release; it must not mutate existing session records.
 
-## PWA validation caveat
+## Local data and export
 
-A PWA is not identical to a native Android APK. Test the actual target tablet for cold offline launch, orientation, fullscreen, screen-awake behaviour, audio focus, RT timing, IndexedDB durability, service-worker updates and OS lifecycle. If it fails an essential field requirement, run a Capacitor compatibility spike while retaining the Next.js codebase.
+SQLite in the app's private directory is the sole source of truth during field use. There is no API client, cloud database, background sync, analytics, crash-reporting or remote logging in this release.
+
+Trial and session CSV files must:
+- use the approved field dictionary;
+- preserve Kannada via UTF-8 with BOM;
+- exclude child names by default;
+- include all local records, not only the current child/session;
+- be non-destructive and audited locally;
+- be saved through Android's supported document/storage flow and shared by the native Android share sheet.
+
+The two export files remain the specified raw-data deliverables. Additional child-level or daily summaries are derived reports and must not replace them.
+
+## Android presentation constraints
+
+- Target Android 8.0 (API 26) or newer; actual target tablet must be confirmed.
+- Landscape-only assessment UI as required by the study.
+- Immersive/full-screen mode and screen-awake behaviour only while a child session is active.
+- Responsive assessor layouts for supported screen sizes and safe areas. Phone portrait support is not a substitute for the tablet landscape protocol.
+- Kannada shaping must be checked on-device for `ಕ್ಷ`, `ಸ್ತ್ರೀ`, `ಗ್ಗ` and `ಜ್ಞಾ`.
+
+## Build and deployment
+
+- GitHub Actions is the canonical place for Flutter formatting, static analysis, unit/widget tests and Android debug builds.
+- Device-level integration tests must run on an emulator and the actual field tablet.
+- Release signing is separate from debug builds. Keystore material is stored outside the repository and only injected through protected release secrets.
+- The signed APK and installation guide are the field deliverables.
+- Vercel is used only for the existing PWA/reference preview and documentation site; it is not the Android release pipeline.
+
+## Protocol gates
+
+The formal requirements document and the later working-allocation proposal differ. The application must not resolve those differences by guessing. The PI/statistician must confirm the item counts, session structure, practice interpretation, reward cadence, timeout/no-response handling, repeat/resume policy, ID formats, audio script and data-retention rules before the protocol is frozen.
+
+## Quality strategy
+
+- **Unit tests:** protocol arithmetic, item-bank validation, deterministic manifest generation, response validation, scoring, RT boundaries and summary statistics.
+- **Database tests:** migrations, constraints, transaction rollback, duplicate prevention, immediate persistence, resume/restart and export queries.
+- **Widget tests:** assessor entry, validation messages, child controls, responsive sizing, accessibility semantics and error states.
+- **Integration tests:** complete practice/test flows, app lifecycle interruption, cold launch, audio playback, local storage and exports.
+- **Device acceptance:** offline cold launch, landscape/full-screen, screen awake, Kannada glyph shaping, touch responsiveness, battery/power recovery, Downloads and share-sheet on the actual tablet.
