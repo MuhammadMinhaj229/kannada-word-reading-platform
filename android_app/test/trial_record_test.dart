@@ -74,7 +74,10 @@ void main() {
       '2026-11-04T12:30:00.000Z',
     );
     expect(
-      LocalTimestamp.format(instant, offsetOverride: const Duration(minutes: 330)),
+      LocalTimestamp.format(
+        instant,
+        offsetOverride: const Duration(minutes: 330),
+      ),
       '2026-11-04T12:30:00.000+05:30',
     );
   });
