@@ -90,38 +90,47 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
   }
 
   Widget _topBar(BuildContext context) {
-    return Row(
+    final narrow = MediaQuery.sizeOf(context).width < 480;
+    return Wrap(
+      alignment: WrapAlignment.spaceBetween,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 12,
+      runSpacing: 12,
       children: <Widget>[
-        const _BrandMark(),
-        const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        Row(
+          mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Text(
-              'ಪದLab',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontSize: 23,
+            const _BrandMark(),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  'ಪದLab',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontSize: 23,
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+                const Text(
+                  'KANNADA WORD READING ASSESSMENT',
+                  style: TextStyle(
+                    color: AppTheme.muted,
+                    fontSize: 9,
                     fontWeight: FontWeight.w800,
+                    letterSpacing: 1.3,
                   ),
-            ),
-            const Text(
-              'KANNADA WORD READING ASSESSMENT',
-              style: TextStyle(
-                color: AppTheme.muted,
-                fontSize: 9,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.3,
-              ),
+                ),
+              ],
             ),
           ],
         ),
-        const Spacer(),
-        const _StatusPill(
-          icon: Icons.cloud_off_rounded,
-          label: 'OFFLINE-FIRST',
-          color: AppTheme.teal,
-        ),
-        const SizedBox(width: 9),
+        if (!narrow)
+          const _StatusPill(
+            icon: Icons.cloud_off_rounded,
+            label: 'OFFLINE-FIRST',
+            color: AppTheme.teal,
+          ),
         const _StatusPill(
           icon: Icons.science_outlined,
           label: 'PREVIEW BUILD',
@@ -167,7 +176,13 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
         const SizedBox(height: 24),
         LayoutBuilder(
           builder: (context, constraints) {
-            final width = (constraints.maxWidth - 20) / 3;
+            final columns = constraints.maxWidth < 420
+                ? 1
+                : constraints.maxWidth < 620
+                    ? 2
+                    : 3;
+            final width =
+                (constraints.maxWidth - (columns - 1) * 10) / columns;
             return Wrap(
               spacing: 10,
               runSpacing: 10,
