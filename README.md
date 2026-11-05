@@ -1,106 +1,102 @@
-# ಪದLab — Kannada Word Reading Assessment PWA
+# ಪದLab — Kannada Word Reading Assessment
 
-**Repository status:** responsive PWA review build — CI and production build checks available  
-**Build:** 0.1.0 · **Framework:** Next.js App Router + TypeScript  
-**Target:** Android phones and tablets with current Chrome/Chromium installed PWA support
+**Primary deliverable:** offline-first Flutter/Dart Android tablet application.  
+**Secondary deliverable:** Flutter Web review build for stakeholder UI feedback only.  
+**Current maturity:** engineering foundation preview; not approved for participant use.
 
-## Product decision
+## What this repository builds
 
-This project uses **Next.js as the single application framework** and ships as an installable, offline-first Progressive Web App (PWA). It does not require a hosted database.
+| Target | Purpose | Build |
+|---|---|---|
+| Android | Field assessment on assessor tablets; local SQLite; offline operation | Signed APK for release; debug APK in CI |
+| Web | Browser-based UI review using the same Flutter screens | Static files in `build/web`; hosted on Vercel |
 
-The existing research study remains in **REDCap**. This app is a specialist child-facing lexical-decision instrument. It presents stimuli, records trial responses locally, and exports session-level data for the study's approved REDCap workflow.
+The browser preview is not the research instrument. It does not certify Android behavior, SQLite persistence, offline operation, audio, reaction-time accuracy, or tablet compatibility. Never enter participant information in the web preview.
 
-## Confirmed planning structure
+## Repository layout
 
-- 3 visits per child.
-- 2 test blocks per visit.
-- 6 blocks per child.
-- 90 scored items per block.
-- 45 real words + 45 non-words per block.
-- 540 scored items per child: 270 real words + 270 non-words.
-- Proposed: 5 practice trials before each 90-item scored block. This makes 95 presentations per block and 570 total presentations. **The PI must confirm practice trials are additional to the 90 scored items.**
-- Small progress reward after every 5 completed scored trials; never based on correctness or speed.
-- No correctness feedback during scored trials unless explicitly approved by the study protocol.
-
-## Architecture
-
-| Concern | Implementation |
-|---|---|
-| Application | Next.js App Router + React + TypeScript |
-| Offline shell/assets | Serwist service worker and precache |
-| Behavioral timeline | jsPsych 8, custom Kannada two-choice plugin |
-| Trial persistence | Dexie + browser IndexedDB |
-| Excel item-bank import | ExcelJS with strict structural validation |
-| Hosting / updates | Vercel connected to private GitHub |
-| Research data system | Existing REDCap; CSV/XLSX export first |
-| Cloud database | None in current scope |
-
-## Run locally
-
-Use Node.js 22.
-
-```bash
-npm install
-npm run dev
+```
+lib/
+  app/                 App composition, navigation and design system
+  core/                Protocol configuration and platform-independent utilities
+  data/                Local persistence boundary (Android SQLite)
+  features/
+    assessment/        Stimulus, allocation, trial and scoring domain
+    assessor/          Assessor workspace and participant workflow
+    child/             Child-facing assessment experience
+test/                  Unit and widget tests
+docs/                  Architecture, protocol gates, privacy and release checks
+scripts/deploy/        Reproducible Flutter Web build scripts for Vercel
+.github/workflows/     Flutter quality, test, Android and web builds
 ```
 
-Open `http://localhost:3000`.
+The former Next.js/PWA implementation is preserved on branch `archive/nextjs-prototype-before-flutter-root`. It is no longer part of the active application or deployment pipeline.
 
-For a production PWA build:
+## Local setup
 
-```bash
-npm run build
-npm run start
-```
-
-Run responsive browser tests after building:
+Install Flutter stable **3.47.9** and the Android SDK. Then run from the repository root:
 
 ```bash
-npx playwright install chromium
-npm run test:e2e
+flutter create . --platforms=android,web --org org.phfi.cdlr --project-name padalab_android --no-pub
+flutter pub get
+dart format lib test
+flutter analyze --fatal-infos
+flutter test --reporter expanded
+flutter run
 ```
 
-## Implementation status
+To run the browser preview:
 
-- Next.js App Router project scaffold.
-- Assessor workspace and child-game demonstration.
-- Custom jsPsych lexical-decision plugin; local response write is awaited before moving forward.
-- Five practice examples followed by a 10-item demonstration block.
-- Progress/reward milestone after every fifth scored demonstration response.
-- Dexie IndexedDB persistence.
-- Responsive phone/tablet layouts with phone bottom navigation, safe-area padding, accessible zoom, and a dedicated full-screen child trial view.
-- PWA manifest, install prompt, network/offline status, safe update prompt, and Serwist service worker with local static-resource and template caching.
-- Bundled Noto Sans Kannada font files via Fontsource (OFL-1.1).
-- Six-block item-bank validator: 540 total, 270/270, 45/45 per block, unique IDs/text, complete order, approval metadata.
-- ExcelJS workbook parser and local item-bank storage.
-- Blank 540-item authoring template generated by a downloadable Next.js route and warmed for offline use after first online launch.
-- CI workflow with Playwright responsive browser checks, architecture/privacy/licensing notes, and a lockfile-generation step.
+```bash
+flutter run -d chrome
+```
 
-## Not yet approved or complete
+To build both targets:
 
-- Final 540 approved stimuli and allocation/order file.
-- PI decision on whether five practice items are additional to the 90 scored items.
-- Final Kannada instruction scripts and native female voice recordings.
-- Full participant/session setup, session locking, recovery and field-grade export workflow. The current export screen exports existing local demo records only.
-- Final REDCap mapping/API integration.
-- Actual-tablet offline validation, RT validation, accessibility and field pilot.
-- Research validation: UI/CI tests do not replace the target-tablet offline, audio, reaction-time, data-integrity and field-pilot acceptance tests.
+```bash
+flutter build apk --debug
+flutter build web --release
+```
 
-The demo includes fictional non-word strings for visual demonstration only. They are not linguistically screened and must never be used with children.
+The generated Android and web host directories are created from the pinned Flutter SDK in CI/deployment. Keep platform-specific changes documented and committed deliberately.
 
-## Research and licensing
+## Web preview and Vercel
 
-The LEVANTE core-tasks repository is a methodological reference; do not copy its implementation or assets without a licensing review. Its core task materials have CC BY-NC terms. ROAR-LDT has a more restrictive Stanford academic software licence. See `docs/reference-repositories.md` and `docs/open-source-reuse-policy.md`.
+Vercel serves the static Flutter Web output from `build/web`. The build downloads the pinned Flutter SDK and runs `flutter build web --release`. No application API keys or runtime environment variables are needed.
 
-## Data and ethics guardrails
+- Build scripts: `scripts/deploy/`
+- Vercel settings: `vercel.json`
+- Deployment notes: `docs/deployment.md`
 
-- Never commit child names, study data, item-bank data or trial exports.
-- No analytics, advertising, remote logging or external tracking on the child assessment route.
-- Keep trial records local; do not upload automatically.
-- Use approved Kannada recordings and institution-approved visuals.
-- Obtain PHFI/CDLR ownership, ethics, information-security and data-retention approval before field use.
-- This repository is private and has no open-source licence assignment.
+A browser build is strictly a UI review target. Native SQLite, Android Downloads/share-sheet behavior, Android immersive mode, and field-device acceptance remain Android-only checks. Do not add a browser database simply to make the preview appear field-ready.
 
-## Deployment
+## Study protocol and item-bank gates
 
-Import this private GitHub repository into Vercel. Use project root `/`, install command `npm install`, and build command `npm run build`. The Vercel project is linked to this private repository, configured for Next.js and Node.js 22.x, with the repository root and `npm run build`. CI generates and commits a reproducible npm lockfile on the next successful main-branch run if one is not already tracked. Preview deployment access remains protected by Vercel SSO. A successful web build does not certify this instrument for use with children.
+The supplied requirements DOCX specifies 270 real Kannada words + 270 non-words, six sessions, five practice items + 85 test items per session, a 10-second stimulus display, Kannada recorded instruction audio and a gold coin after every 10 answers.
+
+A separate 194-non-word / 45-real + 32-nonword / 77-scored-item proposal was discussed later. It conflicts with the formal requirements document and is not approved. Engineering tests may exercise provisional arithmetic, but these values must not be administered or treated as final until the PI/statistician confirms the protocol in writing.
+
+The latest workbook audit found 270 non-word candidates, all marked Pending. No non-word is approved for use. Native Kannada review and written approval are required before any candidate item is packaged.
+
+See:
+- `docs/protocol-decisions.md`
+- `docs/protocol/working-allocation-v1.md`
+- `docs/architecture.md`
+
+## Data protection and research integrity
+
+- Android assessment data remains in private on-device storage.
+- No backend, cloud database, analytics, crash telemetry, or automatic upload is part of the field app.
+- Never commit participant data, names, trial exports, item-bank source files, audio recordings, or signing keys.
+- Persist each accepted response before advancing to another stimulus.
+- Resume must restore the exact frozen trial order; never reshuffle an interrupted session.
+- Keep child names out of exports by default.
+- CI success is not evidence of ethics approval, linguistic validity, offline readiness or field acceptance.
+
+## Current implementation status
+
+The current branch is an early Flutter foundation: theme/app shell, assessor-to-child preview navigation, provisional session allocation, initial SQLite schema, trial serialization, timestamp formatting and unit/widget test coverage.
+
+Still required: the approved protocol and item bank, persistent assessor/child/session workflow, complete trial state machine, resume/restart handling, bundled Kannada fonts/audio, rewards, summary metrics, protected CSV exports, native Android integrations, signed APK and real-device offline testing.
+
+**Do not use this preview with children or for data collection.**

@@ -1,23 +1,42 @@
-node_modules/
-.next/
-out/
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub/
+.pub-cache/
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
 coverage/
-playwright-report/
-test-results/
-.env*
+
+# Android build and local configuration
+android/.gradle/
+android/local.properties
+android/key.properties
+android/app/*.jks
+android/app/*.keystore
+*.jks
+*.keystore
+
+# Generated web build/runtime cache
+web/flutter_service_worker.js
+
+# Secrets and local environment
+.env
+.env.*
 !.env.example
-.DS_Store
-*.log
 *.pem
 *.key
 *.p12
-*.jks
-public/sw.js
-public/swe-worker-*.js
+
+# Local exports and research data (never commit)
 exports/
 participant-data/
-*.xlsx
 *.csv
-!docs/templates/*.xlsx
-!public/templates/*.xlsx
-*.tsbuildinfo
+*.xlsx
+*.xlsm
+
+# Editor / operating system
+.DS_Store
+.idea/
+.vscode/
+*.log
