@@ -1,10 +1,16 @@
-# Working allocation baseline — not yet approved
+# Working allocation proposal v1 — not approved
 
-**Status:** implementation planning baseline only. Do not administer this allocation until the study team confirms it in writing.
+**Status: planning-only proposal. Do not administer it or treat it as the current study protocol.** This proposal was retained for engineering exploration but conflicts with the formal requirements DOCX. It must be replaced or explicitly approved by the study team before protocol freeze.
 
-## Intended pool and six-session split
+## Proposal discussed earlier
 
-The current working instruction is 270 real Kannada words and 194 non-words across six sessions, with 45 real words and 32 non-words in each session (77 scored items).
+The unapproved proposal was:
+- 270 real Kannada words.
+- 194 non-words.
+- Six sessions.
+- 45 real words + 32 non-words = 77 scored items per session.
+- 192 non-words allocated across six sessions; two kept in reserve.
+- Five practice items provisionally additional to the 77 scored items.
 
 | Session | Real words | Non-words | Scored items |
 |---|---:|---:|---:|
@@ -16,20 +22,27 @@ The current working instruction is 270 real Kannada words and 194 non-words acro
 | 6 | 45 | 32 | 77 |
 | **Total** | **270** | **192** | **462** |
 
-Two of the intended 194 non-words remain in reserve and are not silently appended to sessions.
+This is an alternative working proposal, not an approved allocation.
 
-## Source-file discrepancy
+## Latest uploaded item-bank audit — 5 November 2026
 
-The uploaded `non word list.csv` contains 193 data rows, one fewer than the intended 194. The intended pool is 464 items, while the currently uploaded files contain 463 entries. One additional candidate is required, then all items must follow the native Kannada review and written approval process.
+The currently supplied `nonwords_v1.xlsm` contains 270 candidate non-words, not 193:
+- 270 unique candidate IDs and 270 unique candidate strings.
+- Method split: A_vowel 68, B_consonant 68, C_suffix_prefix 67, D_prefix_suffix 67.
+- 270 source-word references are structurally present and match the supplied real-word source list.
+- No exact-string overlap with the real-word list or duplicate candidate strings was found by structural validation.
+- Every candidate is marked `Pending`; reviewer notes are blank.
 
-No stimulus text is committed by this foundation change.
+These are structural checks only. They do not establish that a Kannada string is pronounceable, meaningless, age-appropriate or acceptable as a research stimulus. All candidates still require native Kannada review and written approval. No candidate is approved for inclusion in the app.
 
-## Practice-item interpretation
+## Conflict with the formal requirements
 
-The original requirements describe five practice items plus 85 test items in a 90-item session. This working baseline treats five practice items as additional to the revised 77 scored items, making 82 presentations. The study team must confirm this interpretation before protocol freeze.
+The requirements DOCX specifies a pool of 270 real words + 270 non-words (540 total), and six sessions of 90 presentations each: five practice and 85 test items. It also specifies a reward after every 10 answers.
 
-## Allocation implementation
+The earlier 194-nonword proposal instead gives 77 scored items per session, plus five practice items provisionally outside the scored set. These structures are not equivalent. The exact item counts and whether practice items are part of the bank must be confirmed by the PI/statistician.
 
-The initial allocator is seeded and deterministic. The same approved bank and seed produce the same six ordered session lists. Persist those allocations before a participant starts; a resumed session must use its saved sequence, not allocate again.
+## Allocation implementation status
 
-The initial algorithm is seeded random allocation. If the final protocol requires stratification by age of acquisition, syllable count, phoneme structure, akshara type or another item characteristic, implement and validate that method before the field bank is enabled.
+The Flutter branch contains a seeded allocator that can create the 45 + 32 proposal for unit tests. It is not a final research allocation method. The final allocation must be agreed, generated, reviewed, versioned and frozen before administration. Every participant session must restore the saved manifest rather than re-randomising after an interruption.
+
+If the final protocol requires balancing by age of acquisition, syllable count, phoneme structure, akshara type or another item characteristic, that method must be specified and validated before the field bank is enabled.
