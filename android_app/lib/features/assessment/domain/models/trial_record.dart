@@ -72,7 +72,9 @@ class TrialRecord {
       'correct': correct == null ? null : (correct! ? 1 : 0),
       'rt_ms': reactionTimeMs,
       'shown_at': LocalTimestamp.format(shownAt),
-      'answered_at': answeredAt == null ? null : LocalTimestamp.format(answeredAt!),
+      'answered_at': answeredAt == null
+          ? null
+          : LocalTimestamp.format(answeredAt!),
       'coins_so_far': coinsSoFar,
       'app_version': appVersion,
       'items_file_version': itemBankVersion,
