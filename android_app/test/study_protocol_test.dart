@@ -20,14 +20,17 @@ void main() {
       expect(StudyProtocol.allocationArithmeticIsValid, isTrue);
     });
 
-    test('separates uploaded candidates from the unapproved working proposal', () {
+    test(
+      'separates uploaded candidates from the unapproved working proposal',
+      () {
       expect(StudyProtocol.plannedNonWordPoolCount, 194);
       expect(StudyProtocol.uploadedNonWordWorkbookCount, 270);
       expect(StudyProtocol.approvedNonWordCount, 0);
       expect(StudyProtocol.uploadedTotalPool, 540);
       expect(StudyProtocol.workingProposalTotalPool, 464);
-      expect(StudyProtocol.formalRequirementsTotalPool, 540);
-    });
+        expect(StudyProtocol.formalRequirementsTotalPool, 540);
+      },
+    );
 
     test('does not mark the item bank as approved', () {
       expect(StudyProtocol.itemBankApproved, isFalse);
