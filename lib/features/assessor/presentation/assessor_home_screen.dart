@@ -113,7 +113,9 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
                       ),
                 ),
                 Text(
-                  narrow ? 'KANNADA ASSESSMENT' : 'KANNADA WORD READING ASSESSMENT',
+                  narrow
+                      ? 'KANNADA ASSESSMENT'
+                      : 'KANNADA WORD READING ASSESSMENT',
                   style: const TextStyle(
                     color: AppTheme.muted,
                     fontSize: 9,
@@ -181,8 +183,7 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
                 : constraints.maxWidth < 620
                     ? 2
                     : 3;
-            final width =
-                (constraints.maxWidth - (columns - 1) * 10) / columns;
+            final width = (constraints.maxWidth - (columns - 1) * 10) / columns;
             return Wrap(
               spacing: 10,
               runSpacing: 10,
