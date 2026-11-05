@@ -112,9 +112,9 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
                         fontWeight: FontWeight.w800,
                       ),
                 ),
-                const Text(
-                  'KANNADA WORD READING ASSESSMENT',
-                  style: TextStyle(
+                Text(
+                  narrow ? 'KANNADA ASSESSMENT' : 'KANNADA WORD READING ASSESSMENT',
+                  style: const TextStyle(
                     color: AppTheme.muted,
                     fontSize: 9,
                     fontWeight: FontWeight.w800,
