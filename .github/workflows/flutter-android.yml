@@ -53,6 +53,10 @@ jobs:
         working-directory: android_app
         run: flutter pub get
 
+      - name: Show canonical Dart formatting for flagged files
+        working-directory: android_app
+        run: dart format --output=show lib/core/config/study_protocol.dart lib/features/assessment/domain/services/session_allocator.dart lib/features/assessor/presentation/assessor_home_screen.dart
+
       - name: Verify formatting
         working-directory: android_app
         run: dart format --output=none --set-exit-if-changed lib test
