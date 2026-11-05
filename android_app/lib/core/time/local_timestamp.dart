@@ -12,7 +12,19 @@ class LocalTimestamp {
       return iso;
     }
 
-    final localIso = value.isUtc ? iso.replaceFirst(RegExp(r'Z$'), '') : iso;
+    final localIso = value.isUtc
+        ? iso.replaceFirst(RegExp(r'Z
+    final offset = offsetOverride ?? value.timeZoneOffset;
+    final totalMinutes = offset.inMinutes.abs();
+    final hours = (totalMinutes ~/ 60).toString().padLeft(2, '0');
+    final minutes = (totalMinutes % 60).toString().padLeft(2, '0');
+    final sign = offset.isNegative ? '-' : '+';
+
+    return '$localIso$sign$hours:$minutes';
+  }
+}
+), '')
+        : iso;
     final offset = offsetOverride ?? value.timeZoneOffset;
     final totalMinutes = offset.inMinutes.abs();
     final hours = (totalMinutes ~/ 60).toString().padLeft(2, '0');
