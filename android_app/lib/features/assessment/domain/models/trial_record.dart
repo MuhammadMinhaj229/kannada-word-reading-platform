@@ -1,3 +1,5 @@
+import '../../../../core/time/local_timestamp.dart';
+
 class TrialRecord {
   const TrialRecord({
     required this.trialUuid,
@@ -48,9 +50,9 @@ class TrialRecord {
     if (trialNumber < 1 || coinsSoFar < 0) {
       throw ArgumentError('Trial number and coin count must be non-negative.');
     }
-    if (correct != null && response == null) {
+    if (correct != null && (response == null || response == 'none')) {
       throw ArgumentError(
-        'Correctness cannot be recorded when no response exists.',
+        'Correctness must be blank when there is no response.',
       );
     }
     if (reactionTimeMs != null && reactionTimeMs! < 0) {
@@ -69,8 +71,8 @@ class TrialRecord {
       'response': response,
       'correct': correct == null ? null : (correct! ? 1 : 0),
       'rt_ms': reactionTimeMs,
-      'shown_at': shownAt.toIso8601String(),
-      'answered_at': answeredAt?.toIso8601String(),
+      'shown_at': LocalTimestamp.format(shownAt),
+      'answered_at': answeredAt == null ? null : LocalTimestamp.format(answeredAt!),
       'coins_so_far': coinsSoFar,
       'app_version': appVersion,
       'items_file_version': itemBankVersion,
