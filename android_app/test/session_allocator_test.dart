@@ -3,7 +3,7 @@ import 'package:padalab_android/features/assessment/domain/models/study_item.dar
 import 'package:padalab_android/features/assessment/domain/services/session_allocator.dart';
 
 void main() {
-  const allocator = SessionAllocator();
+  const allocator = const SessionAllocator();
 
   List<StudyItem> makeWords(int count) => List<StudyItem>.generate(
         count,
