@@ -65,6 +65,9 @@ jobs:
       - name: Resolve and lock dependencies
         run: flutter pub get
 
+      - name: Apply Dart formatter
+        run: dart format lib test
+
       - name: Verify formatting
         run: dart format --output=none --set-exit-if-changed lib test
 
@@ -102,13 +105,13 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Commit generated dependency lockfile on branch pushes
+      - name: Commit formatted sources and dependency lockfile on branch pushes
         if: success() && github.event_name == 'push' && github.ref != 'refs/heads/main'
         run: |
-          if ! git ls-files --error-unmatch pubspec.lock >/dev/null 2>&1; then
+          git add lib test pubspec.lock
+          if ! git diff --cached --quiet; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add pubspec.lock
-            git commit -m "chore(deps): lock Flutter dependencies"
+            git commit -m "chore: apply Dart formatting and lock dependencies"
             git push origin "HEAD:${GITHUB_REF_NAME}"
           fi
