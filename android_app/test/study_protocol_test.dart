@@ -23,11 +23,11 @@ void main() {
     test(
       'separates uploaded candidates from the unapproved working proposal',
       () {
-      expect(StudyProtocol.plannedNonWordPoolCount, 194);
-      expect(StudyProtocol.uploadedNonWordWorkbookCount, 270);
-      expect(StudyProtocol.approvedNonWordCount, 0);
-      expect(StudyProtocol.uploadedTotalPool, 540);
-      expect(StudyProtocol.workingProposalTotalPool, 464);
+        expect(StudyProtocol.plannedNonWordPoolCount, 194);
+        expect(StudyProtocol.uploadedNonWordWorkbookCount, 270);
+        expect(StudyProtocol.approvedNonWordCount, 0);
+        expect(StudyProtocol.uploadedTotalPool, 540);
+        expect(StudyProtocol.workingProposalTotalPool, 464);
         expect(StudyProtocol.formalRequirementsTotalPool, 540);
       },
     );
