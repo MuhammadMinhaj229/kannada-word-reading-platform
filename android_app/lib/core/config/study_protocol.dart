@@ -30,4 +30,3 @@ abstract final class StudyProtocol {
           scoredItemsPerSession == 77 &&
           reserveNonWords == 2;
 }
-
