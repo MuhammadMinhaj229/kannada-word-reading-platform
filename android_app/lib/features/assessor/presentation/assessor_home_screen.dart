@@ -484,4 +484,3 @@ class _BrandMark extends StatelessWidget {
     );
   }
 }
-
