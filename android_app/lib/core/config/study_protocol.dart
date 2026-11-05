@@ -2,8 +2,16 @@
 abstract final class StudyProtocol {
   static const int sessionCount = 6;
   static const int realWordPoolCount = 270;
+  // Working-allocation proposal only; it is not the formal DOCX protocol.
   static const int plannedNonWordPoolCount = 194;
-  static const int uploadedNonWordCsvCount = 193;
+
+  // Latest uploaded nonwords_v1.xlsm audit (5 Nov 2026).
+  // All candidates remain pending native-speaker review and written approval.
+  static const int uploadedNonWordWorkbookCount = 270;
+  static const int approvedNonWordCount = 0;
+
+  // Formal requirements document specifies a 270 + 270 stimulus pool.
+  static const int formalRequirementsNonWordPoolCount = 270;
 
   static const int realWordsPerSession = 45;
   static const int nonWordsPerSession = 32;
@@ -18,10 +26,12 @@ abstract final class StudyProtocol {
   static const bool practiceIsAdditionalToScoredItems = true;
   static const bool itemBankApproved = false;
 
-  static const int intendedTotalPool =
+  static const int workingProposalTotalPool =
       realWordPoolCount + plannedNonWordPoolCount;
+  static const int formalRequirementsTotalPool =
+      realWordPoolCount + formalRequirementsNonWordPoolCount;
   static const int uploadedTotalPool =
-      realWordPoolCount + uploadedNonWordCsvCount;
+      realWordPoolCount + uploadedNonWordWorkbookCount;
 
   static const bool allocationArithmeticIsValid =
       sessionCount * realWordsPerSession == realWordPoolCount &&
