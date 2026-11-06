@@ -22,7 +22,7 @@ This is a repeatable viewport regression matrix, not a guarantee for every physi
 
 - One GitHub Actions workflow runs formatting, static analysis, tests, Android debug APK build and Flutter Web build from one commit.
 - The tested Web artifact is handed to a dependent Cloudflare Pages deployment job; the deploy job does not rebuild the application.
-- Cloudflare Direct Upload is configured for project `padalab-kannada-reading`, production branch `main`.
+- The workflow is configured to target Cloudflare Pages Direct Upload project `padalab-kannada-reading`, production branch `main`; the project still needs to be created in the Cloudflare account.
 - Same-repository pull requests receive Cloudflare branch previews; the `main` branch receives the production Pages deployment.
 - Cloudflare deployment requires repository Actions secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. Until both are configured, the deploy step safely skips. No Cloudflare production deployment has yet been verified.
 - Vercel remains a temporary fallback until the Cloudflare Pages deployment is connected and verified. Do not maintain two canonical Web URLs after cutover.
