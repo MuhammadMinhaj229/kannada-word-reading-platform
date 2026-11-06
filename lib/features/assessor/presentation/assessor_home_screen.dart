@@ -44,7 +44,7 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final viewport = MediaQuery.sizeOf(context);
-    final compact = viewport.width < 900 || viewport.height < 680;
+    final compact = viewport.width < 900 || viewport.height < 760;
     return Scaffold(
       body: SafeArea(
         child: Center(
