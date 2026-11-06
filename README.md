@@ -1,7 +1,8 @@
 # ಪದLab — Kannada Word Reading Assessment
 
-**Primary deliverable:** offline-first Flutter/Dart Android tablet application.  
-**Secondary deliverable:** Flutter Web review build for stakeholder UI feedback only.  
+**One application codebase:** Flutter/Dart under `lib/`, shared by Android and Web.  
+**Primary field target:** offline-first Android tablet application.  
+**Web target:** browser-based review of the same Flutter screens.  
 **Current maturity:** engineering foundation preview; not approved for participant use.
 
 ## What this repository builds
