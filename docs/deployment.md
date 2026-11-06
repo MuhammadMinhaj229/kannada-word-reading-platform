@@ -31,7 +31,7 @@ The repository is prepared for Cloudflare Pages Direct Upload. The GitHub Action
 
 ### Preview and cache behavior
 
-Only `main` publishes the Cloudflare production site. Pull requests still run formatting, analysis, widget tests, Android debug build and Web build without production credentials. The shared `scripts/deploy/configure_web_output.sh` writes a `_headers` policy that revalidates web assets when the app is opened again. Flutter 3.47.9 is pinned to the latest stable release currently selected for this project; do not use Flutter 3.50 preview-only flags in a production build.
+Pushes to `main` publish the Cloudflare production site. Same-repository pull requests publish a branch preview after validation; forked pull requests receive no Cloudflare credentials and only run the build checks. The preview branch name is normalized for DNS, so this feature branch will use `feat-flutter-android-foundation.padalab-kannada-reading.pages.dev`. The shared `scripts/deploy/configure_web_output.sh` writes a `_headers` policy that revalidates web assets when the app is opened again. Flutter 3.47.9 is pinned to the latest stable release currently selected for this project; do not use Flutter 3.50 preview-only flags in a production build.
 
 A browser-installed shortcut can receive the current Web bundle after the device reconnects and the app is reopened or refreshed. A currently open tab does not change its running code in-place. Do not force-refresh an active assessment; update checks should be offered only between sessions, after the workflow is complete and approved.
 
