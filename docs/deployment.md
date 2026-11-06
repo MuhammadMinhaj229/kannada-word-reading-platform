@@ -1,53 +1,71 @@
 # Deployment and release model
 
-## One Flutter application, one release pipeline
+## Hosting decision
 
-The repository has one application codebase: Flutter/Dart under `lib/`. A single GitHub Actions workflow validates that commit, builds the Android APK and Flutter Web output, and uploads the build artifacts. After a successful push to `main`, it can publish that same commit's Web output to Cloudflare Pages.
+**Primary Web host: Vercel.** The GitHub repository is already connected to the Vercel project `kannada-word-reading-platform`. We will not introduce Cloudflare or a second hosting provider.
+
+Vercel's CDN is automatically included with each deployment and is globally distributed. Vercel currently documents 126+ Points of Presence across 51 countries and more than 20 compute regions. Static Flutter files are served through that edge network; the current application has no cloud API or database requirement. See the official [CDN overview](https://vercel.com/docs/cdn) and [global network documentation](https://vercel.com/docs/regions).
+
+## One Flutter source, platform-specific artifacts
+
+The repository contains one application codebase: Flutter/Dart under `lib/`. Both Android and Web are built from the same commit.
 
 | Target | Role | Delivery |
 |---|---|---|
-| Android | Canonical offline field application | Debug APK in CI now; signed release package only after signing and study gates |
-| Flutter Web | Browser-based UI review of the same Flutter screens | Cloudflare Pages static deployment from the same successful CI run |
+| Android | Canonical offline field application | Android debug APK from GitHub Actions now; signed release build after device, protocol and signing gates |
+| Flutter Web | Browser UI review using the same Flutter screens | Vercel Git preview for branches; Vercel production deployment from `main` |
 
-This is not a separate React/Next.js website. Flutter widgets and Dart application logic are shared. The web build is a browser review surface and does not certify SQLite, native Android behavior, offline study operation, audio, timing accuracy or tablet acceptance. Do not enter real participant data in it.
+The outputs differ because Android requires an installable native package while Web requires browser assets. They are not separately maintained applications. GitHub Actions validates the shared source and builds both targets. Vercel's Git integration publishes the Web target from that same repository/commit.
 
-## Cloudflare Pages — primary web preview host
+## Vercel project
 
-The repository is prepared for Cloudflare Pages Direct Upload. The GitHub Actions workflow runs `flutter build web`, configures browser cache revalidation, and deploys `build/web` with Wrangler after a successful push to `main`. The Cloudflare step safely skips itself until the two repository secrets below exist.
+- Project: `kannada-word-reading-platform`
+- Git repository: `MuhammadMinhaj229/kannada-word-reading-platform`
+- Root directory: repository root
+- Framework preset: none (Flutter Web is a static output)
+- Install command: `bash scripts/deploy/install_flutter.sh`
+- Build command: `bash scripts/deploy/build_flutter_web.sh`
+- Output directory: `build/web`
+- Flutter SDK: pinned by `.flutter-version` (currently `3.47.9`)
 
-### One-time Cloudflare setup
+Vercel creates a preview deployment for feature-branch pushes and pull requests. Merges to the configured production branch `main` create a production deployment. This is the documented Git integration model; see [Deploying Git Repositories](https://vercel.com/docs/git).
 
-1. Open Cloudflare Dashboard → **Workers & Pages** → **Create application** → **Pages** → **Direct Upload**. Do not choose Git integration for this project: this repository uses GitHub Actions to build Flutter and upload the prebuilt output, and Cloudflare does not let a Direct Upload project later switch to Git integration.
-2. Create the Pages project with the exact name `padalab-kannada-reading` and set its production branch to `main`.
-3. In Cloudflare, create a custom API token with **Account → Cloudflare Pages → Edit** permission. Do not use a Global API Key.
-4. In the GitHub repository, open **Settings → Secrets and variables → Actions** and add:
+### Current preview
 
-   | Secret name | Value |
-   |---|---|
-   | `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare account ID |
-   | `CLOUDFLARE_API_TOKEN` | The Pages-scoped API token |
+A Flutter branch preview was verified at:
 
-5. Do not paste the token into source files, issues, pull requests or chat. Once the project exists and both secrets are saved, merge the reviewed Flutter PR to `main` only when its engineering and research gates are satisfied. The next successful `main` run publishes the web build to `https://padalab-kannada-reading.pages.dev`.
+`https://kannada-word-reading-platform-c0fao2oyj.vercel.app`
 
-### Preview and cache behavior
+It returned HTTP 200 for the Flutter build at commit `43c0d2ce8f3e53f51c1bc447b60b90666d3551f0`. This is a branch preview, not the production domain. The production branch remains `main`; do not merge the draft Flutter PR merely to replace the production app while the research and engineering gates below remain open.
 
-Pushes to `main` publish the Cloudflare production site. Same-repository pull requests publish a branch preview after validation; forked pull requests receive no Cloudflare credentials and only run the build checks. The preview branch name is normalized for DNS, so this feature branch will use `feat-flutter-android-foundation.padalab-kannada-reading.pages.dev`. The shared `scripts/deploy/configure_web_output.sh` writes a `_headers` policy that revalidates web assets when the app is opened again. Flutter 3.47.9 is pinned to the latest stable release currently selected for this project; do not use Flutter 3.50 preview-only flags in a production build.
+Preview deployments are protected by the Vercel team's authentication policy. Keep preview protection enabled while the instrument is under development. The current Web preview should not be indexed by search engines and must not contain participant data.
 
-A browser-installed shortcut can receive the current Web bundle after the device reconnects and the app is reopened or refreshed. A currently open tab does not change its running code in-place. Do not force-refresh an active assessment; update checks should be offered only between sessions, after the workflow is complete and approved.
+## Build and cache behavior
 
-The Web build is not the offline field client. The current app uses native-only local persistence and needs device-level validation. A browser app cannot be assumed to work offline simply because it is hosted on Cloudflare.
+The Vercel build downloads the pinned Flutter SDK and builds `build/web`. `scripts/deploy/configure_flutter_web.sh` replaces Flutter scaffold metadata with Padalab's app title, description, browser theme color, and PWA manifest labels. `vercel.json` applies the SPA fallback, baseline security headers, no-index headers, and revalidation for app entry points.
+
+Do not enable immutable caching for all Web files unless the build is configured to use Flutter's content-hashed asset output. Entry points and the current un-hashed bundle must revalidate so a reopened browser app can receive the latest release. An already-running browser tab will not hot-swap its executing code; never force-refresh during an assessment.
+
+Flutter Web is a review target. Do not assume that a hosted build provides the native Android app's SQLite, durable offline storage, power-loss recovery, audio timing or field behavior.
 
 ## Android updates after installation
 
-The Android APK and Web bundle are built from the same Flutter commit, but they are different platform packages. Deploying a new Web build to Cloudflare does not rewrite the binary already installed on an Android tablet.
+Publishing a new Vercel Web deployment does not replace an installed Android APK. The Android package must be signed and distributed through a managed Android channel. Recommended route:
 
-For normal Android distribution, publish a signed Android App Bundle/APK through Google Play (initially an internal or closed testing track). Devices with app auto-updates enabled can then receive approved releases through Play. The package name and signing identity must remain stable, and each release must increase the version code. Directly sideloaded APKs do not gain a safe, silent Cloudflare-based binary updater.
+1. Generate a signed Android App Bundle (AAB) or APK using the stable package ID and protected signing keys.
+2. Publish it to a Google Play internal testing track for device QA, then a closed track for controlled pilot testing.
+3. Enable Android/Google Play automatic updates on managed tablets.
+4. Record the application version in each assessment session and apply updates between sessions only.
 
-Because this is a research instrument, updates must not interrupt a running session. Record the app version with each session; deploy protocol or item-bank changes only after written approval, and install them between sessions. Consider an in-app update prompt backed by Google Play rather than a custom binary downloader.
+Google Play requires an update to keep the package name, use a higher version code, and be signed with the same signing identity. Devices with automatic updates enabled can receive published updates; delivery is not instantaneous. See [Google Play update guidance](https://support.google.com/googleplay/android-developer/answer/9859350) and [testing tracks](https://support.google.com/googleplay/android-developer/answer/9845334).
 
-## Existing Vercel project
+A custom APK downloader from Vercel is not recommended for a research instrument: it adds signing, install-permission, downgrade, interruption and integrity risks.
 
-The Vercel project `kannada-word-reading-platform` was previously repointed to Flutter Web. Keep it as a temporary fallback while Cloudflare is configured and its first deployment is verified. Cloudflare should become the single canonical Web preview URL after cutover; then disable or disconnect the Vercel Git deployment so two competing web production URLs are not maintained. Vercel preview protection is currently SSO-based.
+## Plan and cost guardrail
+
+Vercel is globally scalable for static delivery, but the account plan matters. The Hobby plan is restricted to personal, non-commercial use. Vercel documents different included usage and build/concurrency limits across Hobby and Pro; verify the team's billing plan and expected traffic before an institutional or production rollout. See [plans](https://vercel.com/docs/plans), [limits](https://vercel.com/docs/limits), and [fair-use guidelines](https://vercel.com/docs/limits/fair-use-guidelines).
+
+Do not treat the CDN's global distribution as a substitute for a capacity review. Before launch, estimate the number of assessor devices, daily sessions, browser-preview viewers and expected build frequency.
 
 ## Release safeguards
 
