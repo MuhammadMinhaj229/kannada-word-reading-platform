@@ -12,7 +12,6 @@ fi
 
 python3 - "${INDEX_FILE}" "${MANIFEST_FILE}" <<'PY'
 import json
-import re
 import sys
 from pathlib import Path
 
@@ -28,46 +27,38 @@ theme_color = "#0F766E"
 background_color = "#F7F8F2"
 
 html = index_path.read_text(encoding="utf-8")
-html = re.sub(
-    r"<html(?:\\s+[^>]*)?>",
-    '<html lang="en">',
-    html,
-    count=1,
-    flags=re.IGNORECASE,
-)
-html = re.sub(
-    r'<meta\\s+name="description"\\s+content="[^"]*"\\s*/?>',
+html = html.replace("<html>", '<html lang="en">', 1)
+html = html.replace(
+    '<meta name="description" content="A new Flutter project.">',
     f'<meta name="description" content="{description}">',
-    html,
-    count=1,
-    flags=re.IGNORECASE,
+    1,
 )
-html = re.sub(
-    r'<meta\\s+name="apple-mobile-web-app-title"\\s+content="[^"]*"\\s*/?>',
+html = html.replace(
+    '<meta name="apple-mobile-web-app-title" content="padalab_android">',
     '<meta name="apple-mobile-web-app-title" content="ಪದLab">',
-    html,
-    count=1,
-    flags=re.IGNORECASE,
+    1,
 )
-html = re.sub(
-    r"<title>.*?</title>",
+html = html.replace(
+    "<title>padalab_android</title>",
     f"<title>{title}</title>",
-    html,
-    count=1,
-    flags=re.IGNORECASE | re.DOTALL,
+    1,
 )
-if not re.search(r'<meta\\s+name="theme-color"', html, flags=re.IGNORECASE):
+head_tags = []
+if '<meta name="theme-color"' not in html:
+    head_tags.append(f'<meta name="theme-color" content="{theme_color}">')
+if '<meta name="robots"' not in html:
+    head_tags.append(
+        '<meta name="robots" content="noindex, nofollow, noarchive">'
+    )
+if head_tags:
+    newline = chr(10)
     html = html.replace(
         "</head>",
-        f'<meta name="theme-color" content="{theme_color}">\\n</head>',
+        newline + "  " + (newline + "  ").join(head_tags) + newline + "</head>",
         1,
     )
-if not re.search(r'<meta\\s+name="robots"', html, flags=re.IGNORECASE):
-    html = html.replace(
-        "</head>",
-        '<meta name="robots" content="noindex, nofollow, noarchive">\\n</head>',
-        1,
-    )
+if "<title>padalab_android</title>" in html:
+    raise SystemExit("Default Flutter page title was not replaced.")
 index_path.write_text(html, encoding="utf-8")
 
 manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -85,7 +76,7 @@ manifest.update(
     }
 )
 manifest_path.write_text(
-    json.dumps(manifest, ensure_ascii=False, indent=2) + "\\n",
+    json.dumps(manifest, ensure_ascii=False, indent=2) + chr(10),
     encoding="utf-8",
 )
 PY
@@ -95,5 +86,6 @@ if grep -q "A new Flutter project" "${INDEX_FILE}" "${MANIFEST_FILE}"; then
   echo "Default Flutter scaffold metadata remains in the web output." >&2
   exit 1
 fi
+python3 -m json.tool "${MANIFEST_FILE}" >/dev/null
 
 echo "Configured Padalab web metadata in ${OUTPUT_DIR}"
