@@ -2,15 +2,15 @@
 
 **One application codebase:** Flutter/Dart under `lib/`, shared by Android and Web.  
 **Primary field target:** offline-first Android tablet application.  
-**Web target:** browser-based review of the same Flutter screens.  
-**Current maturity:** engineering foundation preview; not approved for participant use.
+**Web target:** browser-based review of the same Flutter screens, hosted on Vercel.  
+**Current maturity:** engineering preview; not approved for participant use.
 
 ## What this repository builds
 
-| Target | Purpose | Build |
+| Target | Purpose | Delivery |
 |---|---|---|
 | Android | Field assessment on assessor tablets; local SQLite; offline operation | Debug APK in CI; signed release package after release gates |
-| Web | Browser review of the same Flutter screens | Static files in `build/web`; Cloudflare Pages branch preview and main production site |
+| Web | Browser review of the same Flutter screens | Vercel branch previews and production deployment from `main` |
 
 The browser preview is not the research instrument. It does not certify Android behavior, SQLite persistence, offline operation, audio, reaction-time accuracy, or tablet compatibility. Never enter participant information in the web preview.
 
@@ -25,10 +25,11 @@ lib/
     assessment/        Stimulus, allocation, trial and scoring domain
     assessor/          Assessor workspace and participant workflow
     child/             Child-facing assessment experience
-test/                  Unit and widget tests
+test/                  Unit/widget tests, including responsive viewport coverage
 docs/                  Architecture, protocol gates, privacy and release checks
-scripts/deploy/        Reproducible Flutter Web build and cache-policy scripts
-.github/workflows/     One Flutter validation, build and web publishing workflow
+scripts/deploy/        Reproducible Flutter SDK and Web metadata scripts
+.github/workflows/     Flutter validation and Android/Web build workflow
+vercel.json            Vercel static hosting, routing and response headers
 ```
 
 The former Next.js/PWA implementation is preserved on branch `archive/nextjs-prototype-before-flutter-root`. It is no longer part of the active application or deployment pipeline.
@@ -57,20 +58,23 @@ To build both targets:
 ```bash
 flutter build apk --debug
 flutter build web --release
+bash scripts/deploy/configure_flutter_web.sh build/web
 ```
 
-The generated Android and web host directories are created from the pinned Flutter SDK in CI/deployment. Keep platform-specific changes documented and committed deliberately.
+The generated Android and Web host directories are created from the pinned Flutter SDK in CI/deployment. Keep platform-specific changes documented and committed deliberately.
 
-## One Flutter build and release workflow
+## One Flutter codebase and one release path
 
-One GitHub Actions workflow formats, analyzes and tests the Flutter project, then builds Android and Web artifacts from the same commit. Same-repository pull requests can publish a Cloudflare Pages branch preview; pushes to `main` publish the production Web site. Cloudflare credentials are available only to the isolated deployment job and are stored as GitHub Actions secrets.
+A push or pull request runs one GitHub Actions workflow: formatting, static analysis, unit/widget tests, an Android debug build and a Flutter Web build. The Vercel Git integration automatically creates a preview deployment for the feature branch. When a reviewed change is merged into `main`, Vercel builds and publishes the production Web deployment.
 
-- Build and cache policy scripts: `scripts/deploy/`
 - CI workflow: `.github/workflows/flutter-android.yml`
-- Cloudflare setup and update policy: `docs/deployment.md`
-- Vercel fallback settings while Cloudflare is being configured: `vercel.json`
+- Vercel project settings: `vercel.json`
+- Web build script: `scripts/deploy/build_flutter_web.sh`
+- Deployment and release policy: `docs/deployment.md`
 
-The Web target is the same Flutter UI, not a separate React/Next.js app, and it is for synthetic-data review only. Native SQLite, Android system UI, power management, local persistence and field-device acceptance must be tested on Android tablets. Never enter real participant information in the browser preview.
+The Android APK and Web output are different platform packages generated from the same Flutter source commit. This is not a separate React/Next.js website. Vercel hosts the Web build; GitHub Actions builds the Android APK. No Cloudflare credentials or second web host are required.
+
+The Web target is for synthetic-data review only. Native SQLite, Android system UI, power management, local persistence and field-device acceptance must be tested on Android tablets. Never enter real participant information in the browser preview.
 
 ## Study protocol and item-bank gates
 
@@ -97,8 +101,8 @@ See:
 
 ## Current implementation status
 
-The current branch is an early Flutter foundation: theme/app shell, assessor-to-child preview navigation, provisional session allocation, initial SQLite schema, trial serialization, timestamp formatting and unit/widget test coverage.
+The current branch is an early Flutter foundation: theme/app shell, assessor-to-child preview navigation, provisional session allocation, initial SQLite schema, trial serialization, timestamp formatting and responsive layout tests.
 
-Still required: the approved protocol and item bank, persistent assessor/child/session workflow, complete trial state machine, resume/restart handling, bundled Kannada fonts/audio, rewards, summary metrics, protected CSV exports, native Android integrations, signed APK and real-device offline testing.
+Still required: the approved protocol and item bank, persistent assessor/child/session workflow, complete trial state machine, resume/restart handling, bundled Kannada fonts/audio, rewards, summary metrics, protected CSV exports, stable native Android platform scaffold, signed release APK and real-device offline testing.
 
 **Do not use this preview with children or for data collection.**
