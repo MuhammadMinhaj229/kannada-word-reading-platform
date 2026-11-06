@@ -104,7 +104,9 @@ jobs:
   deploy-cloudflare:
     name: Deploy Flutter Web production to Cloudflare Pages
     needs: validate-and-build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -116,6 +118,25 @@ jobs:
           name: padalab-flutter-web-preview
           path: build/web
 
+      - name: Select Cloudflare Pages branch
+        id: pages_branch
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+          PUSH_BRANCH: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          if [[ "${EVENT_NAME}" == "pull_request" ]]; then
+            raw_branch="${PR_BRANCH}"
+          else
+            raw_branch="${PUSH_BRANCH}"
+          fi
+          safe_branch="$(printf '%s' "${raw_branch}" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9-]+/-/g; s/-+/-/g; s/^-|-$//g' | cut -c1-40)"
+          if [[ -z "${safe_branch}" ]]; then
+            echo "Unable to derive a valid Cloudflare branch name." >&2
+            exit 1
+          fi
+          echo "name=${safe_branch}" >> "${GITHUB_OUTPUT}"
       - name: Check Cloudflare production credentials
         id: cloudflare_config
         env:
@@ -136,5 +157,5 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy build/web --project-name=padalab-kannada-reading --branch=main
+          command: pages deploy build/web --project-name=padalab-kannada-reading --branch=${{ steps.pages_branch.outputs.name }}
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
