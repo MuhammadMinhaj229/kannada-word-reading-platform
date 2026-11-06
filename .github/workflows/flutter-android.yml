@@ -1,4 +1,4 @@
-name: Flutter quality, Android build and web release
+name: Flutter quality and platform build validation
 
 on:
   pull_request:
@@ -35,12 +35,14 @@ concurrency:
 
 jobs:
   validate-and-build:
-    name: Format, analyze, test and build
+    name: Format, analyze, test and build Android and Web
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
 
       - name: Set up Java
         uses: actions/setup-java@v5
@@ -61,6 +63,9 @@ jobs:
       - name: Resolve dependencies
         run: flutter pub get
 
+      - name: Validate deployment scripts
+        run: bash -n scripts/deploy/*.sh
+
       - name: Verify formatting
         run: dart format --output=none --set-exit-if-changed lib test
 
@@ -73,17 +78,17 @@ jobs:
       - name: Build debug Android APK
         run: flutter build apk --debug
 
-      - name: Build Flutter Web preview
+      - name: Build Flutter Web
         run: flutter build web --release --base-href /
 
-      - name: Verify web output
+      - name: Configure and verify Flutter Web metadata
         run: |
+          bash scripts/deploy/configure_flutter_web.sh build/web
           test -s build/web/index.html
           test -s build/web/main.dart.js
           test -d build/web/assets
-
-      - name: Configure browser cache revalidation
-        run: bash scripts/deploy/configure_web_output.sh build/web
+          test -s build/web/manifest.json
+          ! grep -q "A new Flutter project" build/web/index.html build/web/manifest.json
 
       - name: Upload Android debug APK
         uses: actions/upload-artifact@v4
@@ -93,69 +98,10 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Upload Flutter Web preview
+      - name: Upload Flutter Web validation build
         uses: actions/upload-artifact@v4
         with:
           name: padalab-flutter-web-preview
           path: build/web/
           if-no-files-found: error
           retention-days: 7
-
-  deploy-cloudflare:
-    name: Publish tested Flutter Web build to Cloudflare Pages
-    needs: validate-and-build
-    if: >-
-      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      deployments: write
-    steps:
-      - name: Download tested Flutter Web artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: padalab-flutter-web-preview
-          path: build/web
-
-      - name: Select Cloudflare Pages branch
-        id: pages_branch
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
-          PUSH_BRANCH: ${{ github.ref_name }}
-        shell: bash
-        run: |
-          if [[ "${EVENT_NAME}" == "pull_request" ]]; then
-            raw_branch="${PR_BRANCH}"
-          else
-            raw_branch="${PUSH_BRANCH}"
-          fi
-          safe_branch="$(printf '%s' "${raw_branch}" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9-]+/-/g; s/-+/-/g; s/^-|-$//g' | cut -c1-40)"
-          if [[ -z "${safe_branch}" ]]; then
-            echo "Unable to derive a valid Cloudflare branch name." >&2
-            exit 1
-          fi
-          echo "name=${safe_branch}" >> "${GITHUB_OUTPUT}"
-      - name: Check Cloudflare production credentials
-        id: cloudflare_config
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        shell: bash
-        run: |
-          if [[ -n "${CLOUDFLARE_API_TOKEN}" && -n "${CLOUDFLARE_ACCOUNT_ID}" ]]; then
-            echo "configured=true" >> "${GITHUB_OUTPUT}"
-          else
-            echo "configured=false" >> "${GITHUB_OUTPUT}"
-            echo "::notice::Cloudflare Pages deploy skipped; add CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID repository Actions secrets."
-          fi
-
-      - name: Deploy Flutter Web to Cloudflare Pages
-        if: steps.cloudflare_config.outputs.configured == 'true'
-        uses: cloudflare/wrangler-action@v4
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy build/web --project-name=padalab-kannada-reading --branch=${{ steps.pages_branch.outputs.name }}
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
