@@ -1,61 +1,58 @@
 # Deployment and release model
 
-## Product targets
+## One Flutter application, one release pipeline
 
-- **Android APK:** canonical field product. It runs Flutter/Dart with on-device SQLite and bundled approved assets. It is built and validated through GitHub Actions; release signing is a separate protected workflow.
-- **Flutter Web:** review-only build of the Flutter UI. It is a static site, not an alternative field client. Do not enter real participant data in a browser preview.
+The repository has one application codebase: Flutter/Dart under `lib/`. A single GitHub Actions workflow validates that commit, builds the Android APK and Flutter Web output, and uploads the build artifacts. After a successful push to `main`, it can publish that same commit's Web output to Cloudflare Pages.
 
-## Vercel project settings
+| Target | Role | Delivery |
+|---|---|---|
+| Android | Canonical offline field application | Debug APK in CI now; signed release package only after signing and study gates |
+| Flutter Web | Browser-based UI review of the same Flutter screens | Cloudflare Pages static deployment from the same successful CI run |
 
-The existing Vercel project `kannada-word-reading-platform` remains connected to the private GitHub repository. It is repurposed from Next.js to a static Flutter Web build.
+This is not a separate React/Next.js website. Flutter widgets and Dart application logic are shared. The web build is a browser review surface and does not certify SQLite, native Android behavior, offline study operation, audio, timing accuracy or tablet acceptance. Do not enter real participant data in it.
 
-| Setting | Value |
-|---|---|
-| Framework preset | Other / no framework (`framework: null`) |
-| Root directory | Repository root |
-| Install command | `bash scripts/deploy/install_flutter.sh` |
-| Build command | `bash scripts/deploy/build_flutter_web.sh` |
-| Output directory | `build/web` |
-| Runtime environment variables | None required |
-| Flutter SDK | Pinned by `.flutter-version` |
-| Git integration | `MuhammadMinhaj229/kannada-word-reading-platform` |
-| Preview protection | Retain Vercel SSO protection |
+## Cloudflare Pages — primary web preview host
 
-No API keys, database credentials, service account JSON, or participant data belong in Vercel environment variables. The Flutter Web bundle is static and contains no secrets.
+The repository is prepared for Cloudflare Pages Direct Upload. The GitHub Actions workflow runs `flutter build web`, configures browser cache revalidation, and deploys `build/web` with Wrangler after a successful push to `main`. The Cloudflare step safely skips itself until the two repository secrets below exist.
 
-## Build behavior
+### One-time Cloudflare setup
 
-Vercel runs the install script to cache the pinned Flutter SDK in the build environment. The build script generates the Flutter web host directory, resolves Dart packages, and runs:
+1. Open Cloudflare Dashboard → **Workers & Pages** → **Create application** → **Pages** → **Direct Upload**. Do not choose Git integration for this project: this repository uses GitHub Actions to build Flutter and upload the prebuilt output, and Cloudflare does not let a Direct Upload project later switch to Git integration.
+2. Create the Pages project with the exact name `padalab-kannada-reading` and set its production branch to `main`.
+3. In Cloudflare, create a custom API token with **Account → Cloudflare Pages → Edit** permission. Do not use a Global API Key.
+4. In the GitHub repository, open **Settings → Secrets and variables → Actions** and add:
 
-```bash
-flutter build web --release --base-href /
-```
+   | Secret name | Value |
+   |---|---|
+   | `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare account ID |
+   | `CLOUDFLARE_API_TOKEN` | The Pages-scoped API token |
 
-The output directory is `build/web`. `vercel.json` declares the build and single-page fallback. A successful deployment means the browser review bundle was produced and hosted; it does not prove the Android package works.
+5. Do not paste the token into source files, issues, pull requests or chat. Once the project exists and both secrets are saved, merge the reviewed Flutter PR to `main` only when its engineering and research gates are satisfied. The next successful `main` run publishes the web build to `https://padalab-kannada-reading.pages.dev`.
 
-## Preview access
+### Preview and cache behavior
 
-Vercel preview deployments are created from non-production Git branches. Keep SSO enabled by default. A reviewer must have the required Vercel team access to open the protected preview. Do not disable deployment protection merely to make a preview URL public; use an approved reviewer invitation or a separate password-protected preview if external review is required.
+Only `main` publishes the Cloudflare production site. Pull requests still run formatting, analysis, widget tests, Android debug build and Web build without production credentials. The shared `scripts/deploy/configure_web_output.sh` writes a `_headers` policy that revalidates web assets when the app is opened again. Flutter 3.47.9 is pinned to the latest stable release currently selected for this project; do not use Flutter 3.50 preview-only flags in a production build.
 
-## Free-host alternatives researched
+A browser-installed shortcut can receive the current Web bundle after the device reconnects and the app is reopened or refreshed. A currently open tab does not change its running code in-place. Do not force-refresh an active assessment; update checks should be offered only between sessions, after the workflow is complete and approved.
 
-| Host | Flutter Web suitability | Relevant free-tier characteristics | Recommendation |
-|---|---|---|---|
-| Vercel Hobby | Good for static Flutter output with custom build/output settings | Hobby build time up to 45 minutes; Git-based preview deployments; existing project/repository already connected | **Use first**; lowest migration overhead |
-| Cloudflare Pages | Very good when CI uploads prebuilt static files | Free limits include 500 builds/month, 20-minute build timeout, 20,000 files/site and 25 MiB per individual file | Best alternative if Vercel's Flutter SDK build becomes unreliable |
-| Firebase Hosting | Very good static hosting; Flutter has official deployment documentation | Spark is no-cost and does not require a payment method; hosting has plan-specific quotas | Good Google ecosystem option, but requires Firebase project setup |
-| Netlify | Good static hosting | Free plan currently uses a 300-credit monthly allowance, including build/deploy usage | Viable, but less attractive for frequent CI deploys |
+The Web build is not the offline field client. The current app uses native-only local persistence and needs device-level validation. A browser app cannot be assumed to work offline simply because it is hosted on Cloudflare.
 
-Static asset hosting is the only infrastructure needed for the UI preview. No server, database or API is required for this purpose.
+## Android updates after installation
 
-## Android release
+The Android APK and Web bundle are built from the same Flutter commit, but they are different platform packages. Deploying a new Web build to Cloudflare does not rewrite the binary already installed on an Android tablet.
 
-1. Build with the pinned Flutter SDK and Android SDK in CI.
-2. Add a release signing keystore only through protected GitHub secrets or a secure local signing environment. Never commit it.
-3. Build a signed release APK.
-4. Test installation and runtime behavior on the actual field tablet with Wi-Fi and mobile data disabled.
-5. Provide the APK through an approved download link and a one-page install guide.
+For normal Android distribution, publish a signed Android App Bundle/APK through Google Play (initially an internal or closed testing track). Devices with app auto-updates enabled can then receive approved releases through Play. The package name and signing identity must remain stable, and each release must increase the version code. Directly sideloaded APKs do not gain a safe, silent Cloudflare-based binary updater.
 
-## Release gate
+Because this is a research instrument, updates must not interrupt a running session. Record the app version with each session; deploy protocol or item-bank changes only after written approval, and install them between sessions. Consider an in-app update prompt backed by Google Play rather than a custom binary downloader.
 
-Before participant use, obtain written protocol and item-bank approval; then pass tablet testing for cold offline launch, local persistence, response durability, resume/restart, reaction-time capture, Kannada shaping, bundled audio, reward behavior, CSV exports, Downloads/share sheet, privacy and power-loss recovery. A browser preview or CI green check cannot replace those acceptance tests.
+## Existing Vercel project
+
+The Vercel project `kannada-word-reading-platform` was previously repointed to Flutter Web. Keep it as a temporary fallback while Cloudflare is configured and its first deployment is verified. Cloudflare should become the single canonical Web preview URL after cutover; then disable or disconnect the Vercel Git deployment so two competing web production URLs are not maintained. Vercel preview protection is currently SSO-based.
+
+## Release safeguards
+
+- Do not add API keys, database credentials, service-account JSON, signing keys or participant data to the static Web bundle.
+- The debug APK produced by CI is for engineering review only, not participant use.
+- Release signing must use protected GitHub secrets or a secure signing environment; never commit the keystore.
+- CI success proves code checks and buildability only. It does not prove ethics approval, linguistic validity, item-bank approval, offline reliability or field acceptance.
+- Before participant use, pass tablet checks for cold offline launch, durable local responses, resume/restart, timing, Kannada shaping, bundled approved audio, rewards, exports, privacy and power-loss recovery.
