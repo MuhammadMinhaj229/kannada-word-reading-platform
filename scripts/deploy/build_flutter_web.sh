@@ -16,6 +16,8 @@ fi
 "${FLUTTER_BIN}" pub get
 "${FLUTTER_BIN}" build web --release --base-href /
 
+bash scripts/deploy/configure_web_output.sh build/web
+
 test -s build/web/index.html
 test -s build/web/main.dart.js
 echo "Flutter Web review bundle is ready at build/web"
