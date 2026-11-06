@@ -43,8 +43,7 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final viewport = MediaQuery.sizeOf(context);
-    final compact = viewport.width < 900 || viewport.height < 760;
+    final compact = MediaQuery.sizeOf(context).width < 900;
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -74,10 +73,19 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
                         : Row(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: <Widget>[
-                              Expanded(flex: 11, child: _introduction(context)),
+                              Expanded(
+                                flex: 11,
+                                child: SingleChildScrollView(
+                                  child: _introduction(context),
+                                ),
+                              ),
                               const SizedBox(width: 22),
                               Expanded(
-                                  flex: 10, child: _participantForm(context)),
+                                flex: 10,
+                                child: SingleChildScrollView(
+                                  child: _participantForm(context),
+                                ),
+                              ),
                             ],
                           ),
                   ),
