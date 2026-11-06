@@ -9,8 +9,8 @@
 
 | Target | Purpose | Build |
 |---|---|---|
-| Android | Field assessment on assessor tablets; local SQLite; offline operation | Signed APK for release; debug APK in CI |
-| Web | Browser-based UI review using the same Flutter screens | Static files in `build/web`; hosted on Vercel |
+| Android | Field assessment on assessor tablets; local SQLite; offline operation | Debug APK in CI; signed release package after release gates |
+| Web | Browser review of the same Flutter screens | Static files in `build/web`; Cloudflare Pages branch preview and main production site |
 
 The browser preview is not the research instrument. It does not certify Android behavior, SQLite persistence, offline operation, audio, reaction-time accuracy, or tablet compatibility. Never enter participant information in the web preview.
 
@@ -27,8 +27,8 @@ lib/
     child/             Child-facing assessment experience
 test/                  Unit and widget tests
 docs/                  Architecture, protocol gates, privacy and release checks
-scripts/deploy/        Reproducible Flutter Web build scripts for Vercel
-.github/workflows/     Flutter quality, test, Android and web builds
+scripts/deploy/        Reproducible Flutter Web build and cache-policy scripts
+.github/workflows/     One Flutter validation, build and web publishing workflow
 ```
 
 The former Next.js/PWA implementation is preserved on branch `archive/nextjs-prototype-before-flutter-root`. It is no longer part of the active application or deployment pipeline.
@@ -61,15 +61,16 @@ flutter build web --release
 
 The generated Android and web host directories are created from the pinned Flutter SDK in CI/deployment. Keep platform-specific changes documented and committed deliberately.
 
-## Web preview and Vercel
+## One Flutter build and release workflow
 
-Vercel serves the static Flutter Web output from `build/web`. The build downloads the pinned Flutter SDK and runs `flutter build web --release`. No application API keys or runtime environment variables are needed.
+One GitHub Actions workflow formats, analyzes and tests the Flutter project, then builds Android and Web artifacts from the same commit. Same-repository pull requests can publish a Cloudflare Pages branch preview; pushes to `main` publish the production Web site. Cloudflare credentials are available only to the isolated deployment job and are stored as GitHub Actions secrets.
 
-- Build scripts: `scripts/deploy/`
-- Vercel settings: `vercel.json`
-- Deployment notes: `docs/deployment.md`
+- Build and cache policy scripts: `scripts/deploy/`
+- CI workflow: `.github/workflows/flutter-android.yml`
+- Cloudflare setup and update policy: `docs/deployment.md`
+- Vercel fallback settings while Cloudflare is being configured: `vercel.json`
 
-A browser build is strictly a UI review target. Native SQLite, Android Downloads/share-sheet behavior, Android immersive mode, and field-device acceptance remain Android-only checks. Do not add a browser database simply to make the preview appear field-ready.
+The Web target is the same Flutter UI, not a separate React/Next.js app, and it is for synthetic-data review only. Native SQLite, Android system UI, power management, local persistence and field-device acceptance must be tested on Android tablets. Never enter real participant information in the browser preview.
 
 ## Study protocol and item-bank gates
 
