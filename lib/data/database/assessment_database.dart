@@ -5,6 +5,7 @@ import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/config/assessment_release_gate.dart';
+import '../../core/time/local_timestamp.dart';
 import '../../features/assessment/domain/models/session_allocation.dart';
 import '../../features/assessment/domain/models/study_item.dart';
 import '../../features/assessment/domain/models/trial_record.dart';
@@ -309,6 +310,10 @@ class AssessmentDatabase {
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
 
+        if (isRepeat && isRestart) {
+        throw ArgumentError('A session cannot be both a repeat and a restart.');
+      }
+
       final sameSession = await txn.query(
         'sessions',
         columns: <String>['session_uuid', 'status'],
@@ -316,13 +321,23 @@ class AssessmentDatabase {
         whereArgs: <Object?>[childId.trim(), manifest.sessionNumber],
       );
 
-      final completedPreviously =
-          sameSession.any((row) => row['status'] == 'completed');
-      if (completedPreviously && !isRepeat) {
-        throw StateError(
-          'This session is already completed. Supervisor authorisation is '
-          'required before a repeat can be registered.',
-        );
+      if (sameSession.isEmpty && (isRepeat || isRestart)) {
+        throw StateError('A repeat or restart requires a prior session record.');
+      }
+      if (sameSession.isNotEmpty) {
+        final previousStatuses =
+            sameSession.map((row) => row['status'] as String).toSet();
+        final completedRepeat =
+            isRepeat && previousStatuses.contains('completed');
+        final interruptedRestart =
+            isRestart && previousStatuses.contains('interrupted');
+        if ((!completedRepeat && !interruptedRestart) ||
+            !supervisorAuthorized) {
+          throw StateError(
+            'An existing session can only be repeated or restarted under the '
+            'approved supervisor authorization policy.',
+          );
+        }
       }
 
       final dayKey = _dateKey(sessionDate);
@@ -405,6 +420,13 @@ class AssessmentDatabase {
       whereArgs: <Object?>[sessionUuid, ordinal],
       limit: 1,
     );
+    final presentedRows = await db.query(
+      'trials',
+      columns: <String>['trial_uuid', 'shown_at'],
+      where: 'session_uuid = ? AND ordinal = ? AND status = ?',
+      whereArgs: <Object?>[sessionUuid, ordinal, 'presented'],
+      limit: 1,
+    );
 
     return ActiveSessionSnapshot(
       sessionUuid: sessionUuid,
@@ -417,6 +439,10 @@ class AssessmentDatabase {
       nextTrial: manifestRows.isEmpty
           ? null
           : _plannedTrialFromRow(manifestRows.single),
+      presentedTrialUuid:
+          presentedRows.isEmpty ? null : presentedRows.single['trial_uuid'] as String,
+      presentedAt:
+          presentedRows.isEmpty ? null : presentedRows.single['shown_at'] as String,
     );
   }
 
@@ -446,7 +472,7 @@ class AssessmentDatabase {
     await db.transaction((txn) async {
       final sessionRows = await txn.query(
         'sessions',
-        columns: <String>['status', 'next_ordinal'],
+        columns: <String>['status', 'next_ordinal', 'coins_so_far'],
         where: 'session_uuid = ?',
         whereArgs: <Object?>[sessionUuid],
         limit: 1,
@@ -493,9 +519,7 @@ class AssessmentDatabase {
           'shown_at': _timestamp(shownAt),
           'answered_at': null,
           'status': 'presented',
-          'coins_so_far': sessionRows.single['next_ordinal'] == 1
-              ? 0
-              : null,
+          'coins_so_far': sessionRows.single['coins_so_far'] as int,
           'app_version': appVersion,
           'items_file_version': itemBankVersion,
         },
@@ -614,6 +638,12 @@ class AssessmentDatabase {
   }
 
   Future<void> markResumed(String sessionUuid) async {
+    if (!_releaseGate.isOpen) {
+      throw StateError(
+        'Session resume is locked until interruption handling has approved '
+        'references: ${_releaseGate.blockers.join(' ')}',
+      );
+    }
     final db = await database;
     await db.update(
       'sessions',
@@ -645,7 +675,7 @@ class AssessmentDatabase {
     );
   }
 
-  String _timestamp(DateTime value) => value.toIso8601String();
+  String _timestamp(DateTime value) => LocalTimestamp.format(value);
 
   String _dateKey(DateTime value) =>
       '${value.year.toString().padLeft(4, '0')}-'
