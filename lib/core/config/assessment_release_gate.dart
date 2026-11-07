@@ -12,7 +12,7 @@ class AssessmentReleaseGate {
   static const List<String> _blockers = <String>[
     'Written PI/statistician approval of the final study protocol is missing.',
     'The six-session item allocation and ordering method are not approved.',
-    'The final 270 real-word and 270 non-word item bank is not approved.',
+    'Written native Kannada approval for all 270 non-word candidates is missing.',
     'A verified SHA-256 hash for the approved item bank is missing.',
     'Native Kannada linguistic review and written sign-off are missing.',
     'The bundled Kannada instruction recordings are not approved.',
