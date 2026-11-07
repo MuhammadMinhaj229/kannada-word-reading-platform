@@ -280,7 +280,6 @@ class AssessmentDatabase {
     required StudyItemBank itemBank,
     bool isRepeat = false,
     bool isRestart = false,
-    bool supervisorAuthorized = false,
   }) async {
     if (!_releaseGate.isOpen) {
       throw StateError(
@@ -296,9 +295,14 @@ class AssessmentDatabase {
         appVersion.trim().isEmpty) {
       throw ArgumentError('Child, assessor, device and app IDs are required.');
     }
-    if (isRepeat && !supervisorAuthorized) {
+    if (isRepeat && isRestart) {
+      throw ArgumentError('A session cannot be both a repeat and a restart.');
+    }
+    if (isRepeat || isRestart) {
       throw StateError(
-        'Repeating a completed session requires supervisor authorisation.',
+        'Repeat/restart is disabled until a trusted supervisor authorization '
+        'verifier is implemented. A caller-supplied boolean is not proof of '
+        'authorization.',
       );
     }
 
@@ -346,10 +350,6 @@ class AssessmentDatabase {
         whereArgs: <Object?>[assessorId.trim()],
       );
 
-      if (isRepeat && isRestart) {
-        throw ArgumentError('A session cannot be both a repeat and a restart.');
-      }
-
       final sameSession = await txn.query(
         'sessions',
         columns: <String>['session_uuid', 'status'],
@@ -357,23 +357,12 @@ class AssessmentDatabase {
         whereArgs: <Object?>[childId.trim(), manifest.sessionNumber],
       );
 
-      if (sameSession.isEmpty && (isRepeat || isRestart)) {
-        throw StateError('A repeat or restart requires a prior session record.');
-      }
       if (sameSession.isNotEmpty) {
-        final previousStatuses =
-            sameSession.map((row) => row['status'] as String).toSet();
-        final completedRepeat =
-            isRepeat && previousStatuses.contains('completed');
-        final interruptedRestart =
-            isRestart && previousStatuses.contains('interrupted');
-        if ((!completedRepeat && !interruptedRestart) ||
-            !supervisorAuthorized) {
-          throw StateError(
-            'An existing session can only be repeated or restarted under the '
-            'approved supervisor authorization policy.',
-          );
-        }
+        throw StateError(
+          'This session number already has a record. Repeat/restart remains '
+          'disabled until a trusted supervisor authorization verifier and '
+          'the signed study policy are implemented.',
+        );
       }
 
       final storedBankRows = await txn.query(
@@ -616,7 +605,6 @@ class AssessmentDatabase {
     required String response,
     required int? reactionTimeMs,
     required DateTime? answeredAt,
-    required int coinsSoFar,
   }) async {
     if (response != 'word' && response != 'nonword' && response != 'none') {
       throw ArgumentError.value(response, 'response');
@@ -636,8 +624,6 @@ class AssessmentDatabase {
     if (reactionTimeMs != null && reactionTimeMs < 0) {
       throw ArgumentError.value(reactionTimeMs, 'reactionTimeMs');
     }
-    if (coinsSoFar < 0) throw ArgumentError.value(coinsSoFar, 'coinsSoFar');
-
     final db = await database;
     await db.transaction((txn) async {
       final trialRows = await txn.query(
@@ -657,7 +643,7 @@ class AssessmentDatabase {
       final ordinal = trial['ordinal'] as int;
       final sessionRows = await txn.query(
         'sessions',
-        columns: <String>['status', 'next_ordinal'],
+        columns: <String>['status', 'next_ordinal', 'coins_so_far'],
         where: 'session_uuid = ?',
         whereArgs: <Object?>[sessionUuid],
         limit: 1,
@@ -667,6 +653,9 @@ class AssessmentDatabase {
           sessionRows.single['next_ordinal'] != ordinal) {
         throw StateError('The session cursor no longer matches this trial.');
       }
+      // Reward state is read from committed storage, never accepted from the
+      // child UI. The exact reward policy remains disabled pending PI approval.
+      final storedCoins = sessionRows.single['coins_so_far'] as int;
 
       final expectedType = trial['item_type'] as String;
       final correct = response == 'none'
@@ -681,7 +670,7 @@ class AssessmentDatabase {
           'rt_ms': reactionTimeMs,
           'answered_at': answeredAt == null ? null : _timestamp(answeredAt),
           'status': newStatus,
-          'coins_so_far': coinsSoFar,
+          'coins_so_far': storedCoins,
         },
         where: 'trial_uuid = ? AND status = ?',
         whereArgs: <Object?>[trialUuid, 'presented'],
@@ -704,7 +693,6 @@ class AssessmentDatabase {
         'sessions',
         <String, Object?>{
           'next_ordinal': nextOrdinal,
-          'coins_so_far': coinsSoFar,
           'status': completed ? 'completed' : 'in_progress',
           'completed_at': completed ? _timestamp(DateTime.now()) : null,
         },
