@@ -707,12 +707,17 @@ class AssessmentDatabase {
 
   Future<void> markInterrupted(String sessionUuid) async {
     final db = await database;
-    await db.update(
+    final updated = await db.update(
       'sessions',
       <String, Object?>{'status': 'interrupted'},
       where: 'session_uuid = ? AND status = ?',
       whereArgs: <Object?>[sessionUuid, 'in_progress'],
     );
+    if (updated != 1) {
+      throw StateError(
+        'The session was not in progress and could not be marked interrupted.',
+      );
+    }
   }
 
   Future<void> markResumed(String sessionUuid) async {
@@ -723,12 +728,17 @@ class AssessmentDatabase {
       );
     }
     final db = await database;
-    await db.update(
+    final updated = await db.update(
       'sessions',
       <String, Object?>{'status': 'in_progress'},
       where: 'session_uuid = ? AND status = ?',
       whereArgs: <Object?>[sessionUuid, 'interrupted'],
     );
+    if (updated != 1) {
+      throw StateError(
+        'The session was not interrupted and could not be resumed.',
+      );
+    }
   }
 
   Future<void> close() {
