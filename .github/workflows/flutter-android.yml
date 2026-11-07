@@ -106,8 +106,10 @@ jobs:
       - name: Resolve dependencies
         run: flutter pub get
 
-      - name: Validate deployment scripts
-        run: bash -n scripts/deploy/*.sh
+      - name: Validate deployment scripts and Vercel security configuration
+        run: |
+          bash -n scripts/deploy/*.sh
+          python3 scripts/deploy/validate_vercel_config.py
 
       - name: Canonical Dart formatting
         run: |
