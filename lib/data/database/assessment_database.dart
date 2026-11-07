@@ -22,11 +22,10 @@ import 'active_session_snapshot.dart';
 class AssessmentDatabase {
   AssessmentDatabase({
     DatabaseKeyProvider? keyProvider,
-    AssessmentReleaseGate releaseGate = AssessmentReleaseGate.current,
+    this._releaseGate = AssessmentReleaseGate.current,
     sqlcipher_api.DatabaseFactory? factory,
     Future<String> Function()? databasesPathProvider,
   })  : _keyProvider = keyProvider ?? DatabaseKeyProvider(),
-        _releaseGate = releaseGate,
         _databaseFactory = factory ?? databaseFactory,
         _databasesPathProvider = databasesPathProvider ?? getDatabasesPath;
 
