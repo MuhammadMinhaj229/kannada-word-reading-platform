@@ -15,12 +15,35 @@ class DemoGameScreen extends StatefulWidget {
 }
 
 class _DemoGameScreenState extends State<DemoGameScreen> {
-  static const _prompts = <_DemoPrompt>[
-    _DemoPrompt(text: 'ಮನೆ', isWord: true),
-    _DemoPrompt(text: 'ಜುಪ್ಲಾ', isWord: false),
-    _DemoPrompt(text: 'ಮಳೆ', isWord: true),
-    _DemoPrompt(text: 'ನೊಗಮಿ', isWord: false),
+  static const _practicePrompts = <_DemoPrompt>[
+    _DemoPrompt(id: 'PRACTICE-01', text: 'ಮನೆ', isWord: true, phase: 'practice'),
+    _DemoPrompt(id: 'PRACTICE-02', text: 'ಮರ', isWord: true, phase: 'practice'),
+    _DemoPrompt(id: 'PRACTICE-03', text: 'ಹಾಲು', isWord: true, phase: 'practice'),
+    _DemoPrompt(id: 'PRACTICE-04', text: 'ಮಳೆ', isWord: true, phase: 'practice'),
+    _DemoPrompt(id: 'PRACTICE-05', text: 'ನದಿ', isWord: true, phase: 'practice'),
   ];
+
+  // Fictional items copied from the former website's visual demo only.
+  // They are not screened stimuli and must never be used with participants.
+  static const _scoredPrompts = <_DemoPrompt>[
+    _DemoPrompt(id: 'DEMO-01', text: 'ಮನೆ', isWord: true, phase: 'scored'),
+    _DemoPrompt(id: 'DEMO-02', text: 'ಲಮನೆ', isWord: false, phase: 'scored'),
+    _DemoPrompt(id: 'DEMO-03', text: 'ಮರ', isWord: true, phase: 'scored'),
+    _DemoPrompt(id: 'DEMO-04', text: 'ಕಿರಮ', isWord: false, phase: 'scored'),
+    _DemoPrompt(id: 'DEMO-05', text: 'ಹಾಲು', isWord: true, phase: 'scored'),
+    _DemoPrompt(id: 'DEMO-06', text: 'ಪಹೂ', isWord: false, phase: 'scored'),
+    _DemoPrompt(id: 'DEMO-07', text: 'ಮಳೆ', isWord: true, phase: 'scored'),
+    _DemoPrompt(id: 'DEMO-08', text: 'ನಲಮ', isWord: false, phase: 'scored'),
+    _DemoPrompt(id: 'DEMO-09', text: 'ನದಿ', isWord: true, phase: 'scored'),
+    _DemoPrompt(id: 'DEMO-10', text: 'ಕಿಮನೆ', isWord: false, phase: 'scored'),
+  ];
+
+  static const _prompts = <_DemoPrompt>[
+    ..._practicePrompts,
+    ..._scoredPrompts,
+  ];
+  static const _practiceCount = 5;
+  static const _scoredRewardInterval = 5;
 
   final Stopwatch _stopwatch = Stopwatch();
   final List<_DemoResponse> _responses = <_DemoResponse>[];
@@ -30,6 +53,11 @@ class _DemoGameScreenState extends State<DemoGameScreen> {
   bool _completed = false;
 
   _DemoPrompt get _currentPrompt => _prompts[_promptIndex];
+  bool get _isPractice => _currentPrompt.phase == 'practice';
+  int get _phaseProgress => _isPractice
+      ? _promptIndex + (_selectedIsWord == null ? 0 : 1)
+      : _promptIndex - _practiceCount + (_selectedIsWord == null ? 0 : 1);
+  int get _phaseTotal => _isPractice ? _practiceCount : _scoredPrompts.length;
 
   @override
   void initState() {
@@ -51,6 +79,8 @@ class _DemoGameScreenState extends State<DemoGameScreen> {
       selectedIsWord: selectedIsWord,
       expectedIsWord: _currentPrompt.isWord,
       reactionTimeMs: _stopwatch.elapsedMilliseconds,
+      phase: _currentPrompt.phase,
+      itemId: _currentPrompt.id,
     );
 
     setState(() {
@@ -62,19 +92,17 @@ class _DemoGameScreenState extends State<DemoGameScreen> {
   Future<void> _continue() async {
     if (_selectedIsWord == null || _completed) return;
 
-    // The synthetic four-item demo has a small reward milestone every two
-    // responses. This is not the approved study reward rule.
-    if (_responses.length.isEven &&
-        KannadaSpeechService.instance.enabled) {
-      try {
-        await KannadaSpeechService.instance.speakPreview(
-          'ಚೆನ್ನಾಗಿದೆ! ಮುಂದುವರಿಯಿರಿ.',
-        );
-      } catch (_) {
-        // Audio availability must never block the demo's visual controls.
-      }
+    final scoredCompleted = _responses
+        .where((response) => response.phase == 'scored')
+        .length;
+    final reachedReward = _currentPrompt.phase == 'scored' &&
+        scoredCompleted > 0 &&
+        scoredCompleted % _scoredRewardInterval == 0;
+
+    if (reachedReward) {
+      await _showRewardMilestone(scoredCompleted);
+      if (!mounted) return;
     }
-    if (!mounted) return;
 
     if (_promptIndex == _prompts.length - 1) {
       setState(() => _completed = true);
@@ -86,6 +114,40 @@ class _DemoGameScreenState extends State<DemoGameScreen> {
       _selectedIsWord = null;
       _startClock();
     });
+  }
+
+  Future<void> _showRewardMilestone(int scoredCompleted) async {
+    // The review website gives a small demo reward every five scored responses.
+    // This is not approval for the final study reward cadence.
+    if (KannadaSpeechService.instance.enabled) {
+      try {
+        await KannadaSpeechService.instance.speakPreview(
+          'ಚೆನ್ನಾಗಿದೆ! ಮುಂದುವರಿಯಿರಿ.',
+        );
+      } catch (_) {
+        // A missing/offline device voice must never block visual interaction.
+      }
+    }
+    if (!mounted) return;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        icon: const Icon(Icons.stars_rounded, size: 42, color: AppTheme.gold),
+        title: const Text('ಚೆನ್ನಾಗಿದೆ!'),
+        content: Text(
+          'You completed $scoredCompleted demo items. This is a sample reward only.',
+          textAlign: TextAlign.center,
+        ),
+        actions: <Widget>[
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('ಮುಂದುವರಿಸಿ'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _restart() {
@@ -140,8 +202,7 @@ class _DemoGameScreenState extends State<DemoGameScreen> {
   }
 
   Widget _gameContent({required bool compact}) {
-    final progress =
-        (_promptIndex + (_selectedIsWord == null ? 0 : 1)) / _prompts.length;
+    final progress = _phaseProgress / _phaseTotal;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -152,14 +213,16 @@ class _DemoGameScreenState extends State<DemoGameScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: <Widget>[
             Text(
-              'ಮಾದರಿ ${_promptIndex + 1} / ${_prompts.length}',
+              _isPractice
+                  ? 'ಅಭ್ಯಾಸ ${_phaseProgress} / $_phaseTotal'
+                  : 'ಪರೀಕ್ಷೆ ${_phaseProgress} / $_phaseTotal',
               style: const TextStyle(
                 color: AppTheme.ink,
                 fontWeight: FontWeight.w800,
               ),
             ),
             const Text(
-              'SAMPLE FLOW',
+              _isPractice ? 'PRACTICE DEMO' : 'SCORED DEMO',
               style: TextStyle(
                 color: AppTheme.muted,
                 fontWeight: FontWeight.w800,
@@ -330,7 +393,7 @@ class _DemoGameScreenState extends State<DemoGameScreen> {
             child: Text(
               _promptIndex == _prompts.length - 1
                   ? 'ಪ್ರದರ್ಶನ ಫಲಿತಾಂಶ'
-                  : 'ಮುಂದಿನ ಮಾದರಿ',
+                  : 'ಮುಂದಿನ ಪದ',
             ),
           ),
         ),
@@ -428,10 +491,17 @@ class _DemoGameScreenState extends State<DemoGameScreen> {
 }
 
 class _DemoPrompt {
-  const _DemoPrompt({required this.text, required this.isWord});
+  const _DemoPrompt({
+    required this.id,
+    required this.text,
+    required this.isWord,
+    required this.phase,
+  });
 
+  final String id;
   final String text;
   final bool isWord;
+  final String phase;
 }
 
 class _DemoResponse {
@@ -439,11 +509,15 @@ class _DemoResponse {
     required this.selectedIsWord,
     required this.expectedIsWord,
     required this.reactionTimeMs,
+    required this.phase,
+    required this.itemId,
   });
 
   final bool selectedIsWord;
   final bool expectedIsWord;
   final int reactionTimeMs;
+  final String phase;
+  final String itemId;
 }
 
 class _DemoTag extends StatelessWidget {
