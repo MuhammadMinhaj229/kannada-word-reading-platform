@@ -60,16 +60,30 @@ jobs:
       - name: Generate Android and Web host projects
         run: flutter create . --platforms=android,web --org org.phfi.cdlr --project-name padalab_android --no-pub
 
+      - name: Harden generated Android host
+        run: bash scripts/deploy/configure_android_project.sh
+
       - name: Resolve dependencies
         run: flutter pub get
 
       - name: Validate deployment scripts
         run: bash -n scripts/deploy/*.sh
 
-      - name: Verify formatting
+      - name: Canonical Dart formatting
         run: |
+          dart format lib test
           dart format --output=none --set-exit-if-changed lib test
           git diff --check
+
+      - name: Upload canonical formatted source
+        uses: actions/upload-artifact@v4
+        with:
+          name: padalab-formatted-source
+          path: |
+            lib/
+            test/
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Static analysis
         run: flutter analyze --fatal-infos
@@ -78,7 +92,10 @@ jobs:
         run: flutter test --reporter expanded
 
       - name: Build debug Android APK
-        run: flutter build apk --debug
+        run: flutter build apk --debug --dart-define=PADALAB_DEMO_MODE=true
+
+      - name: Build release-mode safety candidate
+        run: flutter build apk --release --dart-define=PADALAB_DEMO_MODE=false
 
       - name: Build Flutter Web
         run: flutter build web --release --base-href /
