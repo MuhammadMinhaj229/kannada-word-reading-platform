@@ -250,52 +250,54 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
   }
 
   Widget _metrics(BuildContext context, BundledItemCatalog catalog) {
-    final width = MediaQuery.sizeOf(context).width;
-    final columns = width < 520 ? 2 : width < 900 ? 2 : 4;
-    final gap = 10.0;
-    final available = MediaQuery.sizeOf(context).width -
-        (width < 860 ? 32 : 60);
-    final cardWidth = (available - gap * (columns - 1)) / columns;
-    final metrics = <_MetricData>[
-      _MetricData(
-        value: catalog.realWords.length.toString(),
-        label: 'Supplied real words',
-        detail: 'Source list validated',
-        color: AppTheme.tealDark,
-      ),
-      _MetricData(
-        value: catalog.nonWordCandidateCount.toString(),
-        label: 'Non-word candidates',
-        detail: catalog.approvedNonWordCount == 270
-            ? 'Native review approved'
-            : 'Awaiting written review',
-        color: catalog.approvedNonWordCount == 270
-            ? AppTheme.tealDark
-            : AppTheme.coral,
-      ),
-      const _MetricData(
-        value: '6',
-        label: 'Required sessions',
-        detail: 'Schedule awaits sign-off',
-        color: AppTheme.deepInk,
-      ),
-      const _MetricData(
-        value: '10 s',
-        label: 'Stimulus display',
-        detail: 'Requirements baseline',
-        color: AppTheme.deepInk,
-      ),
-    ];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final available = constraints.maxWidth;
+        final columns = available < 520 ? 2 : available < 900 ? 2 : 4;
+        const gap = 10.0;
+        final cardWidth = (available - gap * (columns - 1)) / columns;
+        final metrics = <_MetricData>[
+          _MetricData(
+            value: catalog.realWords.length.toString(),
+            label: 'Supplied real words',
+            detail: 'Source list validated',
+            color: AppTheme.tealDark,
+          ),
+          _MetricData(
+            value: catalog.nonWordCandidateCount.toString(),
+            label: 'Non-word candidates',
+            detail: catalog.approvedNonWordCount == 270
+                ? 'Native review approved'
+                : 'Awaiting written review',
+            color: catalog.approvedNonWordCount == 270
+                ? AppTheme.tealDark
+                : AppTheme.coral,
+          ),
+          const _MetricData(
+            value: '6',
+            label: 'Required sessions',
+            detail: 'Schedule awaits sign-off',
+            color: AppTheme.deepInk,
+          ),
+          const _MetricData(
+            value: '10 s',
+            label: 'Stimulus display',
+            detail: 'Requirements baseline',
+            color: AppTheme.deepInk,
+          ),
+        ];
 
-    return Wrap(
-      spacing: gap,
-      runSpacing: gap,
-      children: metrics
-          .map((metric) => SizedBox(
-                width: cardWidth,
-                child: _MetricCard(metric: metric),
-              ))
-          .toList(growable: false),
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: metrics
+              .map((metric) => SizedBox(
+                    width: cardWidth,
+                    child: _MetricCard(metric: metric),
+                  ))
+              .toList(growable: false),
+        );
+      },
     );
   }
 
