@@ -53,6 +53,14 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
     _loadLocalSettings();
   }
 
+  Future<void> _refreshLocalSettings() async {
+    await _loadLocalSettings();
+    if (!mounted) return;
+    setState(() {
+      _exportFeedback = 'Local synthetic demo records refreshed.';
+    });
+  }
+
   Future<void> _loadLocalSettings() async {
     try {
       final metadata = await _bankMetadataStore.load();
@@ -438,8 +446,8 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
                       if (_bankMetadata != null) ...<Widget>[
                         const SizedBox(height: 8),
                         Text(
-                          _bankMetadata!.fileName + '\\n' +
-                              'Imported: ' + _bankMetadata!.importedAt + '\\n' +
+                          _bankMetadata!.fileName + '\n' +
+                              'Imported: ' + _bankMetadata!.importedAt + '\n' +
                               'Hash: ' + _bankMetadata!.sha256,
                           style: const TextStyle(
                             color: AppTheme.muted,
@@ -511,10 +519,21 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      _StatusLine(
-                        label: 'Synthetic responses stored',
-                        value: _demoRecordCount.toString(),
-                        good: _demoRecordCount > 0,
+                      Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: _StatusLine(
+                              label: 'Synthetic responses stored',
+                              value: _demoRecordCount.toString(),
+                              good: _demoRecordCount > 0,
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: _exportBusy ? null : _refreshLocalSettings,
+                            icon: const Icon(Icons.refresh_rounded, size: 16),
+                            label: const Text('Refresh'),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 12),
                       Wrap(
