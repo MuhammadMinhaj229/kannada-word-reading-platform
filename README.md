@@ -40,6 +40,7 @@ Install Flutter stable **3.47.9** and the Android SDK. Then run from the reposit
 
 ```bash
 flutter create . --platforms=android,web --org org.phfi.cdlr --project-name padalab_android --no-pub
+bash scripts/deploy/configure_android_project.sh
 flutter pub get
 dart format lib test
 flutter analyze --fatal-infos
@@ -56,8 +57,9 @@ flutter run -d chrome
 To build both targets:
 
 ```bash
-flutter build apk --debug
-flutter build web --release
+flutter build apk --debug --dart-define=PADALAB_DEMO_MODE=true
+flutter build apk --release --dart-define=PADALAB_DEMO_MODE=false
+flutter build web --release --dart-define=PADALAB_DEMO_MODE=true
 bash scripts/deploy/configure_flutter_web.sh build/web
 ```
 
@@ -101,8 +103,8 @@ See:
 
 ## Current implementation status
 
-The current branch is an early Flutter foundation: theme/app shell, assessor-to-child navigation, a four-item synthetic child interaction demo with response buttons/progress/feedback and in-memory timing, provisional session allocation, initial SQLite schema, trial serialization, timestamp formatting and responsive layout tests. The demo is not connected to the study database or approved item bank and is not a research session.
+The current branch is an engineering foundation: Flutter Android/Web presentation, an explicitly enabled synthetic demo, a fail-closed participant release gate, an approved-manifest validator, an encrypted SQLCipher database boundary, Android Keystore-backed key storage and responsive tests. The session repository is not yet wired to assessor/child screens; no approved stimulus bank or participant session is available in this branch.
 
-Still required: the approved protocol and item bank, persistent assessor/child/session workflow, production trial state machine and database integration, resume/restart handling, bundled Kannada fonts/audio, protocol-approved rewards, summary metrics, protected CSV exports, stable native Android platform scaffold, signed release APK and real-device offline testing.
+Still required: signed PI/statistician protocol and allocation approval, all 270 real-word and 270 non-word source items with Suganya's written Kannada review, bundled approved Kannada font/audio, assessor/session UI and repository integration, supervisor PIN, approved interruption/repeat/timeout policies, session summary, protected CSV export and audit, durable migration/backup/restore procedure, a signed release APK, and cold-offline/timing/audio/Unicode acceptance on the actual tablets.
 
 **Do not use this preview with children or for data collection.**
