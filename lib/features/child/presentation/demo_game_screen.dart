@@ -221,9 +221,9 @@ class _DemoGameScreenState extends State<DemoGameScreen> {
                 fontWeight: FontWeight.w800,
               ),
             ),
-            const Text(
+            Text(
               _isPractice ? 'PRACTICE DEMO' : 'SCORED DEMO',
-              style: TextStyle(
+              style: const TextStyle(
                 color: AppTheme.muted,
                 fontWeight: FontWeight.w800,
                 fontSize: 10,
