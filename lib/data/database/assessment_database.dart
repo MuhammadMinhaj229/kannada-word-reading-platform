@@ -22,8 +22,12 @@ class AssessmentDatabase {
   AssessmentDatabase({
     DatabaseKeyProvider? keyProvider,
     AssessmentReleaseGate releaseGate = AssessmentReleaseGate.current,
+    sqlcipher_api.DatabaseFactory? factory,
+    Future<String> Function()? databasesPathProvider,
   })  : _keyProvider = keyProvider ?? DatabaseKeyProvider(),
-        _releaseGate = releaseGate;
+        _releaseGate = releaseGate,
+        _databaseFactory = factory ?? databaseFactory,
+        _databasesPathProvider = databasesPathProvider ?? getDatabasesPath;
 
   static const int schemaVersion = 1;
   static const String databaseFileName = 'padalab_assessment_secure.db';
@@ -34,6 +38,8 @@ class AssessmentDatabase {
 
   final DatabaseKeyProvider _keyProvider;
   final AssessmentReleaseGate _releaseGate;
+  final sqlcipher_api.DatabaseFactory _databaseFactory;
+  final Future<String> Function() _databasesPathProvider;
 
   Database? _database;
 
@@ -58,7 +64,7 @@ class AssessmentDatabase {
   }
 
   Future<Database> _openDatabase() async {
-    final databaseDirectory = await getDatabasesPath();
+    final databaseDirectory = await _databasesPathProvider();
     final databasePath = path.join(databaseDirectory, databaseFileName);
     final legacyPath =
         path.join(databaseDirectory, legacyPlaintextDatabaseFileName);
@@ -75,10 +81,11 @@ class AssessmentDatabase {
       databaseAlreadyExists: await File(databasePath).exists(),
     );
 
-    return openDatabase(
+    return _databaseFactory.openDatabase(
       databasePath,
-      password: key,
-      version: schemaVersion,
+      options: sqlcipher_api.SqlCipherOpenDatabaseOptions(
+        password: key,
+        version: schemaVersion,
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
         await db.execute('PRAGMA journal_mode = WAL');
@@ -87,12 +94,13 @@ class AssessmentDatabase {
       },
       onCreate: _createSchema,
       onUpgrade: _onUpgrade,
-      onDowngrade: (db, oldVersion, newVersion) async {
-        throw StateError(
-          'Database downgrade is not supported. Restore a compatible signed '
-          'application or follow the institution-approved recovery procedure.',
-        );
-      },
+        onDowngrade: (db, oldVersion, newVersion) async {
+          throw StateError(
+            'Database downgrade is not supported. Restore a compatible signed '
+            'application or follow the institution-approved recovery procedure.',
+          );
+        },
+      ),
     );
   }
 
