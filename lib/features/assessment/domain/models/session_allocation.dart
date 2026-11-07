@@ -1,5 +1,6 @@
 import '../../../../core/config/study_protocol.dart';
 import 'study_item.dart';
+import 'study_item_bank.dart';
 
 enum TrialPhase {
   practice,
@@ -55,6 +56,19 @@ class SessionAllocation {
 
   int get testCount =>
       orderedTrials.where((trial) => trial.phase == TrialPhase.test).length;
+
+  void validateAgainst(StudyItemBank itemBank) {
+    validate();
+    if (itemBank.version != itemBankVersion) {
+      throw StateError(
+        'Session manifest item-bank version does not match the approved bank.',
+      );
+    }
+    itemBank.validateChecksum(itemBankSha256);
+    for (final trial in orderedTrials) {
+      itemBank.validateTrialItem(trial.item);
+    }
+  }
 
   void validate() {
     if (sessionNumber < 1 || sessionNumber > StudyProtocol.sessionCount) {
