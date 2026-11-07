@@ -2,50 +2,110 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:in_app_update/in_app_update.dart';
 
-/// Integrates Android Google Play's in-app update mechanism.
+enum PlayUpdateStatus {
+  unsupported,
+  upToDate,
+  updated,
+  unavailable,
+  failed,
+}
+
+class PlayUpdateResult {
+  const PlayUpdateResult({
+    required this.status,
+    required this.message,
+  });
+
+  final PlayUpdateStatus status;
+  final String message;
+}
+
+/// Checks and installs application updates published through Google Play.
 ///
-/// The service is intentionally a no-op for Web, debug and non-Android builds.
-/// Play in-app updates require the installed package to come from Google Play;
-/// sideloaded APKs and Vercel previews are not update sources.
+/// This is deliberately user-triggered from the idle assessor home screen.
+/// It is not a Vercel updater and cannot update locally sideloaded APKs.
 class PlayUpdateService {
   const PlayUpdateService();
 
-  Future<void> checkAndApplyAvailableUpdate() async {
+  Future<PlayUpdateResult> checkAndApplyAvailableUpdate() async {
     if (kIsWeb ||
         kDebugMode ||
         defaultTargetPlatform != TargetPlatform.android) {
-      return;
+      return const PlayUpdateResult(
+        status: PlayUpdateStatus.unsupported,
+        message: 'Updates are available only in the Android release from Google Play.',
+      );
     }
 
     try {
       final update = await InAppUpdate.checkForUpdate();
       if (update.updateAvailability != UpdateAvailability.updateAvailable) {
-        return;
+        return const PlayUpdateResult(
+          status: PlayUpdateStatus.upToDate,
+          message: 'This app is up to date.',
+        );
       }
 
-      // Only force a blocking update for a high-priority release. Normal
-      // feature releases use the flexible flow and complete at application
-      // startup, before an assessor can begin a session.
+      // High-priority, approved releases may require an immediate update.
       if (update.updatePriority >= 4 && update.immediateUpdateAllowed) {
-        await InAppUpdate.performImmediateUpdate();
-        return;
+        final result = await InAppUpdate.performImmediateUpdate();
+        return result == AppUpdateResult.success
+            ? const PlayUpdateResult(
+                status: PlayUpdateStatus.updated,
+                message: 'The update was installed successfully.',
+              )
+            : const PlayUpdateResult(
+                status: PlayUpdateStatus.unavailable,
+                message: 'The update was not completed. Please try again later.',
+              );
       }
 
+      // Normal releases are downloaded through Play's flexible flow and
+      // completed only after the assessor explicitly requests the refresh.
       if (update.flexibleUpdateAllowed) {
-        await InAppUpdate.startFlexibleUpdate();
+        final result = await InAppUpdate.startFlexibleUpdate();
+        if (result != AppUpdateResult.success) {
+          return const PlayUpdateResult(
+            status: PlayUpdateStatus.unavailable,
+            message: 'Google Play could not start the update. Please try again.',
+          );
+        }
+
         await InAppUpdate.completeFlexibleUpdate();
+        return const PlayUpdateResult(
+          status: PlayUpdateStatus.updated,
+          message: 'The update was installed successfully.',
+        );
       }
-    } on PlatformException catch (error, stackTrace) {
-      // A local APK or a device without Play Store integration commonly
-      // returns API_NOT_AVAILABLE. Do not crash or block the safe launch UI.
-      debugPrint(
-        'Padalab Play update check unavailable: ${error.code} '
-        '${error.message ?? ''}',
+
+      return const PlayUpdateResult(
+        status: PlayUpdateStatus.unavailable,
+        message: 'An update exists, but Google Play cannot install it right now.',
       );
+    } on PlatformException catch (error, stackTrace) {
+      debugPrint('Padalab Play update check unavailable: ${error.code}');
       debugPrintStack(stackTrace: stackTrace);
+
+      final code = error.code.toUpperCase();
+      if (code.contains('API_NOT_AVAILABLE') ||
+          code.contains('APP_NOT_OWNED')) {
+        return const PlayUpdateResult(
+          status: PlayUpdateStatus.unsupported,
+          message: 'This APK was not installed from Google Play. Install the Play testing build to use update refresh.',
+        );
+      }
+
+      return const PlayUpdateResult(
+        status: PlayUpdateStatus.failed,
+        message: 'Could not check for updates. Connect to the internet and try again.',
+      );
     } catch (error, stackTrace) {
       debugPrint('Padalab Play update check failed: $error');
       debugPrintStack(stackTrace: stackTrace);
+      return const PlayUpdateResult(
+        status: PlayUpdateStatus.failed,
+        message: 'Could not check for updates. Please try again later.',
+      );
     }
   }
 }
