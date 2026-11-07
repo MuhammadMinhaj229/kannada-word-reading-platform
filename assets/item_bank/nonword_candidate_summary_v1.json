@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "source_file": "nonwords_v1.xlsm",
+  "candidate_count": 270,
+  "approved_count": 0,
+  "review_status": "pending_native_kannada_review",
+  "activate_in_assessment": false,
+  "construction_methods": {
+    "A_vowel": 68,
+    "B_consonant": 68,
+    "C_suffix_prefix": 67,
+    "D_prefix_suffix": 67
+  },
+  "approval_requirement": "Do not include any candidate in a participant session until the native Kannada reviewer has completed linguistic review and written approval is recorded.",
+  "source_word_reference": "assets/item_bank/selected_words_list_v1.csv"
+}
