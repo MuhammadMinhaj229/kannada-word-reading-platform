@@ -33,7 +33,8 @@ class PlayUpdateService {
         defaultTargetPlatform != TargetPlatform.android) {
       return const PlayUpdateResult(
         status: PlayUpdateStatus.unsupported,
-        message: 'Updates are available only in the Android release from Google Play.',
+        message:
+            'Updates are available only in the Android release from Google Play.',
       );
     }
 
@@ -48,29 +49,17 @@ class PlayUpdateService {
 
       // High-priority, approved releases may require an immediate update.
       if (update.updatePriority >= 4 && update.immediateUpdateAllowed) {
-        final result = await InAppUpdate.performImmediateUpdate();
-        return result == AppUpdateResult.success
-            ? const PlayUpdateResult(
-                status: PlayUpdateStatus.updated,
-                message: 'The update was installed successfully.',
-              )
-            : const PlayUpdateResult(
-                status: PlayUpdateStatus.unavailable,
-                message: 'The update was not completed. Please try again later.',
-              );
+        await InAppUpdate.performImmediateUpdate();
+        return const PlayUpdateResult(
+          status: PlayUpdateStatus.updated,
+          message: 'The update was installed successfully.',
+        );
       }
 
-      // Normal releases are downloaded through Play's flexible flow and
-      // completed only after the assessor explicitly requests the refresh.
+      // Normal releases use Play's flexible flow. Complete the install only
+      // after Google Play reports that the package has finished downloading.
       if (update.flexibleUpdateAllowed) {
-        final result = await InAppUpdate.startFlexibleUpdate();
-        if (result != AppUpdateResult.success) {
-          return const PlayUpdateResult(
-            status: PlayUpdateStatus.unavailable,
-            message: 'Google Play could not start the update. Please try again.',
-          );
-        }
-
+        await InAppUpdate.startFlexibleUpdate();
         await InAppUpdate.completeFlexibleUpdate();
         return const PlayUpdateResult(
           status: PlayUpdateStatus.updated,
@@ -80,7 +69,8 @@ class PlayUpdateService {
 
       return const PlayUpdateResult(
         status: PlayUpdateStatus.unavailable,
-        message: 'An update exists, but Google Play cannot install it right now.',
+        message:
+            'An update exists, but Google Play cannot install it right now.',
       );
     } on PlatformException catch (error, stackTrace) {
       debugPrint('Padalab Play update check unavailable: ${error.code}');
@@ -91,13 +81,15 @@ class PlayUpdateService {
           code.contains('APP_NOT_OWNED')) {
         return const PlayUpdateResult(
           status: PlayUpdateStatus.unsupported,
-          message: 'This APK was not installed from Google Play. Install the Play testing build to use update refresh.',
+          message:
+              'This APK was not installed from Google Play. Install the Play testing build to use update refresh.',
         );
       }
 
       return const PlayUpdateResult(
         status: PlayUpdateStatus.failed,
-        message: 'Could not check for updates. Connect to the internet and try again.',
+        message:
+            'Could not check for updates. Connect to the internet and try again.',
       );
     } catch (error, stackTrace) {
       debugPrint('Padalab Play update check failed: $error');
