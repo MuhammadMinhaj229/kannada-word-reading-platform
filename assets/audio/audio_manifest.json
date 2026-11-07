@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "language": "kn-IN",
+  "delivery": "bundled_offline_recordings_only",
+  "approval_status": "pending_study_team_audio_approval",
+  "source_recording_reference": "Voice 261102_151541.m4a (supplied source recording; not yet reviewed or segmented into approved instruction clips)",
+  "approved_by": null,
+  "approval_reference": null,
+  "clips": {
+    "assessor_welcome": null,
+    "child_instructions": null,
+    "practice_instructions": null,
+    "completion_instruction": null,
+    "reward_instruction": null
+  },
+  "notes": [
+    "No synthesized speech fallback is permitted for participant sessions.",
+    "Each clip must be a PHFI/CDLR-approved native Kannada recording, segmented, named and bundled with the app.",
+    "The scored stimulus remains silent unless the PI approves a protocol amendment."
+  ]
+}
