@@ -21,7 +21,7 @@ void main() {
 
     final fields = tester.widgetList<TextField>(find.byType(TextField));
     expect(fields, isNotEmpty);
-    expect(fields.every((field) => !field.enabled), isTrue);
+    expect(fields.every((field) => field.enabled != true), isTrue);
     expect(tester.takeException(), isNull);
   });
 }
