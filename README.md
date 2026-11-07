@@ -109,3 +109,8 @@ The current branch is a hardened engineering preview: Flutter Android/Web presen
 Still required: signed PI/statistician protocol and allocation approval, all 270 real-word and 270 non-word source items with Suganya's written Kannada review, bundled approved Kannada font/audio, assessor/session UI and repository integration, supervisor PIN, approved interruption/repeat/timeout policies, session summary, protected CSV export and audit, durable migration/backup/restore procedure, written confirmation of the permanent Android package ID and signing owner, protected release keystore, Play/Managed Play publication, and cold-offline/timing/audio/Unicode/SQLCipher/Keystore acceptance on the actual tablets.
 
 **Do not use this preview with children or for data collection.**
+
+
+## Shared Game / Settings and offline behavior
+
+The Flutter branch contains the same two primary destinations (Game and Settings) for Android and Web, with a device-provided Kannada TTS preview for demo use. The Flutter Web build generates its own versioned service worker, caches the build after a successful online visit, and exposes a manual Refresh updates control. Android uses the same Flutter screens but a separate native distribution and secure storage path. The Flutter Web branch does not yet have a participant-data persistence adapter, and the Android SQLCipher APIs are not yet connected to the UI. Do not enter participant information in either preview. See `docs/offline-validation.md` and `docs/security-audit.md`.
