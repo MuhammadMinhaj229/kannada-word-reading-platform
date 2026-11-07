@@ -63,6 +63,16 @@ jobs:
       - name: Harden generated Android host
         run: bash scripts/deploy/configure_android_project.sh
 
+      - name: Upload generated Android and Web platform scaffolds
+        uses: actions/upload-artifact@v4
+        with:
+          name: padalab-android-web-platform-scaffold
+          path: |
+            android/
+            web/
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Resolve dependencies
         run: flutter pub get
 
