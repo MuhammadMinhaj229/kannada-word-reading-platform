@@ -8,6 +8,7 @@ import '../../core/config/assessment_release_gate.dart';
 import '../../core/time/local_timestamp.dart';
 import '../../features/assessment/domain/models/session_allocation.dart';
 import '../../features/assessment/domain/models/study_item.dart';
+import '../../features/assessment/domain/models/study_item_bank.dart';
 import '../security/database_key_provider.dart';
 import 'active_session_snapshot.dart';
 
@@ -247,6 +248,7 @@ class AssessmentDatabase {
     required DateTime sessionDate,
     required String appVersion,
     required SessionAllocation manifest,
+    required StudyItemBank itemBank,
     bool isRepeat = false,
     bool isRestart = false,
     bool supervisorAuthorized = false,
@@ -258,7 +260,7 @@ class AssessmentDatabase {
       );
     }
 
-    manifest.validate();
+    manifest.validateAgainst(itemBank);
     if (childId.trim().isEmpty ||
         assessorId.trim().isEmpty ||
         deviceId.trim().isEmpty ||
@@ -337,6 +339,45 @@ class AssessmentDatabase {
             'approved supervisor authorization policy.',
           );
         }
+      }
+
+      final storedBankRows = await txn.query(
+        'item_bank_metadata',
+        where: 'version = ?',
+        whereArgs: <Object?>[itemBank.version],
+        limit: 1,
+      );
+      if (storedBankRows.isNotEmpty &&
+          storedBankRows.single['sha256'] != itemBank.sha256) {
+        throw StateError(
+          'An item-bank version already exists with a different checksum.',
+        );
+      }
+      await txn.update(
+        'item_bank_metadata',
+        <String, Object?>{'is_active': 0},
+        where: 'is_active = ?',
+        whereArgs: <Object?>[1],
+      );
+      if (storedBankRows.isEmpty) {
+        await txn.insert(
+          'item_bank_metadata',
+          <String, Object?>{
+            'version': itemBank.version,
+            'sha256': itemBank.sha256,
+            'approved_by': itemBank.approvedBy,
+            'approval_reference': itemBank.approvalReference,
+            'imported_at': createdAt,
+            'is_active': 1,
+          },
+        );
+      } else {
+        await txn.update(
+          'item_bank_metadata',
+          <String, Object?>{'is_active': 1},
+          where: 'version = ?',
+          whereArgs: <Object?>[itemBank.version],
+        );
       }
 
       final dayKey = _dateKey(sessionDate);
