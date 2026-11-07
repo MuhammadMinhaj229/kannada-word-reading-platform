@@ -326,8 +326,9 @@ class _DemoGameScreenState extends State<DemoGameScreen> {
 
   Widget _completionContent() {
     final correctCount = _responses
-        .where((response) =>
-            response.selectedIsWord == response.expectedIsWord)
+        .where(
+          (response) => response.selectedIsWord == response.expectedIsWord,
+        )
         .length;
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
