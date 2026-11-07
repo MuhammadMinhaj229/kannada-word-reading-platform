@@ -1,42 +1,73 @@
 # ಪದLab — Kannada Word Reading Assessment
 
-**One application codebase:** Flutter/Dart under `lib/`, shared by Android and Web.  
-**Primary field target:** offline-first Android tablet application.  
-**Web target:** browser-based review of the same Flutter screens, hosted on Vercel.  
-**Current maturity:** engineering preview; not approved for participant use.
+**Application:** Flutter / Dart  
+**Field target:** offline-first Android tablets  
+**Browser target:** read-only review build on Vercel  
+**Current branch:** `feat/flutter-android-foundation`  
+**Release state:** engineering candidate; participant release gate remains closed
 
-## What this repository builds
+## Product architecture
 
-| Target | Purpose | Delivery |
+PadLab has one Flutter application codebase. Android and Web are separate build targets from the same source commit.
+
+| Target | Intended role | Data boundary |
 |---|---|---|
-| Android | Field assessment on assessor tablets; local SQLite; offline operation | Debug APK in CI; signed release package after release gates |
-| Web | Browser review of the same Flutter screens | Vercel branch previews and production deployment from `main` |
+| Android APK | Assessor-operated field application | Encrypted SQLite in private device storage |
+| Flutter Web | Interface and bundled-content review on Vercel | Read-only; no participant identifiers or records |
 
-The browser preview is not the research instrument. It does not certify Android behavior, SQLite persistence, offline operation, audio, reaction-time accuracy, or tablet compatibility. Never enter participant information in the web preview.
+The browser build is not a participant data-collection target. Vercel serves the Flutter Web output; GitHub Actions builds the Android package. No cloud database, remote participant API, analytics or telemetry service is part of the current architecture.
+
+## Supplied study content
+
+### Real Kannada word list
+
+The supplied `assets/item_bank/selected_words_list_v1.csv` is bundled unchanged. It contains 270 unique real Kannada word entries and the associated source metadata:
+
+- Kannada word and transcription
+- Meaning and part of speech
+- Age band and mean age of acquisition
+- Syllable, phoneme and morpheme counts
+- Akshara type
+
+The application assigns stable internal IDs `W001` through `W270` in the supplied source order. The asset parser rejects missing columns, duplicate words or a row count other than 270.
+
+### Non-word candidates
+
+The supplied workbook contains 270 candidates with the requested construction proportions:
+
+| Method | Count |
+|---|---:|
+| A — Vowel replacement | 68 |
+| B — Consonant replacement | 68 |
+| C — Suffix + prefix blend | 67 |
+| D — Prefix + suffix blend | 67 |
+| **Total** | **270** |
+
+The source workbook marks all 270 candidates as Pending. The app stores the method counts and review state in `assets/item_bank/nonword_candidate_summary_v1.json`; pending candidates are not loaded as usable assessment stimuli. Written native Kannada review and study-team approval are required before these items enter a signed item bank.
 
 ## Repository layout
 
 ```
 lib/
-  app/                 App composition, navigation and design system
-  core/                Protocol configuration and platform-independent utilities
-  data/                Local persistence boundary (Android SQLite)
+  app/                 App composition and design system
+  core/                Protocol, audio, security and update services
+  data/                Encrypted Android persistence boundary
   features/
-    assessment/        Stimulus, allocation, trial and scoring domain
-    assessor/          Assessor workspace and participant workflow
-    child/             Child-facing assessment experience
-test/                  Unit/widget tests, including responsive viewport coverage
-docs/                  Architecture, protocol gates, privacy and release checks
-scripts/deploy/        Reproducible Flutter SDK and Web metadata scripts
-.github/workflows/     Flutter validation and Android/Web build workflow
-vercel.json            Vercel static hosting, routing and response headers
+    assessment/        Item catalog, allocation and trial domain
+    assessor/          Assessor workspace and settings
+assets/
+  item_bank/           Supplied real words and non-word review summary
+  audio/               Approved offline recording manifest
+test/                  Unit, widget and responsive-layout coverage
+docs/                  Architecture, approvals, privacy and release checks
+scripts/deploy/        Pinned Flutter SDK and platform setup
+.github/workflows/     CI, Web validation and signed APK release
+vercel.json            Static Flutter Web hosting and security headers
 ```
 
-The former Next.js/PWA implementation is preserved on branch `archive/nextjs-prototype-before-flutter-root`. It is no longer part of the active application or deployment pipeline.
+## Local development
 
-## Local setup
-
-Install Flutter stable **3.47.9** and the Android SDK. Then run from the repository root:
+Install Flutter stable **3.47.9**, Java 17 and the Android SDK.
 
 ```bash
 flutter create . --platforms=android,web --org org.phfi.cdlr --project-name padalab_android --no-pub
@@ -48,69 +79,69 @@ flutter test --reporter expanded
 flutter run
 ```
 
-To run the browser preview:
+The normal application entry point is the assessor workspace. There is no build flag that switches the application into a synthetic assessment flow.
+
+Run the browser review target with:
 
 ```bash
 flutter run -d chrome
 ```
 
-To build both targets:
+Build the Vercel review output with:
 
 ```bash
-flutter build apk --debug --target-platform android-arm64 --dart-define=PADALAB_DEMO_MODE=true
-flutter build apk --release --target-platform android-arm64 --dart-define=PADALAB_DEMO_MODE=false
-flutter build web --release --dart-define=PADALAB_DEMO_MODE=true
+flutter build web --release --base-href /
 bash scripts/deploy/configure_flutter_web.sh build/web
 ```
 
-The generated Android and Web host directories are created from the pinned Flutter SDK in CI/deployment. Keep platform-specific changes documented and committed deliberately.
+## Vercel deployment
 
-## One Flutter codebase and one release path
+- Root directory: repository root
+- Framework preset: none
+- Install command: `bash scripts/deploy/install_flutter.sh`
+- Build command: `bash scripts/deploy/build_flutter_web.sh`
+- Output directory: `build/web`
+- Flutter SDK: pinned in `.flutter-version`
 
-A push or pull request runs one GitHub Actions workflow: formatting, static analysis, unit/widget tests, an Android debug build and a Flutter Web build. The Vercel Git integration automatically creates a preview deployment for the feature branch. When a reviewed change is merged into `main`, Vercel builds and publishes the production Web deployment.
+Feature-branch pushes create Vercel previews. The configured production branch remains `main`; the Flutter migration is still under PR #2 and has not been promoted to production. The service-worker cache identity is derived from both asset paths and file contents. The web build is no-index and does not accept participant details.
 
-- CI workflow: `.github/workflows/flutter-android.yml`
-- Vercel project settings: `vercel.json`
-- Web build script: `scripts/deploy/build_flutter_web.sh`
-- Deployment and release policy: `docs/deployment.md`
-- Security and release audit: `docs/security-audit.md`
+## Android APK distribution
 
-The Android APK and Web output are different platform packages generated from the same Flutter source commit. This is not a separate React/Next.js website. Vercel hosts the Web build; GitHub Actions builds an ARM64-only Android APK and verifies its signature and checksum. No Cloudflare credentials or second web host are required. Android release builds include an assessor-controlled **Refresh updates** action that checks Google Play; it works only for packages installed from a configured Play testing/managed track, not sideloaded APKs. See `docs/android-update-policy.md`.
+The current native target is Android 8.0 (API 26) or later on ARM64 (`arm64-v8a`) tablets. Device compatibility must be confirmed on the actual study tablet; a single APK cannot be guaranteed on every vendor, architecture or Android release.
 
-The Web target is for synthetic-data review only. Native SQLite, Android system UI, power management, local persistence and field-device acceptance must be tested on Android tablets. Never enter real participant information in the browser preview.
+The signed release workflow is `.github/workflows/release-apk.yml`. It requires these protected repository secrets:
 
-## Study protocol and item-bank gates
+- `ANDROID_KEYSTORE_BASE64`
+- `ANDROID_KEY_ALIAS`
+- `ANDROID_KEY_PASSWORD`
+- `ANDROID_STORE_PASSWORD`
 
-The supplied requirements DOCX specifies 270 real Kannada words + 270 non-words, six sessions, five practice items + 85 test items per session, a 10-second stimulus display, Kannada recorded instruction audio and a gold coin after every 10 answers.
+Create a reviewed tag such as `padalab-v0.1.0` to publish a signed APK and SHA-256 checksum. The workflow never uploads the keystore or `android/key.properties`. Debug APKs from the validation workflow are for engineering review, not field distribution.
 
-A separate 194-non-word / 45-real + 32-nonword / 77-scored-item proposal was discussed later. It conflicts with the formal requirements document and is not approved. Engineering tests may exercise provisional arithmetic, but these values must not be administered or treated as final until the PI/statistician confirms the protocol in writing.
+See [Android installation and compatibility](docs/android-installation.md).
 
-The latest workbook audit found 270 non-word candidates, all marked Pending. No non-word is approved for use. Native Kannada review and written approval are required before any candidate item is packaged.
+## Research protocol baseline
 
-See:
-- `docs/protocol-decisions.md`
-- `docs/protocol/working-allocation-v1.md`
-- `docs/architecture.md`
+The requirements baseline records:
 
-## Data protection and research integrity
+- 270 real words and 270 non-word candidates
+- Six sessions
+- 90 presentations per session: five practice and 85 test
+- Ten-second stimulus display
+- Reward interval specified as every ten answers
 
-- Android assessment data remains in private on-device storage.
-- No backend, cloud database, analytics, crash telemetry, or automatic upload is part of the field app.
-- Never commit participant data, names, trial exports, item-bank source files, audio recordings, or signing keys.
-- Persist each accepted response before advancing to another stimulus.
-- Resume must restore the exact frozen trial order; never reshuffle an interrupted session.
-- Keep child names out of exports by default.
-- CI success is not evidence of ethics approval, linguistic validity, offline readiness or field acceptance.
+The source requirements say the visit schedule must be finalised with the study team. The final allocation/order, timeout/no-response rule, practice-item sourcing, reward behavior, repeat/restart rules and same-day policy must be approved in writing. The application must not infer these rules.
 
-## Current implementation status
+## Kannada instruction audio
 
-The current branch is a hardened engineering preview: Flutter Android/Web presentation, an explicitly enabled synthetic demo, a fail-closed participant release gate, a checksum-verified 540-item bank model, a frozen-session manifest validator, an encrypted SQLCipher database boundary, Android secure-key storage, transactional trial APIs, host SQLite integration tests, responsive screen tests and a guarded Google Play update coordinator. The persistence APIs are not yet wired to assessor/child screens; no approved stimulus bank or participant session is available in this branch.
+The application uses bundled, offline recordings only. Device text-to-speech is not used as a participant fallback. The supplied 12-minute source recording has not yet been transcribed, segmented into the required instruction clips and linked to a written PHFI/CDLR approval reference. The app's audio manifest therefore remains closed until approved clips are added and validated on the target tablet.
 
-Still required: signed PI/statistician protocol and allocation approval, all 270 real-word and 270 non-word source items with Suganya's written Kannada review, bundled approved Kannada font/audio, assessor/session UI and repository integration, supervisor PIN, approved interruption/repeat/timeout policies, session summary, protected CSV export and audit, durable migration/backup/restore procedure, written confirmation of the permanent Android package ID and signing owner, protected release keystore, Play/Managed Play publication, and cold-offline/timing/audio/Unicode/SQLCipher/Keystore acceptance on the actual tablets.
+See [audio asset requirements](assets/audio/README.md).
 
-**Do not use this preview with children or for data collection.**
+## Current engineering status
 
+Implemented on this branch: Flutter application shell, responsive navigation, supplied real-word asset and parser, non-word method/review summary, offline audio player service and approval manifest, SQLCipher/database foundations, responsive layout tests, Web service-worker content fingerprinting, and protected signed-APK workflow.
 
-## Shared Game / Settings and offline behavior
+Not yet complete: assessor/session UI wiring to SQLCipher, child trial presentation and recovery, session history and repeat authorization, approved 540-item bank/allocation manifest, approved Kannada audio clips, protected export/REDCap mapping, tablet integration/acceptance and institution signing-key provisioning.
 
-The Flutter branch contains the same two primary destinations (Game and Settings) for Android and Web, with a device-provided Kannada TTS preview for demo use. The Flutter Web build generates its own versioned service worker, caches the build after a successful online visit, and exposes a manual Refresh updates control. Android uses the same Flutter screens but a separate native distribution and secure storage path. The Flutter Web branch does not yet have a participant-data persistence adapter, and the Android SQLCipher APIs are not yet connected to the UI. Do not enter participant information in either preview. See `docs/offline-validation.md` and `docs/security-audit.md`.
+**The participant release gate intentionally remains closed.** Passing CI or building an APK does not establish ethics approval, linguistic validity, audio approval, data-integrity acceptance or field readiness.
