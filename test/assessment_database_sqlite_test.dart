@@ -281,6 +281,81 @@ void main() {
     await database.close();
   });
 
+  test('records a no-response exactly once without inventing reaction time',
+      () async {
+    final database = createDatabase(_TestSecureStore());
+    final db = await database.database;
+    await insertTestSession(db);
+
+    const planned = PlannedTrial(
+      ordinal: 1,
+      phase: TrialPhase.test,
+      phaseTrialNumber: 1,
+      item: StudyItem(
+        id: 'REAL-001',
+        text: 'ಮನೆ',
+        type: StudyItemType.realWord,
+      ),
+    );
+    final shownAt = DateTime(2026, 11, 7, 10);
+    final trialUuid = await database.beginTrial(
+      sessionUuid: 'TEST-SESSION',
+      plannedTrial: planned,
+      shownAt: shownAt,
+      appVersion: '0.1.0+1',
+      itemBankVersion: 'TEST-BANK',
+    );
+
+    await database.completeTrial(
+      trialUuid: trialUuid,
+      response: 'none',
+      reactionTimeMs: null,
+      answeredAt: null,
+    );
+
+    final trial = (await db.query(
+      'trials',
+      where: 'trial_uuid = ?',
+      whereArgs: <Object?>[trialUuid],
+    )).single;
+    final session = (await db.query(
+      'sessions',
+      where: 'session_uuid = ?',
+      whereArgs: <Object?>['TEST-SESSION'],
+    )).single;
+
+    expect(trial['status'], 'no_response');
+    expect(trial['response'], 'none');
+    expect(trial['correct'], isNull);
+    expect(trial['rt_ms'], isNull);
+    expect(trial['answered_at'], isNull);
+    expect(session['next_ordinal'], 2);
+
+    await database.close();
+  });
+
+  test('requires exactly one valid interrupted-session state transition',
+      () async {
+    final database = createDatabase(_TestSecureStore());
+    final db = await database.database;
+    await insertTestSession(db);
+
+    await database.markInterrupted('TEST-SESSION');
+    final session = (await db.query(
+      'sessions',
+      where: 'session_uuid = ?',
+      whereArgs: <Object?>['TEST-SESSION'],
+    )).single;
+    expect(session['status'], 'interrupted');
+
+    await expectLater(
+      database.markInterrupted('TEST-SESSION'),
+      throwsA(isA<StateError>()),
+    );
+
+    await database.close();
+  });
+
   test('preserves and refuses to open a legacy plaintext database', () async {
     final legacyFile = File(
       '${directory.path}/${AssessmentDatabase.legacyPlaintextDatabaseFileName}',
