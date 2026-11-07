@@ -28,15 +28,15 @@ class ItemBankTemplateService {
             TextCellValue(
               'KWR-V$visit-B$block-${order.toString().padLeft(3, '0')}',
             ),
-            const TextCellValue(''),
+            TextCellValue(''),
             TextCellValue(itemType),
             IntCellValue(visit),
             IntCellValue(block),
             IntCellValue(order),
-            const TextCellValue('pending'),
-            const TextCellValue(''),
-            const TextCellValue(''),
-            const TextCellValue(''),
+            TextCellValue('pending'),
+            TextCellValue(''),
+            TextCellValue(''),
+            TextCellValue(''),
           ]);
         }
       }
