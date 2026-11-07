@@ -238,7 +238,6 @@ void main() {
       response: 'word',
       reactionTimeMs: 420,
       answeredAt: answeredAt,
-      coinsSoFar: 0,
     );
 
     final trial = (await db.query(
@@ -259,6 +258,26 @@ void main() {
     expect(session['next_ordinal'], 2);
     expect(session['status'], 'completed');
     expect(session['completed_at'], isNotNull);
+    expect(session['coins_so_far'], 0);
+    expect(trial['coins_so_far'], 0);
+
+    // A retry after a successful response must not double-commit the trial or
+    // move the session cursor a second time.
+    await expectLater(
+      database.completeTrial(
+        trialUuid: trialUuid,
+        response: 'word',
+        reactionTimeMs: 420,
+        answeredAt: answeredAt,
+      ),
+      throwsA(isA<StateError>()),
+    );
+    final unchanged = (await db.query(
+      'sessions',
+      where: 'session_uuid = ?',
+      whereArgs: <Object?>['TEST-SESSION'],
+    )).single;
+    expect(unchanged['next_ordinal'], 2);
     await database.close();
   });
 
