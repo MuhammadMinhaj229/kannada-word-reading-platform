@@ -1,52 +1,83 @@
 # Deployment and release model
 
-## Vercel project settings
+## Hosting decision
 
-The private GitHub repository is already connected to the Vercel project `kannada-word-reading-platform` in your existing team. The project settings have been aligned with the repository build.
+**Primary Web host: Vercel.** The GitHub repository is already connected to the Vercel project `kannada-word-reading-platform`. We will not introduce Cloudflare or a second hosting provider.
 
-| Setting | Value |
-|---|---|
-| Framework preset | Next.js |
-| Root directory | `/` |
-| Production branch | `main` |
-| Node.js | 22.x |
-| Install command | `npm install --no-audit --no-fund` (or Vercel default) |
-| Build command | `npm run build` |
-| Output directory | Next.js default; leave override unset |
-| Environment variables | None required by the current app |
-| Git integration | GitHub · `MuhammadMinhaj229/kannada-word-reading-platform` |
-| Preview protection | Vercel SSO enabled |
+Vercel's CDN is automatically included with each deployment and is globally distributed. Vercel currently documents 126+ Points of Presence across 51 countries and more than 20 compute regions. Static Flutter files are served through that edge network; the current application has no cloud API or database requirement. See the official [CDN overview](https://vercel.com/docs/cdn) and [global network documentation](https://vercel.com/docs/regions).
 
-The app uses no cloud database, API key or backend environment variables. Do not add REDCap credentials to the browser build.
+## One Flutter source, platform-specific artifacts
 
-## What Vercel provides
+The repository contains one application codebase: Flutter/Dart under `lib/`. Both Android and Web are built from the same commit.
 
-Git integration creates Preview deployments for commits/branches and Production deployments from the configured production branch. Use Preview deployments for internal UX review with synthetic data only. Keep this private project protected with the team's normal deployment access controls.
+| Target | Role | Delivery |
+|---|---|---|
+| Android | Canonical offline field application | Android debug APK from GitHub Actions now; signed release build after device, protocol and signing gates |
+| Flutter Web | Browser UI review using the same Flutter screens | Vercel Git preview for branches; Vercel production deployment from `main` |
 
-## Current deployment status
+The outputs differ because Android requires an installable native package while Web requires browser assets. They are not separately maintained applications. GitHub Actions validates the shared source and builds both targets. Vercel's Git integration publishes the Web target from that same repository/commit.
 
-The Vercel project exists and is Git-linked. The latest known successful Vercel deployments before this configuration update were preview deployments from the `mobile-ux-review` branch. The main-branch production deployment had been cancelled. Treat the next deployment from `main` as a preview for team review until the project owner deliberately promotes a production release. SSO protection remains enabled; reviewers need team access.
+## Vercel project
 
-## Android install
+- Project: `kannada-word-reading-platform`
+- Git repository: `MuhammadMinhaj229/kannada-word-reading-platform`
+- Root directory: repository root
+- Framework preset: none (Flutter Web is a static output)
+- Install command: `bash scripts/deploy/install_flutter.sh`
+- Build command: `bash scripts/deploy/build_flutter_web.sh`
+- Output directory: `build/web`
+- Flutter SDK: pinned by `.flutter-version` (currently `3.47.9`)
 
-1. Open the approved HTTPS deployment in Chrome on the target Android phone/tablet.
-2. Use the app's Install app prompt when available, or Chrome's Install app / Add to Home Screen option.
-3. Open the installed PWA once while online so the service worker can precache the app shell.
-4. Confirm the status shows Offline ready. This confirms a service worker and template warm-up, not every field-readiness criterion.
-5. Force-close, enable airplane mode and reopen from the home screen.
-6. Verify every needed route and asset is available before starting any field assessment.
-7. Run the Playwright mobile checks: `npm run test:e2e`.
+Vercel creates a preview deployment for feature-branch pushes and pull requests. Merges to the configured production branch `main` create a production deployment. This is the documented Git integration model; see [Deploying Git Repositories](https://vercel.com/docs/git).
 
-iOS installation behavior differs; this build's primary field target is Android.
+### Current preview
 
-## Offline integrity and updates
+A Flutter branch preview was verified at:
 
-- Keep the child assessment session on a single loaded app version.
-- Do not allow app/service-worker updates to take control during an active block.
-- Only update the installed app after all sessions on the device have ended and data has been exported.
-- Verify that the PWA precache includes the relevant route chunks, Kannada font assets and approved local audio.
-- The service-worker status alone does not replace the full offline validation procedure in `docs/offline-validation.md`.
+`https://kannada-word-reading-platform-c0fao2oyj.vercel.app`
 
-## Release gate
+It returned HTTP 200 for the Flutter build at commit `43c0d2ce8f3e53f51c1bc447b60b90666d3551f0`. This is a branch preview, not the production domain. The production branch remains `main`; do not merge the draft Flutter PR merely to replace the production app while the research and engineering gates below remain open.
 
-Before research use, test on the exact Android device and browser build. Confirm cold offline launch, audio offline, Kannada text shaping, touch targets, RT capture, IndexedDB durability, exports, update behavior and data-protection rules. Do not use this demo build with participants until protocol, ethics, item-bank and security approval are complete.
+Vercel SSO protection is configured for **all deployment targets**, including attached project domains; this was changed from `all_except_custom_domains` during the security audit. Keep SSO enabled while the instrument is under development. The current Web preview should not be indexed by search engines and must not contain participant data. SSO controls who can open the deployment; it does not make the demo suitable for storing participant information.
+
+## Build and cache behavior
+
+The Vercel build downloads the pinned Flutter SDK and builds `build/web`. `scripts/deploy/configure_flutter_web.sh` replaces Flutter scaffold metadata with Padalab's app title, description, browser theme color, and PWA manifest labels. `vercel.json` applies the SPA fallback, baseline security headers, no-index headers, and revalidation for app entry points.
+
+Do not enable immutable caching for all Web files unless the build is configured to use Flutter's content-hashed asset output. Entry points and the current un-hashed bundle must revalidate so a reopened browser app can receive the latest release. An already-running browser tab will not hot-swap its executing code; never force-refresh during an assessment.
+
+Flutter Web is a review target. Do not assume that a hosted build provides the native Android app's SQLite, durable offline storage, power-loss recovery, audio timing or field behavior.
+
+## Android updates after installation
+
+Publishing a new Vercel Web deployment does not replace an installed Android APK. The Android package must be signed and distributed through a managed Android channel. Recommended route:
+
+1. Generate a signed Android App Bundle (AAB) or APK using the stable package ID and protected signing keys.
+2. Publish it to a Google Play internal testing track for device QA, then a closed track for controlled pilot testing.
+3. Enable Android/Google Play automatic updates on managed tablets.
+4. Record the application version in each assessment session and apply updates between sessions only.
+
+Google Play requires an update to keep the package name, use a higher version code, and be signed with the same signing identity. Devices with automatic updates enabled can receive published updates; delivery is not instantaneous. See [Google Play update guidance](https://support.google.com/googleplay/android-developer/answer/9859350) and [testing tracks](https://support.google.com/googleplay/android-developer/answer/9845334).
+
+A custom APK downloader from Vercel is not recommended for a research instrument: it adds signing, install-permission, downgrade, interruption and integrity risks.
+
+## Plan and cost guardrail
+
+Vercel is globally scalable for static delivery, but the account plan matters. The Hobby plan is restricted to personal, non-commercial use. Vercel documents different included usage and build/concurrency limits across Hobby and Pro; verify the team's billing plan and expected traffic before an institutional or production rollout. See [plans](https://vercel.com/docs/plans), [limits](https://vercel.com/docs/limits), and [fair-use guidelines](https://vercel.com/docs/limits/fair-use-guidelines).
+
+Do not treat the CDN's global distribution as a substitute for a capacity review. Before launch, estimate the number of assessor devices, daily sessions, browser-preview viewers and expected build frequency.
+
+## Release safeguards
+
+- Do not add API keys, database credentials, service-account JSON, signing keys or participant data to the static Web bundle.
+- The debug APK produced by CI is for engineering review only, not participant use.
+- Release signing must use protected GitHub secrets or a secure signing environment; never commit the keystore.
+- CI success proves code checks and buildability only. It does not prove ethics approval, linguistic validity, item-bank approval, offline reliability or field acceptance.
+- Before participant use, pass tablet checks for cold offline launch, durable local responses, resume/restart, timing, Kannada shaping, bundled approved audio, rewards, exports, privacy and power-loss recovery.
+
+
+## Android hardening
+
+The CI hardening step configures Android API 26+, landscape orientation, no backup/cleartext traffic, Internet permission for Play update checks, conditional release signing from protected secrets, and R8 release shrinking with SQLCipher keep rules. It creates the Flutter SDK path in machine-local `android/local.properties` on the CI runner; that file and signing material must never be committed.
+
+The current release candidate is unsigned because no Android signing secrets are configured. It is an engineering compilation check, not a distributable field package. The institution must also confirm the permanent package identifier and own the long-term signing key before a store release.

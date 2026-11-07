@@ -1,0 +1,166 @@
+name: Flutter quality and platform build validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "lib/**"
+      - "test/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - ".flutter-version"
+      - "scripts/**"
+      - "vercel.json"
+      - ".github/workflows/flutter-android.yml"
+      - "docs/protocol/**"
+      - "docs/android-installation.md"
+      - "assets/**"
+      - ".github/workflows/release-apk.yml"
+  push:
+    branches: [main, feat/flutter-android-foundation]
+    paths:
+      - "lib/**"
+      - "test/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - ".flutter-version"
+      - "scripts/**"
+      - "vercel.json"
+      - ".github/workflows/flutter-android.yml"
+      - "docs/protocol/**"
+      - "docs/android-installation.md"
+      - "assets/**"
+      - ".github/workflows/release-apk.yml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flutter-quality-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-and-build:
+    name: Format, analyze, test and build Android and Web
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.9"
+          channel: stable
+          cache: true
+
+      - name: Prepare verified offline Kannada font
+        run: bash scripts/deploy/prepare_assets.sh
+
+      - name: Generate Android and Web host projects
+        run: flutter create . --platforms=android,web --org org.phfi.cdlr --project-name padalab_android --no-pub
+
+      - name: Harden generated Android host
+        run: bash scripts/deploy/configure_android_project.sh
+
+      - name: Resolve dependencies
+        run: |
+          flutter pub get
+          git diff --exit-code -- pubspec.lock
+
+      - name: Validate deployment scripts and Vercel security configuration
+        run: |
+          bash -n scripts/deploy/*.sh
+          python3 scripts/deploy/validate_vercel_config.py
+
+      - name: Canonical Dart formatting
+        run: |
+          dart format lib test
+          dart format --output=none --set-exit-if-changed lib test
+          git diff --check
+
+      - name: Upload canonical formatted source
+        uses: actions/upload-artifact@v4
+        with:
+          name: padalab-formatted-source
+          path: |
+            lib/
+            test/
+            pubspec.lock
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Static analysis
+        run: flutter analyze --no-fatal-infos --fatal-warnings
+
+      - name: Unit and widget tests
+        run: flutter test --reporter expanded
+
+      - name: Build ARM64 Android debug APK
+        run: flutter build apk --debug --target-platform android-arm64
+
+      - name: Build Flutter Web
+        run: flutter build web --release --base-href /
+
+      - name: Configure and verify Flutter Web metadata
+        run: |
+          bash scripts/deploy/configure_flutter_web.sh build/web
+          test -s build/web/index.html
+          test -s build/web/main.dart.js
+          test -d build/web/assets
+          test -s build/web/manifest.json
+          test -s build/web/service-worker.js
+          grep -q 'navigator.serviceWorker.register' build/web/index.html
+          ! grep -q "A new Flutter project" build/web/index.html build/web/manifest.json
+
+      - name: Verify ARM64 APK and generate checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="build/app/outputs/flutter-apk/app-debug.apk"
+          test -s "$APK"
+
+          ABI_LIST="$(unzip -Z1 "$APK" | awk -F/ '$1 == "lib" && NF >= 3 { print $2 }' | sort -u)"
+          if [[ "$ABI_LIST" != "arm64-v8a" ]]; then
+            echo "Expected only arm64-v8a native libraries; found:" >&2
+            printf '%s\n' "$ABI_LIST" >&2
+            unzip -Z1 "$APK" | grep '^lib/' >&2 || true
+            exit 1
+          fi
+
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          test -n "$SDK_ROOT"
+          APKSIGNER="$(find "$SDK_ROOT/build-tools" -type f -name apksigner 2>/dev/null | sort -V | tail -n 1)"
+          test -n "$APKSIGNER"
+          "$APKSIGNER" verify --verbose --print-certs "$APK"
+          sha256sum "$APK" > "$APK.sha256"
+          stat --printf='ARM64 debug APK size: %s bytes\n' "$APK"
+
+      - name: Upload ARM64 Android debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: padalab-android-arm64-debug-apk
+          path: |
+            build/app/outputs/flutter-apk/app-debug.apk
+            build/app/outputs/flutter-apk/app-debug.apk.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload Flutter Web validation build
+        uses: actions/upload-artifact@v4
+        with:
+          name: padalab-flutter-web-preview
+          path: build/web/
+          if-no-files-found: error
+          retention-days: 7

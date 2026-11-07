@@ -1,61 +1,93 @@
-# System architecture
+# PadLab architecture
 
-## Decision
+## Product decision
 
-**Next.js PWA + jsPsych + Serwist + Dexie. No cloud database in the current scope.** The app is an assessment client for the study's existing REDCap environment, not a replacement for REDCap.
+The field product is a native Flutter/Dart Android application for assessor-operated tablets. It must function without Wi-Fi or mobile data and retain research records inside the application's private encrypted storage.
 
-```text
-Vercel HTTPS distribution
-  └── Next.js App Router PWA
-       ├── Assessor workspace (study ID, visit/block, notes, import/export)
-       ├── Child player (Kannada instruction, stimulus, two answers)
-       ├── Local approved Kannada audio
-       ├── jsPsych experiment timeline
-       │    ├── 5 practice trials (additional to 90 scored: PI confirmation pending)
-       │    ├── 90 scored trials per block
-       │    ├── 45 real words + 45 non-words
-       │    └── response, RT, timestamps
-       ├── Serwist service worker (precache app, audio, bank; offline fallback)
-       └── Dexie / IndexedDB (local participants, sessions, trials and bank)
-              └── CSV / XLSX export → authorised REDCap import
+The Flutter Web target is a read-only browser review of the same application screens, hosted on Vercel. It must not accept participant identifiers or collect research records. The earlier Next.js/PWA code is preserved on the archive branch and is not part of the active Flutter source tree.
+
+## Application structure
+
+```
+Flutter / Dart application
+├── App shell and responsive navigation
+│   ├── Assessment workspace
+│   └── Settings and item-bank review
+├── Assessor workflow
+│   ├── participant identity and session selection
+│   ├── session history and resume
+│   └── summary and protected export
+├── Child assessment experience
+│   ├── approved Kannada recorded instructions
+│   ├── practice presentation
+│   ├── fixed scored-trial presentation
+│   └── protocol-approved progress/reward behavior
+├── Assessment domain
+│   ├── protocol and release verification
+│   ├── immutable session allocation manifest
+│   ├── response and correctness rules
+│   ├── monotonic reaction-time capture
+│   └── session metrics
+├── Data boundary
+│   ├── application repositories
+│   ├── SQLCipher in private Android storage
+│   ├── migrations and transactions
+│   └── append-only export audit
+└── Bundled assets
+    ├── supplied 270-word source list
+    ├── approved 270 non-word list after review
+    ├── signed session allocations
+    ├── approved Kannada instruction recordings
+    └── bundled Kannada font and licensed visual assets
+
+Flutter Web review build
+└── same presentation system
+    ├── bundled source-word and review metadata
+    ├── read-only browser interface
+    └── no participant identifier or record storage
 ```
 
-## Confirmed allocation
+## Separation of responsibilities
 
-- Three visits per child.
-- Two blocks per visit, six blocks overall.
-- Ninety scored items per block.
-- Forty-five real words and forty-five non-words in each block.
-- 540 unique scored items per child: 270 real words and 270 non-words.
-- Five practice examples before each block are proposed as additional trials; the PI must confirm this interpretation.
-- Progress reward after every five completed scored trials. Rewards are based on completion, never correctness or speed.
+- **Views** render the assessor and child experiences; they do not allocate stimuli, calculate scores or execute SQL.
+- **Controllers/view models** coordinate actions and expose state.
+- **Domain services** enforce the approved protocol, trial transitions, scoring and reaction-time rules.
+- **Repositories** are the only application-facing path to persisted study data.
+- **SQLCipher services** own schema, migrations, transactions and integrity constraints on Android.
+- **Platform adapters** own recorded audio, screen-awake/fullscreen behavior, file creation and Android share-sheet interactions.
+- **Approval verifier** validates a signed, versioned study package before the participant workflow can be enabled.
 
-## Offline lifecycle
+## Trial lifecycle
 
-1. Assessor opens the approved HTTPS deployment online.
-2. PWA installs and service worker precaches required assets.
-3. Offline-readiness verifies app shell, approved item bank, Kannada font and audio pack.
-4. Assessor selects study ID, assessor ID, visit and block.
-5. App locks app version and item-bank version for the session.
-6. Each response is persisted to IndexedDB before the next stimulus is shown.
-7. Service-worker updates must not activate during an assessment.
-8. Assessor exports data for authorised REDCap import.
-9. App updates are applied only when all sessions are closed.
+1. Load the immutable session manifest and restore the exact next ordinal.
+2. Persist the stimulus-presented event before enabling response controls.
+3. Start a monotonic stopwatch when the stimulus is presented.
+4. Capture the configured response and stop the monotonic timer.
+5. Calculate reaction time in milliseconds; use wall-clock timestamps only for audit chronology.
+6. Persist response, correctness, reaction time and the session cursor in one awaited database transaction.
+7. Advance only after the transaction succeeds. On write failure, preserve the current stimulus and show an assessor-safe recovery state.
 
-## Module boundaries
+No-response timeout, repeat/restart and reward behavior must follow the signed protocol; the application must not infer those rules.
 
-- `src/components/assessment-console.tsx`: assessor and demo UI.
-- `src/lib/jspsych/ldt-choice-plugin.js`: two-choice word/non-word response and RT capture.
-- `src/lib/protocol.ts`: protocol constants and record types.
-- `src/lib/item-bank/validate.ts`: 540-item and 45/45 block validation.
-- `src/lib/item-bank/import-xlsx.ts`: Excel parsing and approval metadata checks.
-- `src/lib/storage/db.ts`: IndexedDB persistence.
-- `src/app/sw.ts`: offline caching policy.
+## Item-bank integrity
 
-## Privacy and integrity
+- The supplied real-word CSV is included unchanged and validated as 270 unique words.
+- W001–W270 are assigned in source order for stable internal references.
+- The 270 non-word candidates remain Pending until native Kannada review and written approval.
+- The final item bank must carry an immutable version, SHA-256 checksum, approval references and reviewed item content.
+- Each participant session stores a frozen ordered trial manifest. Resume must never reshuffle its order.
 
-No cloud DB, participant API, REDCap token, analytics or external tracking is required by the current app. Do not send trial records off-device automatically. Export is non-destructive. Store study IDs rather than child names unless the approved protocol requires otherwise.
+## Data protection
 
-## PWA validation caveat
+- Android assessment data remains in private application storage protected by SQLCipher.
+- Database keys are stored using Android secure storage/Keystore integration.
+- No participant sync, analytics, crash telemetry or remote research API is configured.
+- Browser review is read-only and must not contain participant records.
+- CSV exports must use the signed data dictionary, UTF-8 BOM and formula-injection-safe cell encoding; names are excluded by default.
 
-A PWA is not identical to a native Android APK. Test the actual target tablet for cold offline launch, orientation, fullscreen, screen-awake behaviour, audio focus, RT timing, IndexedDB durability, service-worker updates and OS lifecycle. If it fails an essential field requirement, run a Capacitor compatibility spike while retaining the Next.js codebase.
+## Deployment boundary
+
+- GitHub Actions validates Flutter, builds the Android review artifact and builds the Flutter Web output.
+- Vercel hosts the static Flutter Web review target.
+- The signed ARM64 Android APK is built through the protected release workflow and distributed through the study-approved channel.
+- Web deployment never updates an already installed APK.

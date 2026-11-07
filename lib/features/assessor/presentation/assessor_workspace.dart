@@ -1,0 +1,95 @@
+import 'package:flutter/material.dart';
+
+import '../../../app/app_theme.dart';
+import 'assessor_home_screen.dart';
+import 'assessor_settings_screen.dart';
+
+/// Shared responsive navigation for Android tablets and browser review.
+class AssessorWorkspace extends StatefulWidget {
+  const AssessorWorkspace({super.key});
+
+  @override
+  State<AssessorWorkspace> createState() => _AssessorWorkspaceState();
+}
+
+class _AssessorWorkspaceState extends State<AssessorWorkspace> {
+  int _selectedIndex = 0;
+
+  static const _destinations = <NavigationDestination>[
+    NavigationDestination(
+      icon: Icon(Icons.assignment_outlined),
+      selectedIcon: Icon(Icons.assignment_rounded),
+      label: 'Assessment',
+    ),
+    NavigationDestination(
+      icon: Icon(Icons.tune_outlined),
+      selectedIcon: Icon(Icons.tune_rounded),
+      label: 'Settings',
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth >= 900;
+        final pages = IndexedStack(
+          index: _selectedIndex,
+          children: const <Widget>[
+            AssessorHomeScreen(),
+            AssessorSettingsScreen(),
+          ],
+        );
+
+        if (wide) {
+          return Scaffold(
+            body: Row(
+              children: <Widget>[
+                NavigationRail(
+                  selectedIndex: _selectedIndex,
+                  onDestinationSelected: (index) {
+                    setState(() => _selectedIndex = index);
+                  },
+                  labelType: NavigationRailLabelType.all,
+                  backgroundColor: Colors.white,
+                  selectedIconTheme: const IconThemeData(
+                    color: AppTheme.tealDark,
+                  ),
+                  selectedLabelTextStyle: const TextStyle(
+                    color: AppTheme.tealDark,
+                    fontWeight: FontWeight.w800,
+                  ),
+                  destinations: const <NavigationRailDestination>[
+                    NavigationRailDestination(
+                      icon: Icon(Icons.assignment_outlined),
+                      selectedIcon: Icon(Icons.assignment_rounded),
+                      label: Text('Assessment'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.tune_outlined),
+                      selectedIcon: Icon(Icons.tune_rounded),
+                      label: Text('Settings'),
+                    ),
+                  ],
+                ),
+                const VerticalDivider(width: 1, thickness: 1),
+                Expanded(child: pages),
+              ],
+            ),
+          );
+        }
+
+        return Scaffold(
+          body: pages,
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: _selectedIndex,
+            onDestinationSelected: (index) {
+              setState(() => _selectedIndex = index);
+            },
+            destinations: _destinations,
+          ),
+        );
+      },
+    );
+  }
+}
