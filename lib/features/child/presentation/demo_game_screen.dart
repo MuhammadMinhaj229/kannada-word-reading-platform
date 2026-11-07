@@ -125,8 +125,8 @@ class _DemoGameScreenState extends State<DemoGameScreen> {
   }
 
   Widget _gameContent({required bool compact}) {
-    final progress = (_promptIndex + (_selectedIsWord == null ? 0 : 1)) /
-        _prompts.length;
+    final progress =
+        (_promptIndex + (_selectedIsWord == null ? 0 : 1)) / _prompts.length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -470,7 +470,8 @@ class _DemoSafetyNotice extends StatelessWidget {
       ),
       child: const Text(
         'ಪೂರ್ವವೀಕ್ಷಣೆ ಮಾತ್ರ: ಅನುಮೋದಿತ ಪದಪಟ್ಟಿ ಮತ್ತು ಅಧ್ಯಯನ ನಿಯಮಗಳು '
-        'ಸೇರಿಸುವವರೆಗೆ ಮಕ್ಕಳ ಪರೀಕ್ಷೆಗೆ ಬಳಸಬೇಡಿ. ಈ ಪ್ರದರ್ಶನದ ಉತ್ತರಗಳು ಉಳಿಯುವುದಿಲ್ಲ.',
+        'ಸೇರಿಸುವವರೆಗೆ ಮಕ್ಕಳ ಪರೀಕ್ಷೆಗೆ ಬಳಸಬೇಡಿ. '
+        'ಈ ಪ್ರದರ್ಶನದ ಉತ್ತರಗಳು ಉಳಿಯುವುದಿಲ್ಲ.',
         textAlign: TextAlign.center,
         style: TextStyle(
           color: Color(0xFF765C2B),
