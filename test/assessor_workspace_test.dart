@@ -50,7 +50,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pump();
 
-    expect(find.text('Supplied Kannada item bank'), findsOneWidget);
+    expect(find.text('Application settings'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
