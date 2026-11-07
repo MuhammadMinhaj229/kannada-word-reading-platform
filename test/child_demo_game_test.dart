@@ -71,19 +71,22 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('completed demo can restart from the first sample', (tester) async {
-    await tester.pumpWidget(
-      const MaterialApp(home: DemoGameScreen()),
-    );
+  testWidgets(
+    'completed demo can restart from the first sample',
+    (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(home: DemoGameScreen()),
+      );
 
-    await _completeDemo(tester);
-    expect(find.text('ಪ್ರದರ್ಶನ ಪೂರ್ಣಗೊಂಡಿದೆ'), findsOneWidget);
+      await _completeDemo(tester);
+      expect(find.text('ಪ್ರದರ್ಶನ ಪೂರ್ಣಗೊಂಡಿದೆ'), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey('demo-restart')));
-    await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('demo-restart')));
+      await tester.pumpAndSettle();
 
-    expect(find.text('ಮಾದರಿ 1 / 4'), findsOneWidget);
-    expect(find.text('ಪ್ರದರ್ಶನ ಪೂರ್ಣಗೊಂಡಿದೆ'), findsNothing);
-    expect(tester.takeException(), isNull);
-  });
+      expect(find.text('ಮಾದರಿ 1 / 4'), findsOneWidget);
+      expect(find.text('ಪ್ರದರ್ಶನ ಪೂರ್ಣಗೊಂಡಿದೆ'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
