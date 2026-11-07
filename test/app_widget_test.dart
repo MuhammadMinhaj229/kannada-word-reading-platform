@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:padalab_android/app/padalab_app.dart';
 
 void main() {
-  testWidgets('shows assessor workspace and protocol baseline', (tester) async {
+  testWidgets('field build fails closed without a signed release', (tester) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -13,23 +13,30 @@ void main() {
 
     expect(find.text('ಪದLab'), findsOneWidget);
     expect(find.text('ASSESSOR WORKSPACE'), findsOneWidget);
-    expect(find.text('Prepare a child session'), findsOneWidget);
-    expect(find.text('77'), findsOneWidget);
-    expect(find.text('PREVIEW BUILD'), findsOneWidget);
+    expect(find.text('Participant assessment locked'), findsOneWidget);
+    expect(find.textContaining('RELEASE BLOCKERS'), findsOneWidget);
+    expect(find.byType(TextFormField), findsNothing);
+    expect(find.text('Launch synthetic demo'), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 
-  testWidgets('requires both Child ID fields and Assessor ID', (tester) async {
+  testWidgets('explicit demo build launches with fixed synthetic identifiers',
+      (tester) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const PadalabApp());
-    await tester.tap(find.text('Preview child experience'));
-    await tester.pump();
+    await tester.pumpWidget(const PadalabApp(demoMode: true));
+    expect(find.text('SYNTHETIC DEMO'), findsOneWidget);
+    expect(find.text('Launch synthetic demo'), findsOneWidget);
 
-    expect(find.text('Child ID is required.'), findsOneWidget);
-    expect(find.text('Confirm Child ID is required.'), findsOneWidget);
-    expect(find.text('Assessor ID is required.'), findsOneWidget);
+    await tester.tap(find.text('Launch synthetic demo'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('ನಮಸ್ಕಾರ!'), findsOneWidget);
+    expect(find.text('ಮುಂದುವರಿಸಿ'), findsOneWidget);
+    expect(find.byType(TextFormField), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 }
