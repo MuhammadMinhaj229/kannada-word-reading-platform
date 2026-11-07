@@ -63,6 +63,7 @@ def main() -> int:
     required_revalidation_paths = (
         "/",
         "/index.html",
+        "/service-worker.js",
         "/flutter_bootstrap.js",
         "/flutter_service_worker.js",
         "/flutter.js",
