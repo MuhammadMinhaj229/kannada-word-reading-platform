@@ -134,6 +134,28 @@ if 'abiFilters += "arm64-v8a"' not in gradle:
         raise SystemExit("Could not locate Android defaultConfig block for ABI filtering.")
     gradle = gradle.replace(default_config_marker, arm64_filter, 1)
 
+# Some AARs (notably SQLCipher) ship several ABI variants. Gradle's
+# ndk.abiFilters does not consistently strip all prebuilt AAR libraries, so
+# exclude unsupported ABIs explicitly from the final APK as well.
+packaging_marker = """    buildTypes {
+"""
+arm64_packaging = """    packaging {
+        jniLibs {
+            excludes += setOf(
+                "lib/armeabi-v7a/**",
+                "lib/x86/**",
+                "lib/x86_64/**"
+            )
+        }
+    }
+
+    buildTypes {
+"""
+if 'lib/armeabi-v7a/**' not in gradle:
+    if packaging_marker not in gradle:
+        raise SystemExit("Could not locate Android buildTypes block for ABI packaging exclusions.")
+    gradle = gradle.replace(packaging_marker, arm64_packaging, 1)
+
 gradle_path.write_text(gradle, encoding="utf-8")
 
 android_ns = "http://schemas.android.com/apk/res/android"
@@ -203,6 +225,8 @@ RULES
 grep -q 'minSdk = 26' "${APP_GRADLE}"
 grep -q 'applicationId = "org.phfi.cdlr.padalab_android"' "${APP_GRADLE}"
 grep -q 'abiFilters += "arm64-v8a"' "${APP_GRADLE}"
+grep -q 'lib/armeabi-v7a/\*\*' "${APP_GRADLE}"
+grep -q 'lib/x86_64/\*\*' "${APP_GRADLE}"
 grep -q 'signingConfig = if (padalabReleaseSigningReady)' "${APP_GRADLE}"
 ! grep -q 'signingConfig = signingConfigs.getByName("debug")' "${APP_GRADLE}"
 grep -q 'screenOrientation="landscape"' "${MANIFEST}"
