@@ -45,13 +45,13 @@ class AssessmentDatabase {
   Database? _database;
 
   Future<Database>? _openingDatabase;
-  Future<void>? _closingDatabase;
+  Completer<void>? _closingDatabase;
 
   Future<Database> get database async {
     // A caller arriving during close waits until the old handle is fully
     // closed; it must never receive a connection that is about to be closed.
     final closing = _closingDatabase;
-    if (closing != null) await closing;
+    if (closing != null) await closing.future;
 
     final existing = _database;
     if (existing != null && existing.isOpen) return existing;
@@ -743,14 +743,15 @@ class AssessmentDatabase {
 
   Future<void> close() {
     final closing = _closingDatabase;
-    if (closing != null) return closing;
+    if (closing != null) return closing.future;
 
     final completer = Completer<void>();
-    _closingDatabase = completer.future;
-    return _closeAndWaitForOpen(completer);
+    _closingDatabase = completer;
+    _performClose(completer);
+    return completer.future;
   }
 
-  Future<void> _closeAndWaitForOpen(Completer<void> completer) async {
+  Future<void> _performClose(Completer<void> completer) async {
     try {
       // A close racing initialisation must wait for the single-flight open and
       // close that handle as well. Otherwise the database could be left open
@@ -770,9 +771,13 @@ class AssessmentDatabase {
       _database = null;
       if (identical(_openingDatabase, opening)) _openingDatabase = null;
       if (db != null && db.isOpen) await db.close();
-    } finally {
-      _closingDatabase = null;
       if (!completer.isCompleted) completer.complete();
+    } catch (error, stackTrace) {
+      if (!completer.isCompleted) {
+        completer.completeError(error, stackTrace);
+      }
+    } finally {
+      if (identical(_closingDatabase, completer)) _closingDatabase = null;
     }
   }
 
