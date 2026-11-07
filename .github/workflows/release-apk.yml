@@ -47,9 +47,9 @@ jobs:
         run: |
           set -euo pipefail
           names=(ANDROID_KEYSTORE_BASE64 ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD ANDROID_STORE_PASSWORD)
-          for name in "\${names[@]}"; do
-            if [[ -z "\${!name:-}" ]]; then
-              echo "::error::Missing protected signing secret: \${name}"
+          for name in "${names[@]}"; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Missing protected signing secret: ${name}"
               exit 1
             fi
           done
@@ -97,7 +97,7 @@ jobs:
             printf '%s\n' "$ABI_LIST" >&2
             exit 1
           fi
-          SDK_ROOT="\${ANDROID_HOME:-\${ANDROID_SDK_ROOT:-}}"
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
           test -n "$SDK_ROOT"
           APKSIGNER="$(find "$SDK_ROOT/build-tools" -type f -name apksigner 2>/dev/null | sort -V | tail -n 1)"
           test -n "$APKSIGNER"
