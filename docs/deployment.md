@@ -74,3 +74,10 @@ Do not treat the CDN's global distribution as a substitute for a capacity review
 - Release signing must use protected GitHub secrets or a secure signing environment; never commit the keystore.
 - CI success proves code checks and buildability only. It does not prove ethics approval, linguistic validity, item-bank approval, offline reliability or field acceptance.
 - Before participant use, pass tablet checks for cold offline launch, durable local responses, resume/restart, timing, Kannada shaping, bundled approved audio, rewards, exports, privacy and power-loss recovery.
+
+
+## Android hardening
+
+The CI hardening step configures Android API 26+, landscape orientation, no backup/cleartext traffic, Internet permission for Play update checks, conditional release signing from protected secrets, and R8 release shrinking with SQLCipher keep rules. It creates the Flutter SDK path in machine-local `android/local.properties` on the CI runner; that file and signing material must never be committed.
+
+The current release candidate is unsigned because no Android signing secrets are configured. It is an engineering compilation check, not a distributable field package. The institution must also confirm the permanent package identifier and own the long-term signing key before a store release.
