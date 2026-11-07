@@ -1,6 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:padalab_android/features/child/presentation/child_welcome_screen.dart';
+import 'package:padalab_android/features/child/presentation/demo_game_screen.dart';
+
+Future<void> _completeDemo(WidgetTester tester) async {
+  for (var index = 0; index < 4; index += 1) {
+    await tester.tap(
+      find.byKey(
+        ValueKey(index.isEven ? 'demo-word-answer' : 'demo-nonword-answer'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('demo-next')));
+    await tester.pumpAndSettle();
+  }
+}
 
 void main() {
   testWidgets('Continue opens the playable demo and responses advance trials',
@@ -57,18 +71,19 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('demo can restart after completion without persisted data',
-      (tester) async {
+  testWidgets('completed demo can restart from the first sample', (tester) async {
     await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(
-          body: Center(
-            child: Text('This test is covered by the complete flow above.'),
-          ),
-        ),
-      ),
+      const MaterialApp(home: DemoGameScreen()),
     );
 
+    await _completeDemo(tester);
+    expect(find.text('ಪ್ರದರ್ಶನ ಪೂರ್ಣಗೊಂಡಿದೆ'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('demo-restart')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('ಮಾದರಿ 1 / 4'), findsOneWidget);
+    expect(find.text('ಪ್ರದರ್ಶನ ಪೂರ್ಣಗೊಂಡಿದೆ'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }
