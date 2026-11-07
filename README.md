@@ -74,7 +74,7 @@ A push or pull request runs one GitHub Actions workflow: formatting, static anal
 - Web build script: `scripts/deploy/build_flutter_web.sh`
 - Deployment and release policy: `docs/deployment.md`
 
-The Android APK and Web output are different platform packages generated from the same Flutter source commit. This is not a separate React/Next.js website. Vercel hosts the Web build; GitHub Actions builds the Android APK. No Cloudflare credentials or second web host are required.
+The Android APK and Web output are different platform packages generated from the same Flutter source commit. This is not a separate React/Next.js website. Vercel hosts the Web build; GitHub Actions builds the Android APK. No Cloudflare credentials or second web host are required. For installed tablets, automatic updates require a signed Play-distributed package; see `docs/android-update-policy.md`.
 
 The Web target is for synthetic-data review only. Native SQLite, Android system UI, power management, local persistence and field-device acceptance must be tested on Android tablets. Never enter real participant information in the browser preview.
 
@@ -103,8 +103,8 @@ See:
 
 ## Current implementation status
 
-The current branch is an engineering foundation: Flutter Android/Web presentation, an explicitly enabled synthetic demo, a fail-closed participant release gate, an approved-manifest validator, an encrypted SQLCipher database boundary, Android Keystore-backed key storage and responsive tests. The session repository is not yet wired to assessor/child screens; no approved stimulus bank or participant session is available in this branch.
+The current branch is a hardened engineering preview: Flutter Android/Web presentation, an explicitly enabled synthetic demo, a fail-closed participant release gate, a checksum-verified 540-item bank model, a frozen-session manifest validator, an encrypted SQLCipher database boundary, Android secure-key storage, transactional trial APIs, host SQLite integration tests, responsive screen tests and a guarded Google Play update coordinator. The persistence APIs are not yet wired to assessor/child screens; no approved stimulus bank or participant session is available in this branch.
 
-Still required: signed PI/statistician protocol and allocation approval, all 270 real-word and 270 non-word source items with Suganya's written Kannada review, bundled approved Kannada font/audio, assessor/session UI and repository integration, supervisor PIN, approved interruption/repeat/timeout policies, session summary, protected CSV export and audit, durable migration/backup/restore procedure, a signed release APK, and cold-offline/timing/audio/Unicode acceptance on the actual tablets.
+Still required: signed PI/statistician protocol and allocation approval, all 270 real-word and 270 non-word source items with Suganya's written Kannada review, bundled approved Kannada font/audio, assessor/session UI and repository integration, supervisor PIN, approved interruption/repeat/timeout policies, session summary, protected CSV export and audit, durable migration/backup/restore procedure, written confirmation of the permanent Android package ID and signing owner, protected release keystore, Play/Managed Play publication, and cold-offline/timing/audio/Unicode/SQLCipher/Keystore acceptance on the actual tablets.
 
 **Do not use this preview with children or for data collection.**
