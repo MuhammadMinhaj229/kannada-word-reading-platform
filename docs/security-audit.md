@@ -1,14 +1,14 @@
 # Security and release audit
 
 **Audit date:** 7 November 2026  
-**Scope:** Flutter Android/Web implementation on `feat/flutter-android-foundation`, pull request #2, generated Android host, GitHub Actions build, and Vercel project settings.  
+**Scope:** production Next.js PWA, draft Flutter Android/Web migration, generated Android host, GitHub Actions build, and Vercel project settings.  
 **Disposition:** Engineering hardening in progress. **Not approved for research participant use.**
 
 This is a code/configuration review and CI evidence summary. It is not a third-party penetration test, institutional security approval, or real-device acceptance certificate.
 
 ## Verified controls
 
-### Android build and platform hardening
+### Flutter Android build and platform hardening
 
 - The Android host is generated from the pinned Flutter SDK and hardened by `scripts/deploy/configure_android_project.sh`.
 - Minimum Android API is 26; orientation is landscape.
@@ -29,13 +29,20 @@ This is a code/configuration review and CI evidence summary. It is not a third-p
 - Database open/close races are covered by a test; state-transition methods fail when the requested session transition did not occur.
 - The completion API no longer accepts a UI-supplied reward counter. Repeat/restart is disabled until an actual trusted supervisor-authorization verifier exists.
 
-### Web hosting and Vercel
+### Web hosting, offline cache and Vercel
 
-- Vercel serves a static Flutter Web review build; it is not the Android research data store.
+- Production `main` remains the Next.js PWA; the post-PR-1 source is preserved in `archive/nextjs-pwa-before-flutter-migration`.
+- The Flutter branch uses one Flutter Game / Settings UI on Android and Web. Its custom versioned Web service worker caches the static build after the first successful online visit, then provides offline shell/resource loading; manual activation is assessor-triggered.
+- Flutter Web has no participant-data persistence adapter yet; Android SQLCipher APIs are not wired to the UI. These offline shell and database foundations do not equal offline participant data capture.
 - Security response headers and no-index headers are configured in `vercel.json`.
 - Vercel SSO protection is now configured for **all deployment targets**, including attached project domains. This closes the prior `all_except_custom_domains` gap.
 - No Vercel environment variables or application secrets are required by the current offline review app.
 - The production branch remains `main`; the Flutter migration is still a draft PR and has not been merged into production.
+
+### Kannada audio preview
+
+- `flutter_tts` is used for device Kannada preview speech in the Flutter demo on Android and Web. The speech engine varies by device and may not provide Kannada.
+- It is not a substitute for study-team-approved bundled Kannada recordings. Scored stimuli remain silent unless the PI approves a protocol change.
 
 ### Automated checks
 
@@ -53,7 +60,7 @@ Host-side database tests use SQLite FFI. They verify schema/foreign keys, concur
 | Caller-supplied boolean could claim supervisor authorization | Remove the boolean trust path; disable repeat/restart until a verifier exists | Implemented; CI verification pending |
 | UI could supply arbitrary reward totals | Remove reward counter from response API; retain only the database value pending PI-approved reward logic | Implemented; CI verification pending |
 | Failed session status transitions could be silently ignored | Require exactly one row to change for interrupt/resume | Implemented; CI verification pending |
-| APK contained all ABIs and was unnecessarily large | Build ARM64-only tablet APK, verify ABI contents, signature and SHA-256 | Implemented; CI verification pending |
+| APK contained all ABIs and was unnecessarily large | Add Android ABI filters and Gradle packaging exclusions; verify ABI contents, signature and SHA-256 | Implemented; fresh CI verification pending |
 | Vercel SSO excluded attached project domains | Set SSO protection to all deployment targets | Applied; verify project settings after update |
 
 ## Release blockers — must remain closed
