@@ -74,7 +74,7 @@ A push or pull request runs one GitHub Actions workflow: formatting, static anal
 - Web build script: `scripts/deploy/build_flutter_web.sh`
 - Deployment and release policy: `docs/deployment.md`
 
-The Android APK and Web output are different platform packages generated from the same Flutter source commit. This is not a separate React/Next.js website. Vercel hosts the Web build; GitHub Actions builds the Android APK. No Cloudflare credentials or second web host are required. For installed tablets, automatic updates require a signed Play-distributed package; see `docs/android-update-policy.md`.
+The Android APK and Web output are different platform packages generated from the same Flutter source commit. This is not a separate React/Next.js website. Vercel hosts the Web build; GitHub Actions builds the Android APK. No Cloudflare credentials or second web host are required. Android release builds include an assessor-controlled **Refresh updates** action that checks Google Play; it works only for packages installed from a configured Play testing/managed track, not sideloaded APKs. See `docs/android-update-policy.md`.
 
 The Web target is for synthetic-data review only. Native SQLite, Android system UI, power management, local persistence and field-device acceptance must be tested on Android tablets. Never enter real participant information in the browser preview.
 
