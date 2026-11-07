@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../../app/app_theme.dart';
+import 'demo_game_screen.dart';
 
 class ChildWelcomeScreen extends StatefulWidget {
   const ChildWelcomeScreen({
@@ -48,23 +49,10 @@ class _ChildWelcomeScreenState extends State<ChildWelcomeScreen> {
     super.dispose();
   }
 
-  void _showPreviewNotice() {
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('ಪೂರ್ವವೀಕ್ಷಣೆ'),
-        content: const Text(
-          'ಈ ನಿರ್ಮಾಣವು ವಿನ್ಯಾಸದ ಪೂರ್ವವೀಕ್ಷಣೆ ಮಾತ್ರ. '
-          'ಅನುಮೋದಿತ ಸೂಚನೆಗಳು, ಧ್ವನಿ ಮತ್ತು ಪದಪಟ್ಟಿ ಸೇರಿಸಿದ ನಂತರ '
-          'ಮೌಲ್ಯಮಾಪನವನ್ನು ಪ್ರಾರಂಭಿಸಬಹುದು.',
-          style: TextStyle(height: 1.5),
-        ),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('ಸರಿ'),
-          ),
-        ],
+  void _startDemo() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => const DemoGameScreen(),
       ),
     );
   }
@@ -114,7 +102,7 @@ class _ChildWelcomeScreenState extends State<ChildWelcomeScreen> {
           width: double.infinity,
           height: 58,
           child: FilledButton(
-            onPressed: _showPreviewNotice,
+            onPressed: _startDemo,
             child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
