@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:path/path.dart' as path;
@@ -44,8 +45,14 @@ class AssessmentDatabase {
   Database? _database;
 
   Future<Database>? _openingDatabase;
+  Future<void>? _closingDatabase;
 
   Future<Database> get database async {
+    // A caller arriving during close waits until the old handle is fully
+    // closed; it must never receive a connection that is about to be closed.
+    final closing = _closingDatabase;
+    if (closing != null) await closing;
+
     final existing = _database;
     if (existing != null && existing.isOpen) return existing;
 
@@ -736,10 +743,39 @@ class AssessmentDatabase {
     );
   }
 
-  Future<void> close() async {
-    final db = _database;
-    _database = null;
-    if (db != null && db.isOpen) await db.close();
+  Future<void> close() {
+    final closing = _closingDatabase;
+    if (closing != null) return closing;
+
+    final completer = Completer<void>();
+    _closingDatabase = completer.future;
+    return _closeAndWaitForOpen(completer);
+  }
+
+  Future<void> _closeAndWaitForOpen(Completer<void> completer) async {
+    try {
+      // A close racing initialisation must wait for the single-flight open and
+      // close that handle as well. Otherwise the database could be left open
+      // after the caller believes close() has completed.
+      final opening = _openingDatabase;
+      Database? opened;
+      if (opening != null) {
+        try {
+          opened = await opening;
+        } catch (_) {
+          // The database did not open; there is no handle to close. Preserve
+          // the original open error for the caller that initiated the open.
+        }
+      }
+
+      final db = _database ?? opened;
+      _database = null;
+      if (identical(_openingDatabase, opening)) _openingDatabase = null;
+      if (db != null && db.isOpen) await db.close();
+    } finally {
+      _closingDatabase = null;
+      if (!completer.isCompleted) completer.complete();
+    }
   }
 
   PlannedTrial _plannedTrialFromRow(Map<String, Object?> row) {
