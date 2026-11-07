@@ -13,7 +13,7 @@ void main() {
     await tester.pumpWidget(const PadalabApp(demoMode: true));
 
     expect(find.byType(NavigationBar), findsOneWidget);
-    expect(find.text('Launch synthetic demo'), findsOneWidget);
+    expect(find.text('ಆಟ ಪ್ರಾರಂಭಿಸಿ'), findsOneWidget);
     expect(find.text('Assessor settings'), findsNothing);
 
     await tester.tap(find.text('Settings'));
@@ -28,7 +28,7 @@ void main() {
     await tester.tap(find.text('Game'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Launch synthetic demo'), findsOneWidget);
+    expect(find.text('ಆಟ ಪ್ರಾರಂಭಿಸಿ'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
