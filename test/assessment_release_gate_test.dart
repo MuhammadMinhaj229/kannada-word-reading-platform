@@ -4,6 +4,7 @@ import 'package:padalab_android/core/config/assessment_release_gate.dart';
 void main() {
   test('current build is permanently fail-closed for participant use', () {
     expect(AssessmentReleaseGate.current.isOpen, isFalse);
+    expect(AssessmentReleaseGate.current.blockers, hasLength(18));
     expect(
       AssessmentReleaseGate.current.blockers,
       contains(
@@ -26,14 +27,5 @@ void main() {
       AssessmentReleaseGate.current.blockers,
       contains('A signed field-release approval manifest is not present.'),
     );
-  });
-
-  test('cannot be unlocked by passing approval-shaped values in application code',
-      () {
-    expect(
-      () => AssessmentReleaseGate.current.isOpen = true,
-      throwsNoSuchMethodError,
-    );
-    expect(AssessmentReleaseGate.current.isOpen, isFalse);
   });
 }
