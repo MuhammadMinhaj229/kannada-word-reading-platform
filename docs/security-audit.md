@@ -39,6 +39,8 @@ This is a code/configuration review and CI evidence summary. It is not a third-p
 
 ### Automated checks
 
+- The draft branch includes a Dependabot update configuration for Dart/pub and GitHub Actions. GitHub reads `.github/dependabot.yml` from the default branch; scheduled update PRs will not start until this configuration is merged to `main`.
+
 The GitHub Actions workflow runs dependency resolution, shell-script validation, canonical Dart formatting, `flutter analyze --fatal-infos`, unit/widget tests, Android debug and release-mode builds, and the Flutter Web release build. The current workflow additionally checks the ARM64 debug APK contents and verifies its signing certificate.
 
 Host-side database tests use SQLite FFI. They verify schema/foreign keys, concurrent opens, legacy plaintext refusal, missing-key behavior, manifest tamper rejection, atomic response/cursor updates, idempotent response commits and close/open race behavior.
