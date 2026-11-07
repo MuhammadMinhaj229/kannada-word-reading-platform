@@ -1,12 +1,9 @@
-import 'dart:async';
-
-import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'app/padalab_app.dart';
 import 'core/config/app_config.dart';
-import 'core/update/play_update_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,9 +17,4 @@ Future<void> main() async {
 
   runApp(const PadalabApp(demoMode: AppConfig.demoMode));
 
-  if (!kIsWeb && !kDebugMode && AppConfig.playUpdatesEnabled) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(const PlayUpdateService().checkAndApplyAvailableUpdate());
-    });
-  }
 }
