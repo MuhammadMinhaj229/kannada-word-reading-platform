@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:path/path.dart' as path;
 import 'package:sqflite_sqlcipher/sqflite.dart';
+import 'package:sqflite_sqlcipher/sqlite_api.dart' as sqlcipher_api;
 import 'package:uuid/uuid.dart';
 
 import '../../core/config/assessment_release_gate.dart';
