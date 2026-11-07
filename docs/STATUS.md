@@ -26,7 +26,7 @@
 - The repository does not contain the study team's approved 270 real-word + 270 non-word package. The uploaded non-word workbook has 270 structurally audited candidates, but all remain pending native Kannada review; Suganya's written approval is absent.
 - The requirements document says the session schedule is to be finalised after discussion. The exact practice-item sourcing, trial ordering, timeout/no-response behavior, and reward treatment need written confirmation.
 - SQLCipher APIs are not yet wired to the assessor/child screen workflow. Integration tests for real database transactions, interruption recovery and failed-write behavior remain to be completed on Android.
-- No approved Kannada audio recordings or bundled Kannada font have been added; device-level conjunct rendering and audio review are open.
+- No approved Kannada audio recordings, audio playback dependency or bundled Kannada font have been added; device-level conjunct rendering and audio review are open. Do not synthesize or substitute a voice recording: the study team must approve the native Kannada instruction script and recordings. Scored stimuli remain silent unless the PI explicitly approves a protocol change.
 - Supervisor PIN provisioning, export implementation/CSV dictionary/audit, backup/restore and retention process remain incomplete.
 - The Android host scaffold is generated from pinned Flutter 3.47.9 at build time and hardened in CI; it is not yet committed as a stable native platform tree. The generated scaffold is uploaded as a short-lived CI artifact for inspection.
 - No production signing keystore or signed release APK exists in protected GitHub secrets. The current app ID and the institution-owned signing identity also require written confirmation.
