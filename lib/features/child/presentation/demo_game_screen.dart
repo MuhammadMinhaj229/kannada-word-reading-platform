@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/app_theme.dart';
+import '../../../core/audio/kannada_speech_service.dart';
 
 /// A synthetic, non-persistent interaction demo.
 ///
@@ -58,8 +59,22 @@ class _DemoGameScreenState extends State<DemoGameScreen> {
     });
   }
 
-  void _continue() {
+  Future<void> _continue() async {
     if (_selectedIsWord == null || _completed) return;
+
+    // The synthetic four-item demo has a small reward milestone every two
+    // responses. This is not the approved study reward rule.
+    if (_responses.length.isEven &&
+        KannadaSpeechService.instance.enabled) {
+      try {
+        await KannadaSpeechService.instance.speakPreview(
+          'ಚೆನ್ನಾಗಿದೆ! ಮುಂದುವರಿಯಿರಿ.',
+        );
+      } catch (_) {
+        // Audio availability must never block the demo's visual controls.
+      }
+    }
+    if (!mounted) return;
 
     if (_promptIndex == _prompts.length - 1) {
       setState(() => _completed = true);
