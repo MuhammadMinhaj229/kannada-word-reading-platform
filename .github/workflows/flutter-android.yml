@@ -28,6 +28,9 @@ on:
       - "vercel.json"
       - ".github/workflows/flutter-android.yml"
       - "docs/protocol/**"
+      - "docs/android-installation.md"
+      - "assets/**"
+      - ".github/workflows/release-apk.yml"
 
   workflow_dispatch:
 
