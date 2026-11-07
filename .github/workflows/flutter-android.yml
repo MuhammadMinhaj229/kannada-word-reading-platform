@@ -14,7 +14,7 @@ on:
       - ".github/workflows/flutter-android.yml"
       - "docs/protocol/**"
   push:
-    branches: [main]
+    branches: [main, feat/flutter-android-foundation]
     paths:
       - "lib/**"
       - "test/**"
