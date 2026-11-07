@@ -20,7 +20,7 @@ void main() {
     expect(
       AssessmentReleaseGate.current.blockers,
       contains(
-        'The final 270 real-word and 270 non-word item bank is not approved.',
+        'Written native Kannada approval for all 270 non-word candidates is missing.',
       ),
     );
     expect(
