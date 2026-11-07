@@ -4,7 +4,14 @@ import '../features/assessor/presentation/assessor_home_screen.dart';
 import 'app_theme.dart';
 
 class PadalabApp extends StatelessWidget {
-  const PadalabApp({super.key});
+  const PadalabApp({
+    this.demoMode = false,
+    super.key,
+  });
+
+  /// Must be true only for synthetic review/training builds.
+  /// Release builds default to the participant-safe locked screen.
+  final bool demoMode;
 
   @override
   Widget build(BuildContext context) {
@@ -12,7 +19,7 @@ class PadalabApp extends StatelessWidget {
       title: 'ಪದLab',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      home: const AssessorHomeScreen(),
+      home: AssessorHomeScreen(demoMode: demoMode),
     );
   }
 }
