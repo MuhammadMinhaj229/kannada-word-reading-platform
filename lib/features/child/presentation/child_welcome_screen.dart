@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../../app/app_theme.dart';
+import '../../../core/audio/kannada_speech_service.dart';
 import 'demo_game_screen.dart';
 
 class ChildWelcomeScreen extends StatefulWidget {
@@ -49,7 +50,17 @@ class _ChildWelcomeScreenState extends State<ChildWelcomeScreen> {
     super.dispose();
   }
 
-  void _startDemo() {
+  Future<void> _startDemo() async {
+    // This is a demo-only device speech fallback. Field instructions must use
+    // the study team's approved local recordings, not synthesized speech.
+    try {
+      await KannadaSpeechService.instance.speakPreview(
+        'ನಮಸ್ಕಾರ! ಪರದೆಯ ಮೇಲಿರುವ ಪದವನ್ನು ಗಮನಿಸಿ. ಇದು ನಿಜವಾದ ಪದವೇ ಅಥವಾ ಪದವಲ್ಲವೇ ಎಂದು ಆಯ್ಕೆಮಾಡಿ.',
+      );
+    } catch (_) {
+      // Keep the visual demo usable when the device has no Kannada voice.
+    }
+    if (!mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => const DemoGameScreen(),
