@@ -91,7 +91,7 @@ class DemoExportService {
         BoolCellValue(record.correct),
         IntCellValue(record.reactionTimeMs),
         TextCellValue(record.respondedAt),
-        const BoolCellValue(true),
+        BoolCellValue(true),
       ]);
     }
 
@@ -120,7 +120,7 @@ class DemoExportService {
     }
 
     const fileName = 'padalab-demo-responses';
-    await FileSaver.instance.saveFile(
+    await FileSaver.instance.saveAs(
       name: fileName,
       bytes: Uint8List.fromList(encoded),
       fileExtension: 'xlsx',
