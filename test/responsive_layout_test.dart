@@ -36,11 +36,11 @@ void main() {
         addTearDown(tester.view.resetPhysicalSize);
         addTearDown(tester.view.resetDevicePixelRatio);
 
-        await tester.pumpWidget(const PadalabApp());
+        await tester.pumpWidget(const PadalabApp(demoMode: true));
         await tester.pumpAndSettle();
 
-        expect(find.text('Prepare a child session'), findsOneWidget);
-        expect(find.text('PREVIEW BUILD'), findsOneWidget);
+        expect(find.text('Synthetic interaction preview'), findsOneWidget);
+        expect(find.text('SYNTHETIC DEMO'), findsOneWidget);
         expect(tester.takeException(), isNull);
       },
     );
