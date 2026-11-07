@@ -15,6 +15,7 @@ class AssessorSettingsScreen extends StatefulWidget {
 
 class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
   late final Future<BundledItemCatalog> _catalogFuture;
+  late final KannadaInstructionAudioService _audioService;
   late final Future<bool> _audioReadyFuture;
   final _searchController = TextEditingController();
   String _search = '';
@@ -23,7 +24,8 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
   void initState() {
     super.initState();
     _catalogFuture = BundledItemCatalog.load();
-    _audioReadyFuture = KannadaInstructionAudioService().isReady;
+    _audioService = KannadaInstructionAudioService();
+    _audioReadyFuture = _audioService.isReady;
     _searchController.addListener(() {
       setState(() => _search = _searchController.text.trim().toLowerCase());
     });
@@ -32,6 +34,7 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _audioService.dispose();
     super.dispose();
   }
 
