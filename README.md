@@ -57,8 +57,8 @@ flutter run -d chrome
 To build both targets:
 
 ```bash
-flutter build apk --debug --dart-define=PADALAB_DEMO_MODE=true
-flutter build apk --release --dart-define=PADALAB_DEMO_MODE=false
+flutter build apk --debug --target-platform android-arm64 --dart-define=PADALAB_DEMO_MODE=true
+flutter build apk --release --target-platform android-arm64 --dart-define=PADALAB_DEMO_MODE=false
 flutter build web --release --dart-define=PADALAB_DEMO_MODE=true
 bash scripts/deploy/configure_flutter_web.sh build/web
 ```
@@ -73,8 +73,9 @@ A push or pull request runs one GitHub Actions workflow: formatting, static anal
 - Vercel project settings: `vercel.json`
 - Web build script: `scripts/deploy/build_flutter_web.sh`
 - Deployment and release policy: `docs/deployment.md`
+- Security and release audit: `docs/security-audit.md`
 
-The Android APK and Web output are different platform packages generated from the same Flutter source commit. This is not a separate React/Next.js website. Vercel hosts the Web build; GitHub Actions builds the Android APK. No Cloudflare credentials or second web host are required. Android release builds include an assessor-controlled **Refresh updates** action that checks Google Play; it works only for packages installed from a configured Play testing/managed track, not sideloaded APKs. See `docs/android-update-policy.md`.
+The Android APK and Web output are different platform packages generated from the same Flutter source commit. This is not a separate React/Next.js website. Vercel hosts the Web build; GitHub Actions builds an ARM64-only Android APK and verifies its signature and checksum. No Cloudflare credentials or second web host are required. Android release builds include an assessor-controlled **Refresh updates** action that checks Google Play; it works only for packages installed from a configured Play testing/managed track, not sideloaded APKs. See `docs/android-update-policy.md`.
 
 The Web target is for synthetic-data review only. Native SQLite, Android system UI, power management, local persistence and field-device acceptance must be tested on Android tablets. Never enter real participant information in the browser preview.
 
