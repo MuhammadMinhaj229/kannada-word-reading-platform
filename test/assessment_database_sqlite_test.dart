@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -94,6 +95,30 @@ void main() {
 
     expect(opened[0], same(opened[1]));
     expect(opened[1], same(opened[2]));
+    expect(secureStore.writeCalls, 1);
+
+    await database.close();
+  });
+
+  test('close waits for an in-flight open and allows a clean later reopen',
+      () async {
+    final secureStore = _TestSecureStore();
+    final databasePath = Completer<String>();
+    final database = AssessmentDatabase(
+      keyProvider: DatabaseKeyProvider(store: secureStore),
+      factory: databaseFactoryFfiNoIsolate,
+      databasesPathProvider: () => databasePath.future,
+    );
+
+    final firstOpen = database.database;
+    final closing = database.close();
+    databasePath.complete(directory.path);
+
+    await closing;
+    await firstOpen;
+
+    final reopened = await database.database;
+    expect(reopened.isOpen, isTrue);
     expect(secureStore.writeCalls, 1);
 
     await database.close();
