@@ -14,7 +14,6 @@ The supported production distribution path is a private Android app distributed 
 - The assessor home screen exposes a **Refresh updates** action only in non-debug Android release builds. It checks Google Play on demand; no update check or installation is triggered automatically at app startup. The control is available from the idle assessor screen, not from a child trial.
 - High-priority Play releases use the immediate flow. Normal releases use Play's flexible flow, then complete the installation after the assessor requests it.
 - Debug builds and Web previews do not show the control. Google Play In-App Updates do not work for a locally sideloaded APK; a Play internal-testing or Managed Google Play build is required.
-- Google Play In-App Updates do not work for locally sideloaded debug APKs. A Play internal testing track or Managed Google Play distribution is required to validate the flow.
 
 ## Release versioning
 
