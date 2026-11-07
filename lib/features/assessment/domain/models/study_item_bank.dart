@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:crypto/crypto.dart';
+import 'package:crypto/crypto.dart' as crypto;
 
 import 'study_item.dart';
 
@@ -54,7 +54,7 @@ class StudyItemBank {
           .toList(growable: false),
     };
     final bytes = utf8.encode(jsonEncode(canonical));
-    return sha256.convert(bytes).toString();
+    return crypto.sha256.convert(bytes).toString();
   }
 
   void validate() {
