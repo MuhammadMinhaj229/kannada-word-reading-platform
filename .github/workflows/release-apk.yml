@@ -37,6 +37,15 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Prepare verified offline Kannada font
+        run: bash scripts/deploy/prepare_assets.sh
+
+      - name: Generate native Android host
+        run: flutter create . --platforms=android --org org.phfi.cdlr --project-name padalab_android --no-pub
+
+      - name: Harden Android host
+        run: bash scripts/deploy/configure_android_project.sh
+
       - name: Require protected institution signing identity
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -62,15 +71,6 @@ jobs:
           storeFile=upload-keystore.jks
           EOF
           chmod 600 android/key.properties android/app/upload-keystore.jks
-
-      - name: Prepare verified offline Kannada font
-        run: bash scripts/deploy/prepare_assets.sh
-
-      - name: Generate native Android host
-        run: flutter create . --platforms=android --org org.phfi.cdlr --project-name padalab_android --no-pub
-
-      - name: Harden Android host
-        run: bash scripts/deploy/configure_android_project.sh
 
       - name: Resolve dependencies
         run: flutter pub get
