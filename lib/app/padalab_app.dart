@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../features/assessor/presentation/assessor_home_screen.dart';
+import '../features/assessor/presentation/assessor_workspace.dart';
 import 'app_theme.dart';
 
 class PadalabApp extends StatelessWidget {
@@ -19,7 +19,7 @@ class PadalabApp extends StatelessWidget {
       title: 'ಪದLab',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      home: AssessorHomeScreen(demoMode: demoMode),
+      home: AssessorWorkspace(demoMode: demoMode),
     );
   }
 }
