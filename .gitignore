@@ -40,3 +40,6 @@ participant-data/
 .idea/
 .vscode/
 *.log
+
+# Generated from the licensed base64 font source during build.
+assets/fonts/NotoSansKannada.ttf
