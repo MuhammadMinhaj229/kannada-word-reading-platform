@@ -37,10 +37,27 @@ class AssessmentDatabase {
 
   Database? _database;
 
+  Future<Database>? _openingDatabase;
+
   Future<Database> get database async {
     final existing = _database;
     if (existing != null && existing.isOpen) return existing;
 
+    final pending = _openingDatabase;
+    if (pending != null) return pending;
+
+    final opening = _openDatabase();
+    _openingDatabase = opening;
+    try {
+      final opened = await opening;
+      _database = opened;
+      return opened;
+    } finally {
+      if (identical(_openingDatabase, opening)) _openingDatabase = null;
+    }
+  }
+
+  Future<Database> _openDatabase() async {
     final databaseDirectory = await getDatabasesPath();
     final databasePath = path.join(databaseDirectory, databaseFileName);
     final legacyPath =
@@ -58,7 +75,7 @@ class AssessmentDatabase {
       databaseAlreadyExists: await File(databasePath).exists(),
     );
 
-    final opened = await openDatabase(
+    return openDatabase(
       databasePath,
       password: key,
       version: schemaVersion,
@@ -77,9 +94,6 @@ class AssessmentDatabase {
         );
       },
     );
-
-    _database = opened;
-    return opened;
   }
 
   Future<void> _onUpgrade(
