@@ -330,7 +330,13 @@ class AssessmentDatabase {
           'assessor_id': assessorId.trim(),
           'last_used_at': createdAt,
         },
-        conflictAlgorithm: ConflictAlgorithm.replace,
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+      await txn.update(
+        'assessors',
+        <String, Object?>{'last_used_at': createdAt},
+        where: 'assessor_id = ?',
+        whereArgs: <Object?>[assessorId.trim()],
       );
 
       if (isRepeat && isRestart) {
@@ -559,8 +565,14 @@ class AssessmentDatabase {
       }
       final frozen = manifestRows.single;
       if (frozen['item_id'] != plannedTrial.item.id ||
-          frozen['phase'] != plannedTrial.phase.storageValue) {
-        throw StateError('The displayed item does not match the frozen manifest.');
+          frozen['item_text'] != plannedTrial.item.text ||
+          frozen['item_type'] != plannedTrial.item.type.storageValue ||
+          frozen['nonword_method'] != plannedTrial.item.nonWordMethod ||
+          frozen['phase'] != plannedTrial.phase.storageValue ||
+          frozen['phase_trial_no'] != plannedTrial.phaseTrialNumber) {
+        throw StateError(
+          'The displayed trial does not exactly match the frozen manifest.',
+        );
       }
 
       await txn.insert(
