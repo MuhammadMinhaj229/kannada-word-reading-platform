@@ -1,119 +1,118 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:padalab_android/features/assessment/domain/models/session_allocation.dart';
 import 'package:padalab_android/features/assessment/domain/models/study_item.dart';
 import 'package:padalab_android/features/assessment/domain/services/session_allocator.dart';
 
 void main() {
   const allocator = SessionAllocator();
+  const checksum = 'a' * 64;
 
-  List<StudyItem> makeWords(int count) => List<StudyItem>.generate(
-        count,
-        (index) => StudyItem(
-          id: 'W${(index + 1).toString().padLeft(3, '0')}',
-          text: 'ಪದ${index + 1}',
-          type: StudyItemType.realWord,
+  SessionAllocation manifest({
+    int sessionNumber = 1,
+    String protocolApprovalReference = 'PI-APPROVAL-2026-001',
+    String allocationApprovalReference = 'STAT-APPROVAL-2026-001',
+    String itemBankSha256 = checksum,
+    int practiceCount = 5,
+    int testCount = 85,
+  }) {
+    final trials = <PlannedTrial>[];
+    var ordinal = 1;
+
+    for (var index = 1; index <= practiceCount; index += 1) {
+      trials.add(
+        PlannedTrial(
+          ordinal: ordinal++,
+          phase: TrialPhase.practice,
+          phaseTrialNumber: index,
+          item: StudyItem(
+            id: 'P${index.toString().padLeft(3, '0')}',
+            text: 'Practice${index}',
+            type: StudyItemType.realWord,
+          ),
         ),
-        growable: false,
-      );
-
-  List<StudyItem> makeNonWords(int count) => List<StudyItem>.generate(
-        count,
-        (index) => StudyItem(
-          id: 'N${(index + 1).toString().padLeft(3, '0')}',
-          text: 'ಕಲ್ಪಿತ${index + 1}',
-          type: StudyItemType.nonWord,
-          nonWordMethod: 'test_fixture',
-        ),
-        growable: false,
-      );
-
-  test('allocates six unique sessions with 45 real and 32 non-words', () {
-    final sessions = allocator.allocate(
-      realWords: makeWords(270),
-      nonWords: makeNonWords(194),
-      seed: 20261104,
-    );
-
-    expect(sessions, hasLength(6));
-    for (var index = 0; index < sessions.length; index += 1) {
-      final session = sessions[index];
-      expect(session.sessionNumber, index + 1);
-      expect(session.realWords, hasLength(45));
-      expect(session.nonWords, hasLength(32));
-      expect(session.orderedItems, hasLength(77));
-      expect(
-        session.orderedItems.map((item) => item.id).toSet(),
-        hasLength(77),
       );
     }
-  });
 
-  test('retains exactly two non-words outside the six sessions', () {
-    final sessions = allocator.allocate(
-      realWords: makeWords(270),
-      nonWords: makeNonWords(194),
-      seed: 42,
-    );
-
-    final allocated = sessions
-        .expand((session) => session.nonWords)
-        .map((item) => item.id)
-        .toSet();
-
-    expect(allocated, hasLength(192));
-    expect(
-      makeNonWords(194).map((item) => item.id).toSet().difference(allocated),
-      hasLength(2),
-    );
-  });
-
-  test('same seed produces the same item ordering', () {
-    final words = makeWords(270);
-    final nonWords = makeNonWords(194);
-
-    final first = allocator.allocate(
-      realWords: words,
-      nonWords: nonWords,
-      seed: 77,
-    );
-    final second = allocator.allocate(
-      realWords: words,
-      nonWords: nonWords,
-      seed: 77,
-    );
-
-    for (var index = 0; index < first.length; index += 1) {
-      expect(
-        first[index].orderedItems.map((item) => item.id).toList(),
-        second[index].orderedItems.map((item) => item.id).toList(),
+    for (var index = 1; index <= testCount; index += 1) {
+      trials.add(
+        PlannedTrial(
+          ordinal: ordinal++,
+          phase: TrialPhase.test,
+          phaseTrialNumber: index,
+          item: StudyItem(
+            id: 'T${index.toString().padLeft(3, '0')}',
+            text: 'Test${index}',
+            type: index.isEven
+                ? StudyItemType.realWord
+                : StudyItemType.nonWord,
+            nonWordMethod: index.isEven ? null : 'fixture_method',
+          ),
+        ),
       );
     }
+
+    return SessionAllocation(
+      sessionNumber: sessionNumber,
+      protocolVersion: 'KWR-REQ-2026-11-02',
+      itemBankVersion: 'bank-v1',
+      itemBankSha256: itemBankSha256,
+      protocolApprovalReference: protocolApprovalReference,
+      allocationApprovalReference: allocationApprovalReference,
+      orderedTrials: trials,
+    );
+  }
+
+  test('accepts and preserves a complete approved frozen manifest', () {
+    final supplied = manifest();
+    final restored = allocator.validateAndRestore(supplied);
+
+    expect(restored, hasLength(90));
+    expect(restored.first.phase, TrialPhase.practice);
+    expect(restored[4].phaseTrialNumber, 5);
+    expect(restored[5].phase, TrialPhase.test);
+    expect(restored.last.phaseTrialNumber, 85);
+    expect(
+      restored.map((trial) => trial.item.id).toList(),
+      supplied.orderedTrials.map((trial) => trial.item.id).toList(),
+    );
   });
 
-  test('rejects the current incomplete non-word upload', () {
+  test('rejects an allocation without written approval references', () {
     expect(
-      () => allocator.allocate(
-        realWords: makeWords(270),
-        nonWords: makeNonWords(193),
-        seed: 1,
+      () => allocator.validateAndRestore(
+        manifest(protocolApprovalReference: ''),
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      () => allocator.validateAndRestore(
+        manifest(allocationApprovalReference: ''),
       ),
       throwsArgumentError,
     );
   });
 
-  test('rejects duplicate stimulus identifiers', () {
-    final words = makeWords(270).toList();
-    words[1] = StudyItem(
-      id: words[0].id,
-      text: 'ಬೇರೆಪದ',
-      type: StudyItemType.realWord,
-    );
-
+  test('rejects the unapproved 45 plus 32 allocation proposal', () {
     expect(
-      () => allocator.allocate(
-        realWords: words,
-        nonWords: makeNonWords(194),
-        seed: 1,
+      () => allocator.validateAndRestore(
+        manifest(practiceCount: 5, testCount: 77),
       ),
+      throwsArgumentError,
+    );
+  });
+
+  test('rejects an invalid bank checksum', () {
+    expect(
+      () => allocator.validateAndRestore(
+        manifest(itemBankSha256: 'not-a-hash'),
+      ),
+      throwsArgumentError,
+    );
+  });
+
+  test('rejects session numbers outside the requested six', () {
+    expect(
+      () => allocator.validateAndRestore(manifest(sessionNumber: 7)),
       throwsArgumentError,
     );
   });
