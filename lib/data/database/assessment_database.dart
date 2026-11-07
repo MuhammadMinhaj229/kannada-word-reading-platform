@@ -8,7 +8,6 @@ import '../../core/config/assessment_release_gate.dart';
 import '../../core/time/local_timestamp.dart';
 import '../../features/assessment/domain/models/session_allocation.dart';
 import '../../features/assessment/domain/models/study_item.dart';
-import '../../features/assessment/domain/models/trial_record.dart';
 import '../security/database_key_provider.dart';
 import 'active_session_snapshot.dart';
 
@@ -310,7 +309,7 @@ class AssessmentDatabase {
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
 
-        if (isRepeat && isRestart) {
+      if (isRepeat && isRestart) {
         throw ArgumentError('A session cannot be both a repeat and a restart.');
       }
 
@@ -533,7 +532,6 @@ class AssessmentDatabase {
   Future<void> completeTrial({
     required String trialUuid,
     required String response,
-    required bool? correct,
     required int? reactionTimeMs,
     required DateTime? answeredAt,
     required int coinsSoFar,
@@ -542,15 +540,15 @@ class AssessmentDatabase {
       throw ArgumentError.value(response, 'response');
     }
     if (response == 'none' &&
-        (correct != null || reactionTimeMs != null || answeredAt != null)) {
+        (reactionTimeMs != null || answeredAt != null)) {
       throw ArgumentError(
-        'A no-response trial must keep correctness, RT and answer time blank.',
+        'A no-response trial must keep RT and answer time blank.',
       );
     }
     if (response != 'none' &&
-        (correct == null || reactionTimeMs == null || answeredAt == null)) {
+        (reactionTimeMs == null || answeredAt == null)) {
       throw ArgumentError(
-        'Answered trials require correctness, RT and answer timestamp.',
+        'Answered trials require RT and answer timestamp.',
       );
     }
     if (reactionTimeMs != null && reactionTimeMs < 0) {
@@ -588,8 +586,12 @@ class AssessmentDatabase {
         throw StateError('The session cursor no longer matches this trial.');
       }
 
+      final expectedType = trial['item_type'] as String;
+      final correct = response == 'none'
+          ? null
+          : response == expectedType;
       final newStatus = response == 'none' ? 'no_response' : 'answered';
-      await txn.update(
+      final trialUpdates = await txn.update(
         'trials',
         <String, Object?>{
           'response': response,
@@ -602,6 +604,9 @@ class AssessmentDatabase {
         where: 'trial_uuid = ? AND status = ?',
         whereArgs: <Object?>[trialUuid, 'presented'],
       );
+      if (trialUpdates != 1) {
+        throw StateError('The trial response could not be committed exactly once.');
+      }
 
       final nextOrdinal = ordinal + 1;
       final remaining = await txn.query(
@@ -613,7 +618,7 @@ class AssessmentDatabase {
       );
       final completed = remaining.isEmpty;
 
-      await txn.update(
+      final sessionUpdates = await txn.update(
         'sessions',
         <String, Object?>{
           'next_ordinal': nextOrdinal,
@@ -624,6 +629,9 @@ class AssessmentDatabase {
         where: 'session_uuid = ? AND next_ordinal = ?',
         whereArgs: <Object?>[sessionUuid, ordinal],
       );
+      if (sessionUpdates != 1) {
+        throw StateError('The session cursor could not be advanced exactly once.');
+      }
     });
   }
 
