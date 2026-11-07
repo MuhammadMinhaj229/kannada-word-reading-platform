@@ -40,15 +40,15 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const PadalabApp());
-    await tester.pumpAndSettle();
+    await _pumpWorkspace(tester);
 
     expect(find.byType(NavigationBar), findsOneWidget);
-    expect(find.text('Kannada word-reading'), findsOneWidget);
+    expect(find.text('FIELD ASSESSMENT WORKSPACE'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     await tester.tap(find.text('Settings'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
 
     expect(find.text('Supplied Kannada item bank'), findsOneWidget);
     expect(tester.takeException(), isNull);
