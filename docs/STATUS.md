@@ -1,53 +1,53 @@
 # Repository status — 7 November 2026
 
-## Active application
+## Branch and deployment state
 
-- Production `main` is still the Next.js PWA; PR #1 (two-tab Game / Settings, Kannada voice preview and browser tests) is merged. The Flutter replacement remains in draft PR #2. A recovery branch, `archive/nextjs-pwa-before-flutter-migration`, preserves the post-PR-1 PWA tree.
-- The Flutter branch uses shared Game / Settings screens on Android and Web, with platform-specific storage and update adapters.
-- The current Flutter branch has a synthetic Game demo and Settings status view only. It is not a participant assessment workflow.
-- The Flutter Web branch generates a versioned service worker to cache the app build after the first successful online load; a manual Refresh updates control activates new versions while idle.
-- The earlier Next.js PWA remains recoverable from `archive/nextjs-pwa-before-flutter-migration`.
-- Native Android is generated in CI using the pinned Flutter SDK and hardened by `scripts/deploy/configure_android_project.sh`; the Android/Web host directories are not yet committed to the repository.
-- Vercel is the only Web host. The public production branch remains `main`; the Flutter migration is still draft PR #2.
+- Production `main` remains the Next.js PWA until the Flutter migration PR is reviewed and merged.
+- The Flutter implementation is on `feat/flutter-android-foundation`, proposed by draft PR #2.
+- The post-PR-1 PWA is preserved on `archive/nextjs-pwa-before-flutter-migration`.
+- Vercel is configured for the repository-root Flutter Web output at `build/web`. The Vercel browser build is read-only for participant information.
+- The latest repository commits have not yet been verified by a fresh full GitHub Actions run or a successful Vercel preview. Previous Vercel checks hit an account deployment/build-rate limit.
 
-## Implemented engineering work
+## Implemented on the Flutter branch
 
-- Explicit build-time demo mode. Normal and release builds default to a participant-safe locked assessor screen; only review builds pass `PADALAB_DEMO_MODE=true`.
-- Four-step synthetic child interaction demo remains available in Web preview and debug APK only.
-- Formal requirements baseline is encoded as six sessions, 90 presentations/session, 5 practice + 85 test, 270 real-word + 270 non-word pool, 10-second stimulus display and reward interval of 10 answers.
-- Removed the unapproved 45-real + 32-non-word random allocator. Runtime now accepts only a frozen 90-trial session manifest with written protocol/allocation references and a bank checksum.
-- Fail-closed release gate lists missing approvals, item-bank review, assets, ethics/data governance, recovery/repeat rules, device acceptance, export schema, supervisor credential and signed release.
-- SQLCipher database and Android secure-storage key provider foundation. A missing key for an existing encrypted database causes a hard failure; legacy plaintext database detection preserves the file and refuses to silently migrate it. Key/database initialization is single-flight to avoid concurrent creation races.
-- Session schema stores an immutable trial manifest. API foundations create a session transactionally, persist a presented-trial event, verify the full item content against the frozen manifest, compute correctness from the frozen item, and commit response plus session-cursor advancement atomically. Host SQLite FFI tests cover schema/foreign keys, concurrent opens, legacy DB preservation, key-loss handling, tamper rejection, response idempotency, response/cursor atomicity and close/open race handling.
-- Caller-supplied supervisor booleans were removed; repeat/restart remains disabled until a trusted supervisor-authorization verifier is implemented. Caller-supplied reward counters were removed from response commits pending a PI-approved reward policy.
-- The GitHub Actions debug APK is targeted at ARM64 tablets, with ABI-content validation, Android signature verification and a SHA-256 checksum. The previous run failed because SQLCipher's AAR still packaged `armeabi-v7a` and `x86_64`; Gradle packaging exclusions have been added and require a fresh passing CI run.
-- CI validates the Vercel static-security contract (security headers, no-index, SPA fallback and revalidation cache rules). A Dependabot configuration for Dart/pub and GitHub Actions is included in this draft PR; GitHub activates it only after the configuration reaches the default branch.
-- Vercel SSO protection is configured for all deployment targets, including attached project domains.
-- Android hardening script applies API 26 minimum, landscape orientation, Internet permission for Play updates, disables Android backup and cleartext traffic, configures R8 release shrinking and SQLCipher keep rules, and creates machine-local Flutter SDK properties at build time.
-- Responsive widget coverage includes phone, tablet portrait/landscape and desktop Web viewports.
-- Unit tests cover the approval gate, secure key storage failure cases, approved manifest structure, and child demo interactions.
+- The active Flutter application has no synthetic assessment path or demo build flag.
+- Responsive assessor workspace: NavigationRail on wide tablet/desktop layouts and bottom navigation on narrow screens.
+- Assessment landing page shows actual study content status and keeps participant entry unavailable until signed release approvals are present.
+- The supplied 270-word CSV is bundled unchanged and parsed into 270 unique source entries with W001–W270 IDs and source metadata.
+- The non-word summary preserves the supplied 68 / 68 / 67 / 67 method proportions. All 270 candidates remain Pending and cannot be used as stimuli.
+- Settings includes a searchable view of the supplied word bank, metadata distributions, non-word review state, audio package state, local-storage status and release blockers.
+- Device TTS implementation was removed. A bundled-audio player service requires an approved audio manifest and local clips.
+- SQLCipher, secure-key storage, frozen manifests and transactional response APIs remain in the data layer.
+- Responsive workspace tests cover 15 phone, tablet and desktop viewport sizes.
+- The Web service-worker cache fingerprint now includes actual asset bytes, not only URL paths.
+- Ordinary CI no longer uploads the generated Android scaffold. A separate signed APK workflow requires protected institution-owned signing secrets and uploads only the APK and checksum.
 
-## Not yet field-ready
+## Supplied content audit
 
-- The repository does not contain the study team's approved 270 real-word + 270 non-word package. The uploaded non-word workbook has 270 structurally audited candidates, but all remain pending native Kannada review; Suganya's written approval is absent.
-- The requirements document says the session schedule is to be finalised after discussion. The exact practice-item sourcing, trial ordering, timeout/no-response behavior, and reward treatment need written confirmation.
-- SQLCipher APIs are not yet wired to the assessor/child screen workflow. Flutter Web has no browser-local participant-data adapter yet. The current Web preview is an offline shell and must not be used to collect participant data.
-- `flutter_tts` is available for device Kannada speech preview on Web and Android, but this is not the approved locally bundled recording. No approved Kannada audio recordings or bundled Kannada font have been added; device-level conjunct rendering and audio review are open. Do not synthesize or substitute a voice recording: the study team must approve the native Kannada instruction script and recordings. Scored stimuli remain silent unless the PI explicitly approves a protocol change.
-- Supervisor PIN provisioning, export implementation/CSV dictionary/audit, backup/restore and retention process remain incomplete.
-- The Android host scaffold is generated from pinned Flutter 3.47.9 at build time and hardened in CI; it is not yet committed as a stable native platform tree. The generated scaffold is uploaded as a short-lived CI artifact for inspection.
-- No production signing keystore or signed release APK exists in protected GitHub secrets. The current app ID and the institution-owned signing identity also require written confirmation. The ARM64 debug APK is a signed engineering artifact, not a field release.
-- No actual device acceptance is recorded: model, Android version, landscape/full-screen, screen-awake behavior, cold offline launch, SQLCipher/Keystore, audio, timing, Unicode, power loss and Play update tests.
-- The release gate remains closed. The browser preview and synthetic debug APK are not approved for participants.
+| Content | Repository state |
+|---|---|
+| Real Kannada words | 270 source rows bundled and validated |
+| Source metadata | Transcription, meaning, POS, age band, AoA, syllables, phonemes, morphemes and akshara type retained |
+| Non-word candidates | 270 candidates in the supplied workbook; not included as active stimuli |
+| Method A — vowel replacement | 68 |
+| Method B — consonant replacement | 68 |
+| Method C — suffix + prefix | 67 |
+| Method D — prefix + suffix | 67 |
+| Non-word approval | 0 / 270 marked approved in the source supplied to us |
+| Kannada instruction audio | Source recording supplied; not yet reviewed, segmented or approved as the application clips |
 
-## Build status
+## Current gaps
 
-CI performs dependency resolution, Android host generation/hardening, shell and Vercel configuration validation, Dart formatting, static analysis, unit/widget tests, ARM64 Android debug and release-mode builds, APK ABI/signature/checksum verification, and Flutter Web release build. The latest run must be checked on PR #2; do not rely on previous run results after source changes.
+- Participant entry/session controls are presented but remain inactive while the release gate is closed.
+- The SQLCipher APIs are not yet wired end-to-end to the assessor and child assessment screens.
+- Session history, exact resume/restart, supervisor PIN, session summary, audit and protected CSV/XLSX export remain to be integrated and tested.
+- The final signed item bank and six approved session-allocation manifests have not been supplied.
+- The visit schedule, trial ordering, timeout/no-response, practice-item sourcing, reward treatment, repeat and same-day rules require study-team confirmation.
+- Approved Kannada instruction clips and written audio approval are not packaged. No synthetic speech fallback is used.
+- Actual Android SQLCipher/Keystore, offline cold launch, reaction time, audio, Unicode rendering, power-loss and update behavior require target-tablet validation.
+- No institution-owned signing identity or protected release keystore is currently confirmed. The signed APK workflow will fail closed until all four signing secrets are configured.
+- Vercel must produce a fresh successful preview after the documented deployment limit clears.
 
-## Update behavior
+## Safety disposition
 
-- A refreshed/reopened Flutter Web preview can receive the latest Vercel deployment; an already running tab is not hot-replaced.
-- Vercel does not update an installed APK.
-- Android release code exposes **Refresh updates** only from the idle assessor home screen. It checks Google Play on demand; high-priority releases use the immediate flow and normal releases use the flexible flow. Sideloaded APKs cannot use Play In-App Updates. No Play Console track, signing key or device policy is configured yet.
-- See `docs/security-audit.md` for the current controls, CI evidence and remaining blockers.
-
-**Current state: hardened engineering preview, not a production research instrument.**
+The application is an engineering candidate, not an approved research instrument. Do not enter participant identifiers or administer the task until protocol, item bank, audio, ethics/data governance, supervisor, export and target-device acceptance evidence is complete. Do not merge the Flutter PR to production or distribute an engineering/debug APK as a field release.
