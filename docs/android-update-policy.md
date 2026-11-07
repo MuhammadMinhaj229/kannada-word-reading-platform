@@ -11,7 +11,9 @@ The supported production distribution path is a private Android app distributed 
 - Publish a signed Android App Bundle (AAB) or APK under the stable package ID `org.phfi.cdlr.padalab_android`.
 - Keep the same Android signing identity for every update. A different signing key will prevent an in-place update.
 - In Managed Google Play / Android Management API, configure the app's automatic update policy. The default policy updates when the device is on Wi-Fi, charging, inactive, and the app is not in the foreground. High-priority policy requests installation as soon as the reviewed update becomes available and the device is online.
-- The Flutter app includes Google Play In-App Updates for Play-installed Android releases. Debug builds and Web previews skip the check. High-priority updates use the immediate flow; normal updates use the flexible flow at app startup.
+- The assessor home screen exposes a **Refresh updates** action only in non-debug Android release builds. It checks Google Play on demand; no update check or installation is triggered automatically at app startup. The control is available from the idle assessor screen, not from a child trial.
+- High-priority Play releases use the immediate flow. Normal releases use Play's flexible flow, then complete the installation after the assessor requests it.
+- Debug builds and Web previews do not show the control. Google Play In-App Updates do not work for a locally sideloaded APK; a Play internal-testing or Managed Google Play build is required.
 - Google Play In-App Updates do not work for locally sideloaded debug APKs. A Play internal testing track or Managed Google Play distribution is required to validate the flow.
 
 ## Release versioning
