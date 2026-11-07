@@ -7,6 +7,7 @@ import '../../../core/config/app_config.dart';
 import '../../../core/config/assessment_release_gate.dart';
 import '../../../core/config/study_protocol.dart';
 import '../../../core/update/play_update_service.dart';
+import '../../../core/update/web_update_service.dart';
 import '../../child/presentation/child_welcome_screen.dart';
 
 class AssessorHomeScreen extends StatelessWidget {
@@ -141,8 +142,9 @@ class AssessorHomeScreen extends StatelessWidget {
           label: demoMode ? 'SYNTHETIC DEMO' : 'FIELD RELEASE LOCKED',
           color: AppTheme.coral,
         ),
-        if (!kIsWeb &&
-            !kDebugMode &&
+        if (kIsWeb)
+          const _ManualWebUpdateButton()
+        else if (!kDebugMode &&
             defaultTargetPlatform == TargetPlatform.android &&
             AppConfig.playUpdatesEnabled)
           const _ManualUpdateButton(),
@@ -588,6 +590,72 @@ class _BrandMark extends StatelessWidget {
   }
 }
 
+
+
+/// Web/PWA refresh is assessor-triggered so a running demo or assessment is
+/// never replaced by an automatic service-worker activation.
+class _ManualWebUpdateButton extends StatefulWidget {
+  const _ManualWebUpdateButton();
+
+  @override
+  State<_ManualWebUpdateButton> createState() => _ManualWebUpdateButtonState();
+}
+
+class _ManualWebUpdateButtonState extends State<_ManualWebUpdateButton> {
+  bool _checking = false;
+
+  Future<void> _refresh() async {
+    if (_checking) return;
+    setState(() => _checking = true);
+    try {
+      final activated = await WebUpdateService.checkAndActivate();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              activated
+                  ? 'A newer app version is ready. Reloading safely…'
+                  : 'No new version is ready. Connect to the internet and try again.',
+            ),
+          ),
+        );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Could not check for Web updates. Try again online.'),
+          ),
+        );
+    } finally {
+      if (mounted) setState(() => _checking = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: _checking ? null : _refresh,
+      icon: _checking
+          ? const SizedBox.square(
+              dimension: 15,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.refresh_rounded, size: 16),
+      label: Text(_checking ? 'Checking…' : 'Refresh updates'),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppTheme.tealDark,
+        minimumSize: const Size(0, 38),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+        side: const BorderSide(color: AppTheme.line),
+      ),
+    );
+  }
+}
 
 /// A deliberate update check shown only on a Play-installed Android release.
 /// The assessor can use it from the idle home screen, never from a trial view.
