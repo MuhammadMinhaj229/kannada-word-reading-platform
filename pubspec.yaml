@@ -7,15 +7,15 @@ environment:
   sdk: ">=3.12.0 <4.0.0"
 
 dependencies:
+  audioplayers: ^6.8.1
   crypto: ^3.0.8
+  csv: ^8.0.0
   flutter:
     sdk: flutter
   flutter_secure_storage: ^11.2.0
-  flutter_tts: ^4.2.5
   file_picker: ^13.3.2
   file_saver: ^0.7.0
   excel_plus: ^2.29.2
-  shared_preferences: ^2.5.6
   in_app_update: ^5.0.0
   path: ^1.9.1
   sqflite_sqlcipher: ^3.4.1
@@ -30,6 +30,10 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/item_bank/selected_words_list_v1.csv
+    - assets/item_bank/nonword_candidate_summary_v1.json
+    - assets/audio/audio_manifest.json
   fonts:
     - family: NotoSansKannada
       fonts:
