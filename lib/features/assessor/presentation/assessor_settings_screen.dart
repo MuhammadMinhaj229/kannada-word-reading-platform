@@ -1,4 +1,11 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+
+import '../../../data/demo/demo_record_store.dart';
+import '../../assessment/data/demo_export_service.dart';
+import '../../assessment/data/item_bank_import_metadata_store.dart';
+import '../../assessment/data/item_bank_import_service.dart';
+import '../../assessment/data/item_bank_template_service.dart';
 
 import '../../../app/app_theme.dart';
 import '../../../core/audio/kannada_speech_service.dart';
@@ -25,10 +32,173 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
   bool _autoVoice = KannadaSpeechService.instance.enabled;
   String? _audioMessage;
 
+  final ItemBankImportService _bankImporter = ItemBankImportService();
+  final ItemBankImportMetadataStore _bankMetadataStore =
+      ItemBankImportMetadataStore();
+  final ItemBankTemplateService _templateService = ItemBankTemplateService();
+  final DemoExportService _demoExportService = DemoExportService();
+
+  bool _bankBusy = false;
+  bool _exportBusy = false;
+  List<String> _bankErrors = <String>[];
+  ItemBankImportMetadata? _bankMetadata;
+  String? _bankFeedback;
+  String? _exportFeedback;
+  int _demoRecordCount = 0;
+
   @override
   void initState() {
     super.initState();
     _refreshVoice();
+    _loadLocalSettings();
+  }
+
+  Future<void> _loadLocalSettings() async {
+    try {
+      final metadata = await _bankMetadataStore.load();
+      final records = await DemoRecordStore.instance.readAll();
+      if (!mounted) return;
+      setState(() {
+        _bankMetadata = metadata;
+        _demoRecordCount = records.length;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _bankFeedback = 'Local review metadata could not be read.';
+      });
+    }
+  }
+
+  Future<void> _downloadBankTemplate() async {
+    setState(() {
+      _bankBusy = true;
+      _bankFeedback = null;
+      _bankErrors = <String>[];
+    });
+    try {
+      await _templateService.downloadTemplate();
+      if (!mounted) return;
+      setState(() => _bankFeedback = 'The blank 540-row authoring template was generated.');
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _bankFeedback = 'Could not create the item-bank template.');
+    } finally {
+      if (mounted) setState(() => _bankBusy = false);
+    }
+  }
+
+  Future<void> _pickAndValidateBank() async {
+    if (_bankBusy) return;
+    final file = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: <String>['xlsx'],
+    );
+    if (file == null) return;
+
+    setState(() {
+      _bankBusy = true;
+      _bankFeedback = 'Reading and validating workbook…';
+      _bankErrors = <String>[];
+    });
+
+    try {
+      final bytes = await file.readAsBytes();
+      final result = await _bankImporter.parse(
+        fileName: file.name,
+        bytes: bytes,
+      );
+      if (!mounted) return;
+      if (!result.valid) {
+        setState(() {
+          _bankFeedback = 'Rejected — structural validation found issues.';
+          _bankErrors = result.errors.take(12).toList(growable: false);
+        });
+        return;
+      }
+
+      final metadata = ItemBankImportMetadata(
+        fileName: result.fileName,
+        version: result.version,
+        sha256: result.sha256,
+        importedAt: DateTime.now().toUtc().toIso8601String(),
+        itemCount: result.items.length,
+        wordCount: result.wordCount,
+        nonWordCount: result.nonWordCount,
+      );
+      await _bankMetadataStore.save(metadata);
+      if (!mounted) return;
+      setState(() {
+        _bankMetadata = metadata;
+        _bankFeedback =
+            'Structural checks passed. Item content remains outside this demo store and is not used by the game.';
+        _bankErrors = <String>[];
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _bankFeedback = 'Could not import this workbook. Check that it is a valid .xlsx file.';
+      });
+    } finally {
+      if (mounted) setState(() => _bankBusy = false);
+    }
+  }
+
+  Future<void> _exportDemo(bool asExcel) async {
+    if (_exportBusy) return;
+    setState(() {
+      _exportBusy = true;
+      _exportFeedback = null;
+    });
+    try {
+      final result = asExcel
+          ? await _demoExportService.exportXlsx()
+          : await _demoExportService.exportCsv();
+      if (!mounted) return;
+      setState(() {
+        _exportFeedback =
+            'Saved ${result.fileName} · ${result.recordCount} synthetic demo responses.';
+        _demoRecordCount = result.recordCount;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _exportFeedback = error is StateError
+            ? error.message.toString()
+            : 'The synthetic demo export failed.';
+      });
+    } finally {
+      if (mounted) setState(() => _exportBusy = false);
+    }
+  }
+
+  Future<void> _clearDemoRecords() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Clear synthetic demo records?'),
+        content: const Text(
+          'This removes only the locally stored synthetic game responses on this device/browser. It does not remove participant data because participant capture is disabled.',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Clear demo records'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await DemoRecordStore.instance.clear();
+    if (!mounted) return;
+    setState(() {
+      _demoRecordCount = 0;
+      _exportFeedback = 'Synthetic demo records cleared from this device/browser.';
+    });
   }
 
   Future<void> _refreshVoice() async {
@@ -253,21 +423,81 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       const _StatusLine(
-                        label: 'Planned item pool',
+                        label: 'Required item pool',
                         value: '270 real + 270 non-words',
                         good: true,
                       ),
                       const SizedBox(height: 7),
-                      const _StatusLine(
-                        label: 'Approved non-words',
-                        value: '0 / 270',
-                        good: false,
+                      _StatusLine(
+                        label: 'Last validated workbook',
+                        value: _bankMetadata == null
+                            ? 'None imported'
+                            : '${_bankMetadata!.itemCount} rows · SHA-256 verified',
+                        good: _bankMetadata != null,
                       ),
+                      if (_bankMetadata != null) ...<Widget>[
+                        const SizedBox(height: 8),
+                        Text(
+                          _bankMetadata!.fileName + '\\n' +
+                              'Imported: ' + _bankMetadata!.importedAt + '\\n' +
+                              'Hash: ' + _bankMetadata!.sha256,
+                          style: const TextStyle(
+                            color: AppTheme.muted,
+                            fontSize: 10,
+                            height: 1.5,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 14),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: <Widget>[
+                          OutlinedButton.icon(
+                            onPressed: _bankBusy ? null : _downloadBankTemplate,
+                            icon: const Icon(Icons.download_outlined),
+                            label: const Text('Download Excel template'),
+                          ),
+                          FilledButton.icon(
+                            onPressed: _bankBusy ? null : _pickAndValidateBank,
+                            icon: _bankBusy
+                                ? const SizedBox.square(
+                                    dimension: 16,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : const Icon(Icons.upload_file_rounded),
+                            label: Text(_bankBusy ? 'Validating…' : 'Import .xlsx'),
+                          ),
+                        ],
+                      ),
+                      if (_bankFeedback != null) ...<Widget>[
+                        const SizedBox(height: 10),
+                        Text(
+                          _bankFeedback!,
+                          style: const TextStyle(
+                            color: AppTheme.ink,
+                            fontSize: 12,
+                            height: 1.45,
+                          ),
+                        ),
+                      ],
+                      if (_bankErrors.isNotEmpty) ...<Widget>[
+                        const SizedBox(height: 8),
+                        for (final error in _bankErrors)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Text(
+                              '• ' + error,
+                              style: const TextStyle(
+                                color: AppTheme.coral,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
+                      ],
                       const SizedBox(height: 10),
                       _warning(
-                        'The 270 non-word candidates still require native Kannada review '
-                        'and Suganya’s written approval. The final approved workbook and '
-                        'checksum are not installed. The demo never uses this item bank.',
+                        'Structural checks cover 540 rows, 270 words, 270 non-words, 6 balanced blocks, unique IDs/text and row ordering. They cannot certify Kannada linguistic validity or prove the reviewer identity. The workbook is not connected to the synthetic game or participant workflow.',
                       ),
                     ],
                   ),
@@ -281,22 +511,49 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      const _StatusLine(
-                        label: 'Export workflow',
-                        value: 'Not implemented',
-                        good: false,
+                      _StatusLine(
+                        label: 'Synthetic responses stored',
+                        value: _demoRecordCount.toString(),
+                        good: _demoRecordCount > 0,
                       ),
-                      const SizedBox(height: 8),
-                      const _StatusLine(
-                        label: 'Data location',
-                        value: 'No participant data is collected',
-                        good: true,
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: <Widget>[
+                          FilledButton.icon(
+                            onPressed: _exportBusy ? null : () => _exportDemo(false),
+                            icon: const Icon(Icons.table_rows_outlined),
+                            label: const Text('Download CSV'),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: _exportBusy ? null : () => _exportDemo(true),
+                            icon: const Icon(Icons.grid_on_outlined),
+                            label: const Text('Download Excel'),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: _demoRecordCount == 0 || _exportBusy
+                                ? null
+                                : _clearDemoRecords,
+                            icon: const Icon(Icons.delete_outline_rounded),
+                            label: const Text('Clear demo data'),
+                          ),
+                        ],
                       ),
+                      if (_exportFeedback != null) ...<Widget>[
+                        const SizedBox(height: 10),
+                        Text(
+                          _exportFeedback!,
+                          style: const TextStyle(
+                            color: AppTheme.ink,
+                            fontSize: 12,
+                            height: 1.45,
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 10),
                       _warning(
-                        'PIN-protected CSV export, UTF-8 BOM, include-name option, '
-                        'audit history, backup/restore and retention controls must be '
-                        'completed and approved before any real assessment.',
+                        'CSV exports include a UTF-8 BOM and formula-injection-safe cells. Excel exports include trial details and an Export Info sheet. These files contain synthetic demo responses only. Participant exports, supervisor PIN, audit trail, backup/restore and retention remain disabled.',
                       ),
                     ],
                   ),
