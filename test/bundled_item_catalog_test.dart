@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:padalab_android/features/assessment/data/bundled_item_catalog.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   test('loads the complete supplied 270-word Kannada source list', () async {
     final catalog = await BundledItemCatalog.load();
 
