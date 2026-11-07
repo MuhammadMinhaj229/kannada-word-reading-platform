@@ -27,6 +27,7 @@ class AssessmentReleaseGate {
     'Acceptance on the actual study tablet is not recorded.',
     'The study export dictionary and REDCap mapping are not signed off.',
     'A supervisor PIN has not been provisioned securely.',
+    'The permanent Android package ID and institution signing owner are not approved.',
     'A signed field-release approval manifest is not present.',
   ];
 
