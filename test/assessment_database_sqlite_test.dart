@@ -188,7 +188,7 @@ void main() {
       ordinal: 1,
       phase: TrialPhase.test,
       phaseTrialNumber: 1,
-      item: const StudyItem(
+      item: StudyItem(
         id: 'REAL-001',
         text: 'ಮನೆ',
         type: StudyItemType.realWord,
