@@ -19,6 +19,7 @@
 - Session schema stores an immutable trial manifest. API foundations create a session transactionally, persist a presented-trial event, verify the full item content against the frozen manifest, compute correctness from the frozen item, and commit response plus session-cursor advancement atomically. Host SQLite FFI tests cover schema/foreign keys, concurrent opens, legacy DB preservation, key-loss handling, tamper rejection, response idempotency, response/cursor atomicity and close/open race handling.
 - Caller-supplied supervisor booleans were removed; repeat/restart remains disabled until a trusted supervisor-authorization verifier is implemented. Caller-supplied reward counters were removed from response commits pending a PI-approved reward policy.
 - The GitHub Actions debug APK is now built for ARM64 tablet devices, with ABI-content validation, Android signature verification and a SHA-256 checksum.
+- CI validates the Vercel static-security contract (security headers, no-index, SPA fallback and revalidation cache rules); Dependabot weekly updates are enabled for Dart/pub and GitHub Actions.
 - Vercel SSO protection is configured for all deployment targets, including attached project domains.
 - Android hardening script applies API 26 minimum, landscape orientation, Internet permission for Play updates, disables Android backup and cleartext traffic, configures R8 release shrinking and SQLCipher keep rules, and creates machine-local Flutter SDK properties at build time.
 - Responsive widget coverage includes phone, tablet portrait/landscape and desktop Web viewports.
@@ -38,7 +39,7 @@
 
 ## Build status
 
-CI performs dependency resolution, Android host generation/hardening, Dart formatting, static analysis, unit/widget tests, Android debug build, a release-mode safety build and Flutter Web release build. The latest run must be checked on PR #2; do not rely on previous run results after source changes.
+CI performs dependency resolution, Android host generation/hardening, shell and Vercel configuration validation, Dart formatting, static analysis, unit/widget tests, ARM64 Android debug and release-mode builds, APK ABI/signature/checksum verification, and Flutter Web release build. The latest run must be checked on PR #2; do not rely on previous run results after source changes.
 
 ## Update behavior
 
