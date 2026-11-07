@@ -5,7 +5,7 @@ import 'package:padalab_android/features/assessment/domain/services/session_allo
 
 void main() {
   const allocator = SessionAllocator();
-  const checksum = 'a' * 64;
+  const checksum = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
   SessionAllocation manifest({
     int sessionNumber = 1,
@@ -26,7 +26,7 @@ void main() {
           phaseTrialNumber: index,
           item: StudyItem(
             id: 'P${index.toString().padLeft(3, '0')}',
-            text: 'Practice${index}',
+            text: 'Practice$index',
             type: StudyItemType.realWord,
           ),
         ),
@@ -41,7 +41,7 @@ void main() {
           phaseTrialNumber: index,
           item: StudyItem(
             id: 'T${index.toString().padLeft(3, '0')}',
-            text: 'Test${index}',
+            text: 'Test$index',
             type: index.isEven
                 ? StudyItemType.realWord
                 : StudyItemType.nonWord,
