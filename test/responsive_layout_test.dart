@@ -20,6 +20,13 @@ const _viewports = <Size>[
   Size(1600, 900),
 ];
 
+Future<void> _pumpWorkspace(WidgetTester tester) async {
+  await tester.pumpWidget(const PadalabApp());
+  // Avoid pumpAndSettle: the loading indicators are intentionally animated.
+  await tester.pump(const Duration(milliseconds: 300));
+  await tester.pump();
+}
+
 void main() {
   for (final viewport in _viewports) {
     testWidgets(
@@ -33,8 +40,7 @@ void main() {
         addTearDown(tester.view.resetPhysicalSize);
         addTearDown(tester.view.resetDevicePixelRatio);
 
-        await tester.pumpWidget(const PadalabApp());
-        await tester.pumpAndSettle();
+        await _pumpWorkspace(tester);
 
         expect(find.text('FIELD ASSESSMENT WORKSPACE'), findsOneWidget);
         expect(find.textContaining('demo'), findsNothing);
