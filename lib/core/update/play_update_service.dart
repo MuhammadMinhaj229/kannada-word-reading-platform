@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:in_app_update/in_app_update.dart';
@@ -13,7 +11,11 @@ class PlayUpdateService {
   const PlayUpdateService();
 
   Future<void> checkAndApplyAvailableUpdate() async {
-    if (kIsWeb || kDebugMode || !Platform.isAndroid) return;
+    if (kIsWeb ||
+        kDebugMode ||
+        defaultTargetPlatform != TargetPlatform.android) {
+      return;
+    }
 
     try {
       final update = await InAppUpdate.checkForUpdate();
