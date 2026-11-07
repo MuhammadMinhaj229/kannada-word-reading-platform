@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:padalab_android/features/assessment/domain/models/study_item.dart';
 import 'package:padalab_android/features/assessment/domain/models/study_item_bank.dart';
 
 import 'helpers/test_item_bank.dart';
@@ -56,7 +57,13 @@ void main() {
   test('rejects content changed after checksum approval', () {
     final bank = createValidTestItemBank();
     final changedItems = List.of(bank.items);
-    changedItems[0] = changedItems[0].copyWithForTest('tampered');
+    final original = changedItems[0];
+    changedItems[0] = StudyItem(
+      id: original.id,
+      text: 'tampered',
+      type: original.type,
+      nonWordMethod: original.nonWordMethod,
+    );
     final changed = StudyItemBank(
       version: bank.version,
       approvedBy: bank.approvedBy,
