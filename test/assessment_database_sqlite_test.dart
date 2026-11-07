@@ -149,7 +149,7 @@ void main() {
     final db = await database.database;
     await insertTestSession(db);
 
-    final tampered = PlannedTrial(
+    const tampered = PlannedTrial(
       ordinal: 1,
       phase: TrialPhase.test,
       phaseTrialNumber: 1,
@@ -184,7 +184,7 @@ void main() {
     final db = await database.database;
     await insertTestSession(db);
 
-    final planned = PlannedTrial(
+    const planned = PlannedTrial(
       ordinal: 1,
       phase: TrialPhase.test,
       phaseTrialNumber: 1,
