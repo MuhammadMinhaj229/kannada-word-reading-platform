@@ -340,7 +340,7 @@ class ItemBankImportService {
   String _cellText(CellValue? value) {
     return switch (value) {
       null => '',
-      TextCellValue(:final value) => value.text.trim(),
+      TextCellValue(:final value) => value.text?.trim() ?? '',
       IntCellValue(:final value) => value.toString(),
       DoubleCellValue(:final value) => value.toString(),
       BoolCellValue(:final value) => value.toString(),
