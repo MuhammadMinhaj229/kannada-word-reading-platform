@@ -53,7 +53,7 @@ void main() {
 
   test('rejects an invalid item-bank checksum', () {
     const approval = FieldReleaseApproval(itemBankSha256: '1234');
-    final gate = AssessmentReleaseGate(approval);
+    const gate = AssessmentReleaseGate(approval);
 
     expect(
       gate.blockers,
