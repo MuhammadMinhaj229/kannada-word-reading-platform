@@ -172,6 +172,21 @@ for activity in application.findall("activity"):
 if main_activity is None:
     raise SystemExit("Android MainActivity was not found in the manifest.")
 
+# Android 11+ package visibility: allow the local system TTS service to be queried.
+queries = root.find("queries")
+if queries is None:
+    queries = ET.Element("queries")
+    root.insert(list(root).index(application), queries)
+has_tts_query = any(
+    action.get(attr("name")) == "android.intent.action.TTS_SERVICE"
+    for intent in queries.findall("intent")
+    for action in intent.findall("action")
+)
+if not has_tts_query:
+    intent = ET.SubElement(queries, "intent")
+    action = ET.SubElement(intent, "action")
+    action.set(attr("name"), "android.intent.action.TTS_SERVICE")
+
 main_activity.set(attr("screenOrientation"), "landscape")
 main_activity.set(attr("exported"), "true")
 tree.write(manifest_path, encoding="utf-8", xml_declaration=True)
@@ -194,6 +209,7 @@ grep -q 'screenOrientation="landscape"' "${MANIFEST}"
 grep -q 'allowBackup="false"' "${MANIFEST}"
 test -s android/app/proguard-rules.pro
 grep -q 'android.permission.INTERNET' "${MANIFEST}"
+grep -q 'android.intent.action.TTS_SERVICE' "${MANIFEST}"
 grep -q 'isMinifyEnabled = true' "${APP_GRADLE}"
 grep -q 'isShrinkResources = true' "${APP_GRADLE}"
 
