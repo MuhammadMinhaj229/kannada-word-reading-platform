@@ -8,118 +8,153 @@ import '../../../core/config/assessment_release_gate.dart';
 import '../../../core/config/study_protocol.dart';
 import '../../../core/update/play_update_service.dart';
 import '../../../core/update/web_update_service.dart';
-import '../../child/presentation/child_welcome_screen.dart';
+import '../../assessment/data/bundled_item_catalog.dart';
 
-class AssessorHomeScreen extends StatelessWidget {
-  const AssessorHomeScreen({
-    required this.demoMode,
-    super.key,
-  });
+class AssessorHomeScreen extends StatefulWidget {
+  const AssessorHomeScreen({super.key});
 
-  /// Synthetic interaction mode is enabled only by an explicit build flag.
-  /// It never asks for or stores participant identifiers.
-  final bool demoMode;
+  @override
+  State<AssessorHomeScreen> createState() => _AssessorHomeScreenState();
+}
 
-  void _openDemo(BuildContext context) {
-    if (!demoMode) return;
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => const ChildWelcomeScreen(
-          childId: 'DEMO-CHILD',
-          assessorId: 'DEMO-ASSESSOR',
-          enableDevicePresentation: false,
-        ),
-      ),
-    );
+class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
+  late final Future<BundledItemCatalog> _catalogFuture;
+
+  final _childIdController = TextEditingController();
+  final _confirmChildIdController = TextEditingController();
+  final _childNameController = TextEditingController();
+  final _assessorIdController = TextEditingController();
+
+  bool get _canCollectIdentifiers =>
+      !kIsWeb && AssessmentReleaseGate.current.isOpen;
+
+  @override
+  void initState() {
+    super.initState();
+    _catalogFuture = BundledItemCatalog.load();
+  }
+
+  @override
+  void dispose() {
+    _childIdController.dispose();
+    _confirmChildIdController.dispose();
+    _childNameController.dispose();
+    _assessorIdController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final viewport = MediaQuery.sizeOf(context);
-    final compact = viewport.width < 900 || viewport.height < 700;
-
     return Scaffold(
+      backgroundColor: const Color(0xFFF7F8F2),
       body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1320),
-            child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: compact ? 18 : 34,
-                vertical: 20,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  _topBar(context),
-                  const SizedBox(height: 22),
-                  Expanded(
-                    child: compact
-                        ? SingleChildScrollView(
-                            child: Column(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 860;
+            final horizontalPadding = compact ? 16.0 : 30.0;
+            return FutureBuilder<BundledItemCatalog>(
+              future: _catalogFuture,
+              builder: (context, snapshot) {
+                final catalog = snapshot.data;
+                return SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(
+                    horizontalPadding,
+                    compact ? 18 : 28,
+                    horizontalPadding,
+                    32,
+                  ),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1320),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: <Widget>[
+                          _header(context),
+                          const SizedBox(height: 26),
+                          _intro(context),
+                          const SizedBox(height: 22),
+                          if (snapshot.connectionState == ConnectionState.waiting)
+                            const LinearProgressIndicator(minHeight: 3),
+                          if (snapshot.hasError)
+                            _errorCard(snapshot.error.toString()),
+                          if (catalog != null) ...<Widget>[
+                            _metrics(context, catalog),
+                            const SizedBox(height: 20),
+                          ],
+                          if (compact)
+                            _sessionEntryCard()
+                          else
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: <Widget>[
-                                _introduction(context),
-                                const SizedBox(height: 18),
-                                _launchPanel(context),
+                                Expanded(
+                                  flex: 11,
+                                  child: _sessionEntryCard(),
+                                ),
+                                const SizedBox(width: 18),
+                                Expanded(
+                                  flex: 9,
+                                  child: _readinessCard(catalog),
+                                ),
                               ],
                             ),
-                          )
-                        : Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: <Widget>[
-                              Expanded(
-                                flex: 11,
-                                child: SingleChildScrollView(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: _introduction(context),
-                                ),
-                              ),
-                              const SizedBox(width: 22),
-                              Expanded(
-                                flex: 10,
-                                child: SingleChildScrollView(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: _launchPanel(context),
-                                ),
-                              ),
-                            ],
-                          ),
+                          if (compact) ...<Widget>[
+                            const SizedBox(height: 18),
+                            _readinessCard(catalog),
+                          ],
+                          const SizedBox(height: 20),
+                          _releaseNotice(),
+                        ],
+                      ),
+                    ),
                   ),
-                ],
-              ),
-            ),
-          ),
+                );
+              },
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _topBar(BuildContext context) {
-    final narrow = MediaQuery.sizeOf(context).width < 520;
-
-    final brand = Row(
+  Widget _header(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final narrow = width < 560;
+    final identity = Row(
+      mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        const _BrandMark(),
+        Container(
+          width: 46,
+          height: 46,
+          decoration: BoxDecoration(
+            color: AppTheme.teal,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: const Icon(
+            Icons.auto_stories_rounded,
+            color: Colors.white,
+            size: 26,
+          ),
+        ),
         const SizedBox(width: 12),
-        Expanded(
+        Flexible(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
                 'ಪದLab',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontSize: 23,
-                      fontWeight: FontWeight.w800,
+                      color: AppTheme.deepInk,
+                      fontWeight: FontWeight.w900,
                     ),
               ),
               const Text(
                 'KANNADA WORD READING ASSESSMENT',
-                softWrap: true,
                 style: TextStyle(
                   color: AppTheme.muted,
                   fontSize: 9,
                   fontWeight: FontWeight.w800,
-                  letterSpacing: 1.1,
+                  letterSpacing: 1,
                 ),
               ),
             ],
@@ -128,7 +163,7 @@ class AssessorHomeScreen extends StatelessWidget {
       ],
     );
 
-    final statuses = Wrap(
+    final status = Wrap(
       spacing: 8,
       runSpacing: 8,
       children: <Widget>[
@@ -138,8 +173,8 @@ class AssessorHomeScreen extends StatelessWidget {
           color: AppTheme.teal,
         ),
         _StatusPill(
-          icon: demoMode ? Icons.science_outlined : Icons.lock_outline_rounded,
-          label: demoMode ? 'SYNTHETIC DEMO' : 'FIELD RELEASE LOCKED',
+          icon: kIsWeb ? Icons.visibility_outlined : Icons.lock_outline_rounded,
+          label: kIsWeb ? 'BROWSER REVIEW · READ ONLY' : 'FIELD RELEASE GATED',
           color: AppTheme.coral,
         ),
         if (kIsWeb)
@@ -155,261 +190,388 @@ class AssessorHomeScreen extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          brand,
+          identity,
           const SizedBox(height: 12),
-          statuses,
+          status,
         ],
       );
     }
-
     return Row(
       children: <Widget>[
-        Expanded(child: brand),
+        Expanded(child: identity),
         const SizedBox(width: 16),
-        statuses,
+        status,
       ],
     );
   }
 
-  Widget _introduction(BuildContext context) {
+  Widget _intro(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           decoration: BoxDecoration(
             color: AppTheme.mint,
             borderRadius: BorderRadius.circular(30),
           ),
           child: const Text(
-            'ಕನ್ನಡ ಪದ ಓದು · ಪದLab',
+            'FIELD ASSESSMENT WORKSPACE',
             style: TextStyle(
               color: AppTheme.tealDark,
               fontSize: 10,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.1,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1,
             ),
           ),
         ),
-        const SizedBox(height: 17),
-        Text(
-          'ಪದಗಳ ಆಟಕ್ಕೆ\nಸ್ವಾಗತ!',
-          style: Theme.of(context).textTheme.headlineLarge,
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'ಪರದೆಯ ಮೇಲೆ ಒಂದು ಪದ ಕಾಣಿಸುತ್ತದೆ. ಅದು ನಿಜವಾದ ಪದವೇ ಅಥವಾ ಪದವಲ್ಲವೇ ಎಂದು ಆಯ್ಕೆಮಾಡಿ. ಆಟವನ್ನು ಇಂಟರ್ನೆಟ್ ಇಲ್ಲದೆಯೂ ತೆರೆಯಬಹುದು.',
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: AppTheme.muted,
-              ),
-        ),
-        const SizedBox(height: 24),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final columns = constraints.maxWidth < 420
-                ? 1
-                : constraints.maxWidth < 620
-                    ? 2
-                    : 3;
-            final width =
-                (constraints.maxWidth - (columns - 1) * 10) / columns;
-            return Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: <Widget>[
-                _MetricCard(
-                  width: width,
-                  value: '5',
-                  label: 'ಅಭ್ಯಾಸ ಪದಗಳು',
-                  detail: 'Demo practice examples',
-                ),
-                _MetricCard(
-                  width: width,
-                  value: '10',
-                  label: 'ಮಾದರಿ ಪದಗಳು',
-                  detail: 'Synthetic demo items',
-                ),
-                _MetricCard(
-                  width: width,
-                  value: '15',
-                  label: 'ಒಟ್ಟು ಉದಾಹರಣೆಗಳು',
-                  detail: 'ಅಭ್ಯಾಸ + ಮಾದರಿ ಪರೀಕ್ಷೆ',
-                ),
-              ],
-            );
-          },
-        ),
         const SizedBox(height: 18),
-        _notice(
-          color: const Color(0xFFFFF7E7),
-          border: const Color(0xFFF2E2C3),
-          icon: Icons.info_outline_rounded,
-          iconColor: const Color(0xFF926B2A),
-          text: demoMode
-              ? 'Synthetic review mode. The examples are not approved study '
-                  'stimuli. Do not enter participant details or use this build '
-                  'to collect research data.'
-              : 'Participant administration is disabled. The signed study '
-                  'protocol, approved Kannada item bank, language assets and '
-                  'device acceptance are not present in this build.',
-          textColor: const Color(0xFF765C2B),
+        Text(
+          'Kannada word-reading\nassessment',
+          style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                color: AppTheme.deepInk,
+                height: 1.07,
+                fontWeight: FontWeight.w900,
+              ),
         ),
         const SizedBox(height: 12),
         const Text(
-          'Protocol baseline: ${StudyProtocol.requirementsVersion}. '
-          'The session schedule remains subject to study-team confirmation.',
+          'An offline-first assessor application for recording structured '
+          'word-reading sessions on approved Android tablets. Participant '
+          'records remain on the device; this browser build is read-only.',
           style: TextStyle(
             color: AppTheme.muted,
-            fontSize: 11,
-            height: 1.5,
+            fontSize: 14,
+            height: 1.55,
           ),
         ),
       ],
     );
   }
 
-  Widget _launchPanel(BuildContext context) {
-    if (demoMode) {
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(22),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              const _PanelHeading(
-                icon: Icons.science_outlined,
-                title: 'ಮಕ್ಕಳ ಆಟದ ಪೂರ್ವವೀಕ್ಷಣೆ',
-                subtitle: 'ಇದು ಮಾದರಿ ಆಟ ಮಾತ್ರ; ಭಾಗವಹಿಸುವವರ ಮಾಹಿತಿ ಸಂಗ್ರಹಿಸುವುದಿಲ್ಲ.',
-              ),
-              const SizedBox(height: 18),
-              const Text(
-                'ಮೊದಲು ಐದು ಅಭ್ಯಾಸ ಪದಗಳು, ನಂತರ ಹತ್ತು ಮಾದರಿ ಪದಗಳು ಬರುತ್ತವೆ. ಪದವೇ ಅಥವಾ ಪದವಲ್ಲವೇ ಎಂದು ಆಯ್ಕೆಮಾಡಿ.',
-                style: TextStyle(
-                  color: AppTheme.muted,
-                  fontSize: 13,
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                height: 54,
-                child: FilledButton.icon(
-                  onPressed: () => _openDemo(context),
-                  icon: const Icon(Icons.play_arrow_rounded),
-                  label: const Text('ಆಟ ಪ್ರಾರಂಭಿಸಿ'),
-                ),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'ಈ ಪದಗಳು ಸಂಶೋಧನೆಗಾಗಿ ಅನುಮೋದಿತವಲ್ಲ. ಮಾದರಿ ಪ್ರತಿಕ್ರಿಯೆಗಳು ಮಾತ್ರ ಸ್ಥಳೀಯವಾಗಿ ಉಳಿಯುತ್ತವೆ.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: AppTheme.muted,
-                  fontSize: 10,
-                  height: 1.5,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
+  Widget _metrics(BuildContext context, BundledItemCatalog catalog) {
+    final width = MediaQuery.sizeOf(context).width;
+    final columns = width < 520 ? 2 : width < 900 ? 2 : 4;
+    final gap = 10.0;
+    final available = MediaQuery.sizeOf(context).width -
+        (width < 860 ? 32 : 60);
+    final cardWidth = (available - gap * (columns - 1)) / columns;
+    final metrics = <_MetricData>[
+      _MetricData(
+        value: catalog.realWords.length.toString(),
+        label: 'Supplied real words',
+        detail: 'Source list validated',
+        color: AppTheme.tealDark,
+      ),
+      _MetricData(
+        value: catalog.nonWordCandidateCount.toString(),
+        label: 'Non-word candidates',
+        detail: catalog.approvedNonWordCount == 270
+            ? 'Native review approved'
+            : 'Awaiting written review',
+        color: catalog.approvedNonWordCount == 270
+            ? AppTheme.tealDark
+            : AppTheme.coral,
+      ),
+      const _MetricData(
+        value: '6',
+        label: 'Required sessions',
+        detail: 'Schedule awaits sign-off',
+        color: AppTheme.deepInk,
+      ),
+      const _MetricData(
+        value: '10 s',
+        label: 'Stimulus display',
+        detail: 'Requirements baseline',
+        color: AppTheme.deepInk,
+      ),
+    ];
 
-    final blockers = AssessmentReleaseGate.current.blockers;
+    return Wrap(
+      spacing: gap,
+      runSpacing: gap,
+      children: metrics
+          .map((metric) => SizedBox(
+                width: cardWidth,
+                child: _MetricCard(metric: metric),
+              ))
+          .toList(growable: false),
+    );
+  }
+
+  Widget _sessionEntryCard() {
+    final readOnlyWeb = kIsWeb;
+    final ready = AssessmentReleaseGate.current.isOpen;
+    final enabled = _canCollectIdentifiers;
+
     return Card(
+      margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(22),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            const _PanelHeading(
-              icon: Icons.lock_outline_rounded,
-              title: 'Participant assessment locked',
-              subtitle: 'No participant workflow is available in this build.',
-            ),
-            const SizedBox(height: 16),
-            _notice(
-              color: const Color(0xFFFFF7E7),
-              border: const Color(0xFFF2E2C3),
-              icon: Icons.shield_outlined,
-              iconColor: const Color(0xFF926B2A),
-              text: 'This is a deliberate safety lock. Do not enter child '
-                  'identifiers or conduct a research session until every '
-                  'release requirement has an approved reference.',
-              textColor: const Color(0xFF765C2B),
+            const _SectionHeading(
+              icon: Icons.assignment_ind_outlined,
+              title: 'Participant and session entry',
+              subtitle: 'Assessor-only workflow',
             ),
             const SizedBox(height: 18),
-            Text(
-              'RELEASE BLOCKERS (${blockers.length})',
-              style: const TextStyle(
-                color: AppTheme.ink,
-                fontSize: 10,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1,
+            if (readOnlyWeb)
+              const _InlineNotice(
+                text: 'The Vercel browser build is for interface review. '
+                    'Do not enter participant identifiers here. Use the '
+                    'installed Android tablet application for field work.',
+              )
+            else if (!ready)
+              const _InlineNotice(
+                text: 'The participant workflow is protected until the '
+                    'signed study protocol, reviewed item bank, audio assets '
+                    'and field-release approvals are installed. Fields remain '
+                    'inactive; no participant information is stored.',
+              ),
+            const SizedBox(height: 16),
+            _field(
+              controller: _childIdController,
+              label: 'Child ID',
+              hint: 'Enter the study-issued child ID',
+              enabled: enabled,
+            ),
+            const SizedBox(height: 12),
+            _field(
+              controller: _confirmChildIdController,
+              label: 'Confirm Child ID',
+              hint: 'Enter the same ID again',
+              enabled: enabled,
+            ),
+            const SizedBox(height: 12),
+            _field(
+              controller: _childNameController,
+              label: 'Child name (optional)',
+              hint: 'Stored locally only; excluded from default export',
+              enabled: enabled,
+            ),
+            const SizedBox(height: 12),
+            _field(
+              controller: _assessorIdController,
+              label: 'Assessor ID',
+              hint: 'Enter your assigned assessor ID',
+              enabled: enabled,
+            ),
+            const SizedBox(height: 14),
+            DropdownButtonFormField<int>(
+              value: null,
+              isExpanded: true,
+              decoration: const InputDecoration(
+                labelText: 'Session number',
+                hintText: 'Suggested from the child’s local session history',
+                border: OutlineInputBorder(),
+              ),
+              items: List<DropdownMenuItem<int>>.generate(
+                StudyProtocol.sessionCount,
+                (index) => DropdownMenuItem<int>(
+                  value: index + 1,
+                  child: Text('Session ' + (index + 1).toString()),
+                ),
+              ),
+              onChanged: null,
+            ),
+            const SizedBox(height: 18),
+            SizedBox(
+              height: 54,
+              child: FilledButton.icon(
+                onPressed: null,
+                icon: const Icon(Icons.play_arrow_rounded),
+                label: const Text('Start assessment session'),
               ),
             ),
             const SizedBox(height: 10),
-            for (final blocker in blockers)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    const Icon(
-                      Icons.radio_button_unchecked_rounded,
-                      color: AppTheme.coral,
-                      size: 16,
-                    ),
-                    const SizedBox(width: 9),
-                    Expanded(
-                      child: Text(
-                        blocker,
-                        style: const TextStyle(
-                          color: AppTheme.muted,
-                          fontSize: 12,
-                          height: 1.45,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+            const Text(
+              'Session history, duplicate-session checks, supervisor '
+              'authorisation and resume/restart will be connected to the '
+              'encrypted local repository before field release.',
+              style: TextStyle(
+                color: AppTheme.muted,
+                fontSize: 11,
+                height: 1.5,
               ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _notice({
-    required Color color,
-    required Color border,
-    required IconData icon,
-    required Color iconColor,
-    required String text,
-    required Color textColor,
+  Widget _field({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required bool enabled,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: border),
+    return TextField(
+      controller: controller,
+      enabled: enabled,
+      textInputAction: TextInputAction.next,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        border: const OutlineInputBorder(),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Icon(icon, color: iconColor, size: 19),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              text,
+    );
+  }
+
+  Widget _readinessCard(BundledItemCatalog? catalog) {
+    final blockers = AssessmentReleaseGate.current.blockers;
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(22),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            const _SectionHeading(
+              icon: Icons.fact_check_outlined,
+              title: 'Field-release status',
+              subtitle: 'Verified prerequisites',
+            ),
+            const SizedBox(height: 18),
+            _ReadinessLine(
+              label: 'Real Kannada word source',
+              value: catalog?.hasCompleteRealWordPool == true
+                  ? '270 loaded'
+                  : 'Not verified',
+              complete: catalog?.hasCompleteRealWordPool == true,
+            ),
+            const SizedBox(height: 12),
+            _ReadinessLine(
+              label: 'Non-word bank',
+              value: catalog?.approvedNonWordCount == 270
+                  ? '270 approved'
+                  : (catalog == null
+                      ? 'Loading'
+                      : catalog.approvedNonWordCount.toString() +
+                          ' / 270 approved'),
+              complete: catalog?.approvedNonWordCount == 270,
+            ),
+            const SizedBox(height: 12),
+            const _ReadinessLine(
+              label: 'Written protocol and allocation',
+              value: 'Pending study-team sign-off',
+              complete: false,
+            ),
+            const SizedBox(height: 12),
+            const _ReadinessLine(
+              label: 'Recorded Kannada instructions',
+              value: 'Approval and clip packaging pending',
+              complete: false,
+            ),
+            const SizedBox(height: 12),
+            const _ReadinessLine(
+              label: 'Android tablet acceptance',
+              value: 'Pending target-device testing',
+              complete: false,
+            ),
+            const Divider(height: 28),
+            Text(
+              blockers.length.toString() + ' release requirements remain open.',
+              style: const TextStyle(
+                color: AppTheme.coral,
+                fontWeight: FontWeight.w800,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'The application will not create or run a participant session '
+              'until its required approvals and assets are present.',
               style: TextStyle(
-                color: textColor,
+                color: AppTheme.muted,
                 fontSize: 12,
                 height: 1.5,
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _releaseNotice() {
+    return const _InlineNotice(
+      text: 'Research safeguard: the supplied non-word workbook contains '
+          '270 candidates, but the current source marks them Pending. The '
+          'application must not present them to children until the native '
+          'Kannada reviewer and study team provide written approval.',
+    );
+  }
+
+  Widget _errorCard(String message) {
+    return Card(
+      color: const Color(0xFFFFF0EF),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text(
+          'The bundled item catalogue could not be validated: ' + message,
+          style: const TextStyle(color: AppTheme.coral),
+        ),
+      ),
+    );
+  }
+}
+
+class _MetricData {
+  const _MetricData({
+    required this.value,
+    required this.label,
+    required this.detail,
+    required this.color,
+  });
+
+  final String value;
+  final String label;
+  final String detail;
+  final Color color;
+}
+
+class _MetricCard extends StatelessWidget {
+  const _MetricCard({required this.metric});
+
+  final _MetricData metric;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 118),
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: AppTheme.line),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            metric.value,
+            style: TextStyle(
+              color: metric.color,
+              fontSize: 28,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            metric.label,
+            style: const TextStyle(
+              color: AppTheme.deepInk,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            metric.detail,
+            style: const TextStyle(color: AppTheme.muted, fontSize: 10),
           ),
         ],
       ),
@@ -417,8 +579,8 @@ class AssessorHomeScreen extends StatelessWidget {
   }
 }
 
-class _PanelHeading extends StatelessWidget {
-  const _PanelHeading({
+class _SectionHeading extends StatelessWidget {
+  const _SectionHeading({
     required this.icon,
     required this.title,
     required this.subtitle,
@@ -437,7 +599,7 @@ class _PanelHeading extends StatelessWidget {
           height: 42,
           decoration: BoxDecoration(
             color: AppTheme.mint,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(13),
           ),
           child: Icon(icon, color: AppTheme.tealDark),
         ),
@@ -448,15 +610,16 @@ class _PanelHeading extends StatelessWidget {
             children: <Widget>[
               Text(
                 title,
-                style: Theme.of(context).textTheme.titleLarge,
+                style: const TextStyle(
+                  color: AppTheme.deepInk,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 16,
+                ),
               ),
               const SizedBox(height: 3),
               Text(
                 subtitle,
-                style: const TextStyle(
-                  color: AppTheme.muted,
-                  fontSize: 11,
-                ),
+                style: const TextStyle(color: AppTheme.muted, fontSize: 11),
               ),
             ],
           ),
@@ -466,59 +629,88 @@ class _PanelHeading extends StatelessWidget {
   }
 }
 
-class _MetricCard extends StatelessWidget {
-  const _MetricCard({
-    required this.width,
-    required this.value,
+class _ReadinessLine extends StatelessWidget {
+  const _ReadinessLine({
     required this.label,
-    required this.detail,
+    required this.value,
+    required this.complete,
   });
 
-  final double width;
-  final String value;
   final String label;
-  final String detail;
+  final String value;
+  final bool complete;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: width,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 14),
-        decoration: BoxDecoration(
-          color: AppTheme.paper,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppTheme.line),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Icon(
+          complete ? Icons.check_circle_rounded : Icons.pending_outlined,
+          color: complete ? AppTheme.teal : AppTheme.coral,
+          size: 18,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              value,
+        const SizedBox(width: 9),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                label,
+                style: const TextStyle(
+                  color: AppTheme.deepInk,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                value,
+                style: const TextStyle(color: AppTheme.muted, fontSize: 11),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _InlineNotice extends StatelessWidget {
+  const _InlineNotice({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF7E7),
+        border: Border.all(color: const Color(0xFFF2E2C3)),
+        borderRadius: BorderRadius.circular(13),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const Icon(
+            Icons.info_outline_rounded,
+            color: Color(0xFF926B2A),
+            size: 19,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
               style: const TextStyle(
-                color: AppTheme.tealDark,
-                fontSize: 25,
-                fontWeight: FontWeight.w800,
-                height: 1,
+                color: Color(0xFF765C2B),
+                fontSize: 12,
+                height: 1.5,
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                color: AppTheme.ink,
-                fontSize: 9,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.7,
-              ),
-            ),
-            const SizedBox(height: 3),
-            Text(
-              detail,
-              style: const TextStyle(color: AppTheme.muted, fontSize: 10),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -564,36 +756,12 @@ class _StatusPill extends StatelessWidget {
   }
 }
 
-class _BrandMark extends StatelessWidget {
-  const _BrandMark();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        color: AppTheme.teal,
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: const Icon(
-        Icons.auto_stories_rounded,
-        color: Colors.white,
-        size: 27,
-      ),
-    );
-  }
-}
-
-
-
-/// Web/PWA refresh is assessor-triggered so a running demo or assessment is
-/// never replaced by an automatic service-worker activation.
 class _ManualWebUpdateButton extends StatefulWidget {
   const _ManualWebUpdateButton();
 
   @override
-  State<_ManualWebUpdateButton> createState() => _ManualWebUpdateButtonState();
+  State<_ManualWebUpdateButton> createState() =>
+      _ManualWebUpdateButtonState();
 }
 
 class _ManualWebUpdateButtonState extends State<_ManualWebUpdateButton> {
@@ -605,26 +773,18 @@ class _ManualWebUpdateButtonState extends State<_ManualWebUpdateButton> {
     try {
       final activated = await WebUpdateService.checkAndActivate();
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(
-              activated
-                  ? 'A newer app version is ready. Reloading safely…'
-                  : 'No new version is ready. Connect to the internet and try again.',
-            ),
-          ),
-        );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(activated
+              ? 'Application update activated.'
+              : 'No new application update was found.'),
+        ),
+      );
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text('Could not check for Web updates. Try again online.'),
-          ),
-        );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to check for application updates.')),
+      );
     } finally {
       if (mounted) setState(() => _checking = false);
     }
@@ -636,24 +796,15 @@ class _ManualWebUpdateButtonState extends State<_ManualWebUpdateButton> {
       onPressed: _checking ? null : _refresh,
       icon: _checking
           ? const SizedBox.square(
-              dimension: 15,
+              dimension: 13,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : const Icon(Icons.refresh_rounded, size: 16),
-      label: Text(_checking ? 'Checking…' : 'Refresh updates'),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: AppTheme.tealDark,
-        minimumSize: const Size(0, 38),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
-        side: const BorderSide(color: AppTheme.line),
-      ),
+          : const Icon(Icons.refresh_rounded, size: 15),
+      label: Text(_checking ? 'Checking' : 'Refresh app'),
     );
   }
 }
 
-/// A deliberate update check shown only on a Play-installed Android release.
-/// The assessor can use it from the idle home screen, never from a trial view.
 class _ManualUpdateButton extends StatefulWidget {
   const _ManualUpdateButton();
 
@@ -664,44 +815,36 @@ class _ManualUpdateButton extends StatefulWidget {
 class _ManualUpdateButtonState extends State<_ManualUpdateButton> {
   bool _checking = false;
 
-  Future<void> _refreshUpdates() async {
+  Future<void> _refresh() async {
     if (_checking) return;
     setState(() => _checking = true);
-
     try {
-      final result =
-          await const PlayUpdateService().checkAndApplyAvailableUpdate();
+      final result = await PlayUpdateService.checkForUpdates();
       if (!mounted) return;
-
-      final messenger = ScaffoldMessenger.of(context);
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(result.message)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to check for Android updates.')),
+      );
     } finally {
-      if (mounted) {
-        setState(() => _checking = false);
-      }
+      if (mounted) setState(() => _checking = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return OutlinedButton.icon(
-      onPressed: _checking ? null : _refreshUpdates,
+      onPressed: _checking ? null : _refresh,
       icon: _checking
           ? const SizedBox.square(
-              dimension: 15,
+              dimension: 13,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : const Icon(Icons.refresh_rounded, size: 16),
-      label: Text(_checking ? 'Checking…' : 'Refresh updates'),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: AppTheme.tealDark,
-        minimumSize: const Size(0, 38),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
-        side: const BorderSide(color: AppTheme.line),
-      ),
+          : const Icon(Icons.system_update_alt_rounded, size: 15),
+      label: Text(_checking ? 'Checking' : 'Check update'),
     );
   }
 }
