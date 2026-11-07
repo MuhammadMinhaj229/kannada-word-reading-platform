@@ -46,7 +46,7 @@ void main() {
       signedRelease: true,
     );
 
-    final gate = AssessmentReleaseGate(approval);
+    const gate = AssessmentReleaseGate(approval);
     expect(gate.isOpen, isTrue);
     expect(gate.blockers, isEmpty);
   });
