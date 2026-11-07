@@ -25,6 +25,7 @@ abstract final class AppTheme {
 
     return ThemeData(
       useMaterial3: true,
+      fontFamily: 'NotoSansKannada',
       colorScheme: colorScheme,
       scaffoldBackgroundColor: canvas,
       textTheme: const TextTheme(
