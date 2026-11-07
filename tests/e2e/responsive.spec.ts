@@ -10,25 +10,28 @@ const viewports = [
 ];
 
 for (const viewport of viewports) {
-  test(`home and navigation fit ${viewport.name}`, async ({page}) => {
+  test(`two-tab game workspace fits ${viewport.name}`, async ({page}) => {
     await page.setViewportSize({width:viewport.width,height:viewport.height});
     await page.goto("/");
-    await expect(page.getByRole("heading",{name:/Kannada word reading/})).toBeVisible();
+    await expect(page.getByRole("heading",{name:/ಪದಗಳ ಆಟಕ್ಕೆ/})).toBeVisible();
     await expect(page.getByRole("navigation",{name:"Main navigation"})).toBeVisible();
+    await expect(page.getByRole("button",{name:/Game/})).toBeVisible();
+    await expect(page.getByRole("button",{name:/Settings/})).toBeVisible();
+    await expect(page.getByRole("button",{name:/Home/})).toHaveCount(0);
+    await expect(page.getByRole("button",{name:/Setup/})).toHaveCount(0);
     const width = await page.evaluate(() => ({
       viewport: document.documentElement.clientWidth,
       content: document.documentElement.scrollWidth
     }));
     expect(width.content).toBeLessThanOrEqual(width.viewport + 1);
-    await expect(page.getByRole("button",{name:/Home/})).toBeVisible();
-    await expect(page.getByRole("button",{name:/Game/})).toBeVisible();
   });
 }
 
-test("assessor setup fields remain usable on a phone", async ({page}) => {
+test("session setup is organised inside Settings", async ({page}) => {
   await page.setViewportSize({width:390,height:844});
   await page.goto("/");
-  await page.getByRole("button",{name:/Setup/}).click();
+  await page.getByRole("button",{name:/Settings/}).click();
+  await expect(page.getByRole("navigation",{name:"Settings sections"})).toBeVisible();
   await expect(page.getByRole("heading",{name:"Assessment setup"})).toBeVisible();
   await page.getByPlaceholder("KWR-0001").fill("DEMO-CHILD-01");
   await page.getByPlaceholder("ASR-003").fill("DEMO-ASSESSOR");
@@ -37,11 +40,19 @@ test("assessor setup fields remain usable on a phone", async ({page}) => {
   expect(width).toBeLessThanOrEqual(391);
 });
 
+test("audio settings expose automatic Kannada voice controls", async ({page}) => {
+  await page.goto("/");
+  await page.getByRole("button",{name:/Settings/}).click();
+  await page.getByRole("button",{name:/Audio/}).click();
+  await expect(page.getByRole("heading",{name:"Automatic Kannada instructions"})).toBeVisible();
+  await expect(page.getByRole("checkbox",{name:/Automatic voice instructions/})).toBeChecked();
+  await expect(page.getByRole("button",{name:"Test Kannada voice"})).toBeVisible();
+});
+
 test("child demo starts full-screen and pauses for milestone reward", async ({page}) => {
   await page.setViewportSize({width:390,height:844});
   await page.goto("/");
-  await page.getByRole("button",{name:/Game/}).click();
-  await page.getByRole("button",{name:/ಆಟ ಪ್ರಾರಂಭಿಸಿ/}).click();
+  await page.getByRole("button",{name:/ಆಟ ಪ್ರಾರಂಭಿಸಿ/}).first().click();
 
   const prompt = page.getByText("ಈ ಪದ ನಿಜವಾದ ಪದವೇ?");
   await expect(prompt).toBeVisible();
