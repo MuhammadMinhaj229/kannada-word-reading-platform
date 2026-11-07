@@ -4,8 +4,10 @@ import 'dart:html' as html;
 /// Requests a worker update and activates it only after the user presses
 /// Refresh updates from the idle assessor workspace.
 Future<bool> checkAndActivateWebUpdate() async {
-  final registration =
-      await html.window.navigator.serviceWorker.getRegistration('/');
+  final serviceWorkers = html.window.navigator.serviceWorker;
+  if (serviceWorkers == null) return false;
+
+  final registration = await serviceWorkers.getRegistration('/');
   if (registration == null) return false;
 
   await registration.update();
