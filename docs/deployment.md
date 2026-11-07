@@ -38,7 +38,7 @@ A Flutter branch preview was verified at:
 
 It returned HTTP 200 for the Flutter build at commit `43c0d2ce8f3e53f51c1bc447b60b90666d3551f0`. This is a branch preview, not the production domain. The production branch remains `main`; do not merge the draft Flutter PR merely to replace the production app while the research and engineering gates below remain open.
 
-Preview deployments are protected by the Vercel team's authentication policy. Keep preview protection enabled while the instrument is under development. The current Web preview should not be indexed by search engines and must not contain participant data.
+Vercel SSO protection is configured for **all deployment targets**, including attached project domains; this was changed from `all_except_custom_domains` during the security audit. Keep SSO enabled while the instrument is under development. The current Web preview should not be indexed by search engines and must not contain participant data. SSO controls who can open the deployment; it does not make the demo suitable for storing participant information.
 
 ## Build and cache behavior
 
