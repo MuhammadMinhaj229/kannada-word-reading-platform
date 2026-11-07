@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:padalab_android/features/child/presentation/child_welcome_screen.dart';
 import 'package:padalab_android/features/child/presentation/demo_game_screen.dart';
 
@@ -35,6 +36,8 @@ Future<void> _completeDemo(WidgetTester tester) async {
 }
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues(<String, Object>{}));
+
   testWidgets('Continue opens the 5-practice plus 10-scored website demo flow',
       (tester) async {
     tester.view.physicalSize = const Size(390, 844);
