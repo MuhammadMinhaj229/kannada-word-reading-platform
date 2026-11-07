@@ -225,7 +225,7 @@ class AssessorHomeScreen extends StatelessWidget {
           textColor: const Color(0xFF765C2B),
         ),
         const SizedBox(height: 12),
-        Text(
+        const Text(
           'Protocol baseline: ${StudyProtocol.requirementsVersion}. '
           'The session schedule remains subject to study-team confirmation.',
           style: const TextStyle(
