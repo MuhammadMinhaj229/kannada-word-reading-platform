@@ -1,112 +1,93 @@
-# Padalab architecture
+# PadLab architecture
 
 ## Product decision
 
-**The field product is a native Flutter/Dart Android application.** The repository root is the canonical Flutter project. The application is designed for assessor-operated tablets and must continue to work with Wi-Fi and mobile data disabled.
+The field product is a native Flutter/Dart Android application for assessor-operated tablets. It must function without Wi-Fi or mobile data and retain research records inside the application's private encrypted storage.
 
-A Flutter Web build is maintained only to review the same UI in a browser. It is not the field product and must not be used to collect participant data. The former Next.js/PWA prototype is preserved on the archive branch `archive/nextjs-prototype-before-flutter-root`; it is removed from the active application tree and deployment workflow.
+The Flutter Web target is a read-only browser review of the same application screens, hosted on Vercel. It must not accept participant identifiers or collect research records. The earlier Next.js/PWA code is preserved on the archive branch and is not part of the active Flutter source tree.
 
-## Runtime architecture
+## Application structure
 
-```text
-Signed Android APK
-└── Flutter application
-    ├── Assessor workspace
-    │   ├── child identification and history
-    │   ├── assessor identity
-    │   ├── session selection / resume / restart
-    │   └── reports and protected export
-    ├── Child assessment experience
-    │   ├── Kannada instructions and bundled audio
-    │   ├── practice flow
-    │   ├── fixed scored-trial presentation
-    │   └── progress and protocol-approved rewards
-    ├── Assessment domain
-    │   ├── protocol configuration and approval gates
-    │   ├── immutable session allocation manifest
-    │   ├── response and correctness rules
-    │   ├── monotonic reaction-time capture
-    │   └── session metrics
-    ├── Data layer
-    │   ├── repositories (single application data boundary)
-    │   ├── SQLite in private Android app storage
-    │   ├── schema migrations and transactions
-    │   └── append-only export audit
-    └── Bundled assets
-        ├── approved/versioned item bank
-        ├── recorded Kannada audio
-        ├── Kannada font
-        └── licensed visual assets
+```
+Flutter / Dart application
+├── App shell and responsive navigation
+│   ├── Assessment workspace
+│   └── Settings and item-bank review
+├── Assessor workflow
+│   ├── participant identity and session selection
+│   ├── session history and resume
+│   └── summary and protected export
+├── Child assessment experience
+│   ├── approved Kannada recorded instructions
+│   ├── practice presentation
+│   ├── fixed scored-trial presentation
+│   └── protocol-approved progress/reward behavior
+├── Assessment domain
+│   ├── protocol and release verification
+│   ├── immutable session allocation manifest
+│   ├── response and correctness rules
+│   ├── monotonic reaction-time capture
+│   └── session metrics
+├── Data boundary
+│   ├── application repositories
+│   ├── SQLCipher in private Android storage
+│   ├── migrations and transactions
+│   └── append-only export audit
+└── Bundled assets
+    ├── supplied 270-word source list
+    ├── approved 270 non-word list after review
+    ├── signed session allocations
+    ├── approved Kannada instruction recordings
+    └── bundled Kannada font and licensed visual assets
 
-Browser review build
-└── Flutter Web static output
-    ├── same presentation layer
-    ├── synthetic/demo-only content
-    └── no participant workflows or field data
+Flutter Web review build
+└── same presentation system
+    ├── bundled source-word and review metadata
+    ├── read-only browser interface
+    └── no participant identifier or record storage
 ```
 
 ## Separation of responsibilities
 
-- **Views** render assessor and child experiences; they do not choose stimuli, calculate scores or write raw SQL.
-- **Controllers/view models** coordinate actions and expose state to views.
-- **Domain services** enforce session rules, trial transitions, scoring, reaction time and summary calculations.
-- **Repositories** are the only application-facing path to stored data.
-- **SQLite services** own SQL, schema migrations, transactions and integrity constraints on Android.
-- **Platform adapters** own audio, screen-awake/full-screen behavior, file creation and Android share-sheet interactions.
+- **Views** render the assessor and child experiences; they do not allocate stimuli, calculate scores or execute SQL.
+- **Controllers/view models** coordinate actions and expose state.
+- **Domain services** enforce the approved protocol, trial transitions, scoring and reaction-time rules.
+- **Repositories** are the only application-facing path to persisted study data.
+- **SQLCipher services** own schema, migrations, transactions and integrity constraints on Android.
+- **Platform adapters** own recorded audio, screen-awake/fullscreen behavior, file creation and Android share-sheet interactions.
+- **Approval verifier** validates a signed, versioned study package before the participant workflow can be enabled.
 
-## Critical trial lifecycle
+## Trial lifecycle
 
-1. Restore the exact session manifest and next trial from SQLite.
-2. Record a wall-clock timestamp with local UTC offset for the export record.
-3. Start a monotonic stopwatch when the stimulus becomes visible.
-4. Accept only the configured response controls; distinguish wrong answers from no response.
-5. Stop the monotonic clock on the accepted touch and calculate RT in milliseconds.
-6. Commit response, correctness, RT, timestamps and progress in one awaited database transaction.
-7. Advance only after that transaction succeeds. On write failure, preserve the current stimulus and show an assessor-safe recovery state.
+1. Load the immutable session manifest and restore the exact next ordinal.
+2. Persist the stimulus-presented event before enabling response controls.
+3. Start a monotonic stopwatch when the stimulus is presented.
+4. Capture the configured response and stop the monotonic timer.
+5. Calculate reaction time in milliseconds; use wall-clock timestamps only for audit chronology.
+6. Persist response, correctness, reaction time and the session cursor in one awaited database transaction.
+7. Advance only after the transaction succeeds. On write failure, preserve the current stimulus and show an assessor-safe recovery state.
 
-Wall-clock time is for audit chronology; it must not calculate elapsed reaction time. A monotonic clock avoids clock adjustments changing the measured duration.
+No-response timeout, repeat/restart and reward behavior must follow the signed protocol; the application must not infer those rules.
 
-## Session and item-bank integrity
+## Item-bank integrity
 
-- Session order must be generated once, approved, versioned and persisted before administration.
-- Resume restores the persisted order; it never re-shuffles.
-- Every session stores protocol version, item-bank version/hash and app version.
-- The packaged item bank is read-only at runtime.
-- No non-word candidates are packaged until native Kannada review and written study approval are complete.
-- A bank change creates a new version and controlled app release; it must not mutate existing session records.
+- The supplied real-word CSV is included unchanged and validated as 270 unique words.
+- W001–W270 are assigned in source order for stable internal references.
+- The 270 non-word candidates remain Pending until native Kannada review and written approval.
+- The final item bank must carry an immutable version, SHA-256 checksum, approval references and reviewed item content.
+- Each participant session stores a frozen ordered trial manifest. Resume must never reshuffle its order.
 
-## Local data and export
+## Data protection
 
-SQLite in private Android app storage is the source of truth during field use. There is no API client, cloud database, background sync, analytics, crash reporting or remote logging in the field app.
+- Android assessment data remains in private application storage protected by SQLCipher.
+- Database keys are stored using Android secure storage/Keystore integration.
+- No participant sync, analytics, crash telemetry or remote research API is configured.
+- Browser review is read-only and must not contain participant records.
+- CSV exports must use the signed data dictionary, UTF-8 BOM and formula-injection-safe cell encoding; names are excluded by default.
 
-Trial and session CSV files must use the approved field dictionary, preserve Kannada via UTF-8 with BOM, exclude child names by default, include all local records, be non-destructive and be audited locally.
+## Deployment boundary
 
-The browser preview is static UI review only. It is not a second source of research data and must not be extended with a browser database merely to simulate field storage.
-
-## Android presentation constraints
-
-- Target Android 8.0 (API 26) or newer; exact target tablet must be confirmed.
-- Landscape-only assessment UI.
-- Immersive/full-screen mode and screen-awake behavior only while a child session is active.
-- Responsive assessor layouts for supported screen sizes and safe areas. Phone portrait is a preview/responsiveness target, not a substitute for tablet landscape protocol.
-- Kannada shaping must be checked on-device for `ಕ್ಷ`, `ಸ್ತ್ರೀ`, `ಗ್ಗ` and `ಜ್ಞಾ`.
-
-## Build and deployment
-
-- GitHub Actions is canonical for Flutter formatting, static analysis, unit/widget tests, Android debug builds and Flutter Web preview builds.
-- Vercel hosts only the static Flutter Web review bundle from `build/web`.
-- Device-level integration tests must run on an emulator and the actual field tablet.
-- Release signing is separate from debug builds. Keystore material is stored outside the repository and injected only through protected release secrets.
-- The signed APK and installation guide are the field deliverables.
-
-## Protocol gates
-
-The formal requirements document and later working-allocation proposal differ. The application must not resolve those differences by guessing. The PI/statistician must confirm the item counts, session structure, practice interpretation, reward cadence, timeout/no-response handling, repeat/resume policy, ID formats, audio script and data-retention rules before the protocol is frozen.
-
-## Quality strategy
-
-- **Unit tests:** protocol arithmetic, item-bank validation, deterministic manifest generation, response validation, scoring, RT boundaries and summary statistics.
-- **Database tests:** migrations, constraints, transaction rollback, duplicate prevention, immediate persistence, resume/restart and export queries.
-- **Widget tests:** assessor entry, validation messages, child controls, responsive sizing, accessibility semantics and error states.
-- **Integration tests:** complete practice/test flows, app lifecycle interruption, cold launch, audio, local storage and exports.
-- **Device acceptance:** offline cold launch, landscape/full-screen, screen awake, Kannada glyph shaping, touch responsiveness, battery/power recovery, Downloads and share-sheet on the actual tablet.
+- GitHub Actions validates Flutter, builds the Android review artifact and builds the Flutter Web output.
+- Vercel hosts the static Flutter Web review target.
+- The signed ARM64 Android APK is built through the protected release workflow and distributed through the study-approved channel.
+- Web deployment never updates an already installed APK.
