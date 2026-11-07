@@ -144,12 +144,12 @@ class _DemoGameScreenState extends State<DemoGameScreen> {
               ),
             ),
             const Text(
-              'DEMO ONLY',
+              'SAMPLE FLOW',
               style: TextStyle(
-                color: AppTheme.coral,
-                fontWeight: FontWeight.w900,
-                fontSize: 11,
-                letterSpacing: 1,
+                color: AppTheme.muted,
+                fontWeight: FontWeight.w800,
+                fontSize: 10,
+                letterSpacing: 0.8,
               ),
             ),
           ],
