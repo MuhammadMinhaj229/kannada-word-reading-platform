@@ -1,7 +1,11 @@
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../../../app/app_theme.dart';
+import '../../../core/config/app_config.dart';
 import '../../../core/config/assessment_release_gate.dart';
+import '../../../core/update/play_update_service.dart';
 import '../../../core/config/study_protocol.dart';
 import '../../child/presentation/child_welcome_screen.dart';
 
@@ -137,6 +141,11 @@ class AssessorHomeScreen extends StatelessWidget {
           label: demoMode ? 'SYNTHETIC DEMO' : 'FIELD RELEASE LOCKED',
           color: AppTheme.coral,
         ),
+        if (!kIsWeb &&
+            !kDebugMode &&
+            defaultTargetPlatform == TargetPlatform.android &&
+            AppConfig.playUpdatesEnabled)
+          const _ManualUpdateButton(),
       ],
     );
 
@@ -574,6 +583,61 @@ class _BrandMark extends StatelessWidget {
         Icons.auto_stories_rounded,
         color: Colors.white,
         size: 27,
+      ),
+    );
+  }
+}
+
+
+/// A deliberate update check shown only on a Play-installed Android release.
+/// The assessor can use it from the idle home screen, never from a trial view.
+class _ManualUpdateButton extends StatefulWidget {
+  const _ManualUpdateButton();
+
+  @override
+  State<_ManualUpdateButton> createState() => _ManualUpdateButtonState();
+}
+
+class _ManualUpdateButtonState extends State<_ManualUpdateButton> {
+  bool _checking = false;
+
+  Future<void> _refreshUpdates() async {
+    if (_checking) return;
+    setState(() => _checking = true);
+
+    try {
+      final result =
+          await const PlayUpdateService().checkAndApplyAvailableUpdate();
+      if (!mounted) return;
+
+      final messenger = ScaffoldMessenger.of(context);
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(result.message)));
+    } finally {
+      if (mounted) {
+        setState(() => _checking = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: _checking ? null : _refreshUpdates,
+      icon: _checking
+          ? const SizedBox.square(
+              dimension: 15,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.refresh_rounded, size: 16),
+      label: Text(_checking ? 'Checking…' : 'Refresh updates'),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppTheme.tealDark,
+        minimumSize: const Size(0, 38),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+        side: const BorderSide(color: AppTheme.line),
       ),
     );
   }
