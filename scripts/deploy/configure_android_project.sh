@@ -13,6 +13,7 @@ if [[ ! -s "${APP_GRADLE}" || ! -s "${MANIFEST}" ]]; then
 fi
 
 python3 - "${APP_GRADLE}" "${MANIFEST}" <<'PY'
+import re
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -36,6 +37,73 @@ if "minSdk = flutter.minSdkVersion" in gradle:
     )
 elif "minSdk = 26" not in gradle:
     raise SystemExit("Could not enforce the Android 8.0 (API 26) minimum SDK.")
+
+# Never inherit Flutter's template release signing with the debug key.
+# A signed release is configured only when a protected, local key.properties
+# file is created by the CI secret-injection step.
+debug_release = 'signingConfig = signingConfigs.getByName("debug")'
+if debug_release in gradle:
+    gradle = gradle.replace(
+        debug_release,
+        "// Release signing is injected from a protected key.properties file.",
+        1,
+    )
+
+signing_block = """
+import java.io.FileInputStream
+import java.util.Properties
+
+val padalabSigningProperties = Properties()
+val padalabSigningFile = rootProject.file("key.properties")
+if (padalabSigningFile.exists()) {
+    FileInputStream(padalabSigningFile).use { stream ->
+        padalabSigningProperties.load(stream)
+    }
+}
+val padalabReleaseSigningReady = listOf(
+    "keyAlias",
+    "keyPassword",
+    "storeFile",
+    "storePassword",
+).all { !padalabSigningProperties.getProperty(it).isNullOrBlank() }
+
+"""
+if "val padalabSigningProperties = Properties()" not in gradle:
+    gradle = gradle.replace("android {", signing_block + "android {", 1)
+
+release_marker = """
+    buildTypes {
+        release {
+"""
+release_config = """
+    signingConfigs {
+        if (padalabReleaseSigningReady) {
+            create("release") {
+                keyAlias = padalabSigningProperties.getProperty("keyAlias")
+                keyPassword = padalabSigningProperties.getProperty("keyPassword")
+                storeFile = file(padalabSigningProperties.getProperty("storeFile"))
+                storePassword = padalabSigningProperties.getProperty("storePassword")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig = if (padalabReleaseSigningReady) {
+                signingConfigs.getByName("release")
+            } else {
+                null
+            }
+"""
+if "padalabReleaseSigningReady" not in gradle[gradle.find("android {"):]:
+    if release_marker not in gradle:
+        raise SystemExit("Could not locate Android release build type block.")
+    gradle = gradle.replace(release_marker, release_config, 1)
+
+if debug_release in gradle:
+    raise SystemExit("Debug signing remains configured for release builds.")
+if "signingConfig = null" not in gradle:
+    raise SystemExit("Unsigned release fallback was not configured.")
 
 gradle_path.write_text(gradle, encoding="utf-8")
 
@@ -79,8 +147,10 @@ RULES
 
 grep -q 'minSdk = 26' "${APP_GRADLE}"
 grep -q 'applicationId = "org.phfi.cdlr.padalab_android"' "${APP_GRADLE}"
+grep -q 'signingConfig = null' "${APP_GRADLE}"
+! grep -q 'signingConfig = signingConfigs.getByName("debug")' "${APP_GRADLE}"
 grep -q 'screenOrientation="landscape"' "${MANIFEST}"
 grep -q 'allowBackup="false"' "${MANIFEST}"
 test -s android/app/proguard-rules.pro
 
-echo "Configured Padalab Android host: API 26+, landscape, backup disabled, SQLCipher shrinker rules"
+echo "Configured Padalab Android host. Release signing: ${PADALAB_RELEASE_SIGNING_READY:-configured only via android/key.properties}"
