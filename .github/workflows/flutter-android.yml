@@ -131,11 +131,11 @@ jobs:
       - name: Unit and widget tests
         run: flutter test --reporter expanded
 
-      - name: Build debug Android APK
-        run: flutter build apk --debug --dart-define=PADALAB_DEMO_MODE=true
+      - name: Build ARM64 Android debug APK
+        run: flutter build apk --debug --target-platform android-arm64 --dart-define=PADALAB_DEMO_MODE=true
 
-      - name: Build release-mode safety candidate (unsigned unless protected signing is configured)
-        run: flutter build apk --release --dart-define=PADALAB_DEMO_MODE=false
+      - name: Build ARM64 release-mode safety candidate (unsigned unless protected signing is configured)
+        run: flutter build apk --release --target-platform android-arm64 --dart-define=PADALAB_DEMO_MODE=false
 
       - name: Build Flutter Web
         run: flutter build web --release --base-href /
@@ -149,13 +149,42 @@ jobs:
           test -s build/web/manifest.json
           ! grep -q "A new Flutter project" build/web/index.html build/web/manifest.json
 
-      - name: Upload Android debug APK
+      - name: Verify ARM64 APK and generate checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="build/app/outputs/flutter-apk/app-debug.apk"
+          test -s "$APK"
+          if unzip -Z1 "$APK" | grep -Eq '^lib/(armeabi-v7a|x86|x86_64)/'; then
+            echo "Unexpected non-ARM64 native libraries found in the tablet APK." >&2
+            exit 1
+          fi
+          unzip -Z1 "$APK" | grep -q '^lib/arm64-v8a/libflutter.so
+
+      - name: Upload Flutter Web validation build
         uses: actions/upload-artifact@v4
         with:
-          name: padalab-android-debug-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          name: padalab-flutter-web-preview
+          path: build/web/
           if-no-files-found: error
           retention-days: 7
+
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          APKSIGNER="$(find "$SDK_ROOT/build-tools" -type f -name apksigner 2>/dev/null | sort -V | tail -n 1)"
+          test -n "$APKSIGNER"
+          "$APKSIGNER" verify --verbose --print-certs "$APK"
+          sha256sum "$APK" > "$APK.sha256"
+          stat --printf='ARM64 debug APK size: %s bytes\n' "$APK"
+
+      - name: Upload ARM64 Android debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: padalab-android-arm64-debug-apk
+          path: |
+            build/app/outputs/flutter-apk/app-debug.apk
+            build/app/outputs/flutter-apk/app-debug.apk.sha256
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Upload Flutter Web validation build
         uses: actions/upload-artifact@v4
