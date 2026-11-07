@@ -19,7 +19,7 @@ from pathlib import Path
 source = Path(sys.argv[1])
 destination = Path(sys.argv[2])
 try:
-    encoded = source.read_text(encoding="ascii")
+    encoded = "".join(source.read_text(encoding="ascii").split())
     font = base64.b64decode(encoded, validate=True)
 except (OSError, UnicodeError, ValueError) as error:
     raise SystemExit(f"Could not decode the bundled Kannada font: {error}")
