@@ -281,8 +281,7 @@ class _DemoGameScreenState extends State<DemoGameScreen> {
 
   Widget _answerFeedback() {
     final response = _responses.last;
-    final wasCorrect =
-        response.selectedIsWord == response.expectedIsWord;
+    final wasCorrect = response.selectedIsWord == response.expectedIsWord;
     return Column(
       children: <Widget>[
         Icon(
