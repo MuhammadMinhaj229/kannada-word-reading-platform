@@ -102,8 +102,8 @@ if "padalabReleaseSigningReady" not in gradle[gradle.find("android {"):]:
 
 if debug_release in gradle:
     raise SystemExit("Debug signing remains configured for release builds.")
-if "signingConfig = null" not in gradle:
-    raise SystemExit("Unsigned release fallback was not configured.")
+if "signingConfig = if (padalabReleaseSigningReady)" not in gradle:
+    raise SystemExit("Conditional release signing and unsigned fallback were not configured.")
 
 gradle_path.write_text(gradle, encoding="utf-8")
 
@@ -147,7 +147,7 @@ RULES
 
 grep -q 'minSdk = 26' "${APP_GRADLE}"
 grep -q 'applicationId = "org.phfi.cdlr.padalab_android"' "${APP_GRADLE}"
-grep -q 'signingConfig = null' "${APP_GRADLE}"
+grep -q 'signingConfig = if (padalabReleaseSigningReady)' "${APP_GRADLE}"
 ! grep -q 'signingConfig = signingConfigs.getByName("debug")' "${APP_GRADLE}"
 grep -q 'screenOrientation="landscape"' "${MANIFEST}"
 grep -q 'allowBackup="false"' "${MANIFEST}"
