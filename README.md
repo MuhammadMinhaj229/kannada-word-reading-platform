@@ -101,8 +101,8 @@ See:
 
 ## Current implementation status
 
-The current branch is an early Flutter foundation: theme/app shell, assessor-to-child preview navigation, provisional session allocation, initial SQLite schema, trial serialization, timestamp formatting and responsive layout tests.
+The current branch is an early Flutter foundation: theme/app shell, assessor-to-child navigation, a four-item synthetic child interaction demo with response buttons/progress/feedback and in-memory timing, provisional session allocation, initial SQLite schema, trial serialization, timestamp formatting and responsive layout tests. The demo is not connected to the study database or approved item bank and is not a research session.
 
-Still required: the approved protocol and item bank, persistent assessor/child/session workflow, complete trial state machine, resume/restart handling, bundled Kannada fonts/audio, rewards, summary metrics, protected CSV exports, stable native Android platform scaffold, signed release APK and real-device offline testing.
+Still required: the approved protocol and item bank, persistent assessor/child/session workflow, production trial state machine and database integration, resume/restart handling, bundled Kannada fonts/audio, protocol-approved rewards, summary metrics, protected CSV exports, stable native Android platform scaffold, signed release APK and real-device offline testing.
 
 **Do not use this preview with children or for data collection.**
