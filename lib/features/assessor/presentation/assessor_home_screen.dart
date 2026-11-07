@@ -182,7 +182,7 @@ class AssessorHomeScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(30),
           ),
           child: const Text(
-            'ASSESSOR WORKSPACE',
+            'ಕನ್ನಡ ಪದ ಓದು · ಪದLab',
             style: TextStyle(
               color: AppTheme.tealDark,
               fontSize: 10,
@@ -193,14 +193,12 @@ class AssessorHomeScreen extends StatelessWidget {
         ),
         const SizedBox(height: 17),
         Text(
-          'A calm, consistent\nassessment experience.',
+          'ಪದಗಳ ಆಟಕ್ಕೆ\nಸ್ವಾಗತ!',
           style: Theme.of(context).textTheme.headlineLarge,
         ),
         const SizedBox(height: 12),
         Text(
-          'An offline-first Android tablet application for administering '
-          'the Kannada word-reading task and safeguarding every response '
-          'on the device.',
+          'ಪರದೆಯ ಮೇಲೆ ಒಂದು ಪದ ಕಾಣಿಸುತ್ತದೆ. ಅದು ನಿಜವಾದ ಪದವೇ ಅಥವಾ ಪದವಲ್ಲವೇ ಎಂದು ಆಯ್ಕೆಮಾಡಿ. ಆಟವನ್ನು ಇಂಟರ್ನೆಟ್ ಇಲ್ಲದೆಯೂ ತೆರೆಯಬಹುದು.',
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: AppTheme.muted,
               ),
@@ -221,22 +219,21 @@ class AssessorHomeScreen extends StatelessWidget {
               children: <Widget>[
                 _MetricCard(
                   width: width,
-                  value: '${StudyProtocol.sessionCount}',
-                  label: 'SESSIONS',
-                  detail: 'Requested study structure',
+                  value: '5',
+                  label: 'ಅಭ್ಯಾಸ ಪದಗಳು',
+                  detail: 'Demo practice examples',
                 ),
                 _MetricCard(
                   width: width,
-                  value: '${StudyProtocol.presentationsPerSession}',
-                  label: 'PRESENTATIONS',
-                  detail: 'Per session',
+                  value: '10',
+                  label: 'ಮಾದರಿ ಪದಗಳು',
+                  detail: 'Synthetic demo items',
                 ),
                 _MetricCard(
                   width: width,
-                  value:
-                      '${StudyProtocol.practicePresentationsPerSession} + ${StudyProtocol.testPresentationsPerSession}',
-                  label: 'PRACTICE + TEST',
-                  detail: 'Per requirements draft',
+                  value: '15',
+                  label: 'ಒಟ್ಟು ಉದಾಹರಣೆಗಳು',
+                  detail: 'ಅಭ್ಯಾಸ + ಮಾದರಿ ಪರೀಕ್ಷೆ',
                 ),
               ],
             );
@@ -281,13 +278,12 @@ class AssessorHomeScreen extends StatelessWidget {
             children: <Widget>[
               const _PanelHeading(
                 icon: Icons.science_outlined,
-                title: 'Synthetic interaction preview',
-                subtitle: 'No participant data is requested or saved.',
+                title: 'ಮಕ್ಕಳ ಆಟದ ಪೂರ್ವವೀಕ್ಷಣೆ',
+                subtitle: 'ಇದು ಮಾದರಿ ಆಟ ಮಾತ್ರ; ಭಾಗವಹಿಸುವವರ ಮಾಹಿತಿ ಸಂಗ್ರಹಿಸುವುದಿಲ್ಲ.',
               ),
               const SizedBox(height: 18),
               const Text(
-                'Walk through the sample child flow to review the layout, '
-                'touch targets, progress and transitions.',
+                'ಮೊದಲು ಐದು ಅಭ್ಯಾಸ ಪದಗಳು, ನಂತರ ಹತ್ತು ಮಾದರಿ ಪದಗಳು ಬರುತ್ತವೆ. ಪದವೇ ಅಥವಾ ಪದವಲ್ಲವೇ ಎಂದು ಆಯ್ಕೆಮಾಡಿ.',
                 style: TextStyle(
                   color: AppTheme.muted,
                   fontSize: 13,
@@ -301,13 +297,12 @@ class AssessorHomeScreen extends StatelessWidget {
                 child: FilledButton.icon(
                   onPressed: () => _openDemo(context),
                   icon: const Icon(Icons.play_arrow_rounded),
-                  label: const Text('Launch synthetic demo'),
+                  label: const Text('ಆಟ ಪ್ರಾರಂಭಿಸಿ'),
                 ),
               ),
               const SizedBox(height: 12),
               const Text(
-                'Demo IDs are fixed placeholders. This mode does not create '
-                'a child record, session, trial record or export.',
+                'ಈ ಪದಗಳು ಸಂಶೋಧನೆಗಾಗಿ ಅನುಮೋದಿತವಲ್ಲ. ಮಾದರಿ ಪ್ರತಿಕ್ರಿಯೆಗಳು ಮಾತ್ರ ಸ್ಥಳೀಯವಾಗಿ ಉಳಿಯುತ್ತವೆ.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: AppTheme.muted,
