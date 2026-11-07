@@ -821,7 +821,7 @@ class _ManualUpdateButtonState extends State<_ManualUpdateButton> {
     if (_checking) return;
     setState(() => _checking = true);
     try {
-      final result = await PlayUpdateService.checkForUpdates();
+      final result = await const PlayUpdateService().checkAndApplyAvailableUpdate();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(result.message)),
