@@ -17,6 +17,9 @@ class FieldReleaseApproval {
     this.dataGovernanceReference,
     this.timeoutAndNoResponseReference,
     this.rewardRuleReference,
+    this.sessionInterruptionPolicyReference,
+    this.repeatAndRestartPolicyReference,
+    this.sameDaySessionPolicyReference,
     this.targetDeviceAcceptanceReference,
     this.exportSchemaReference,
     this.supervisorPinProvisioned = false,
@@ -34,6 +37,9 @@ class FieldReleaseApproval {
   final String? dataGovernanceReference;
   final String? timeoutAndNoResponseReference;
   final String? rewardRuleReference;
+  final String? sessionInterruptionPolicyReference;
+  final String? repeatAndRestartPolicyReference;
+  final String? sameDaySessionPolicyReference;
   final String? targetDeviceAcceptanceReference;
   final String? exportSchemaReference;
   final bool supervisorPinProvisioned;
@@ -102,6 +108,18 @@ class AssessmentReleaseGate {
     requireReference(
       approval.rewardRuleReference,
       'The reward cadence and practice/scored-trial treatment are not approved.',
+    );
+    requireReference(
+      approval.sessionInterruptionPolicyReference,
+      'Session interruption, resume and restart behavior is not approved.',
+    );
+    requireReference(
+      approval.repeatAndRestartPolicyReference,
+      'Completed-session repeat authorization and restart behavior are not approved.',
+    );
+    requireReference(
+      approval.sameDaySessionPolicyReference,
+      'The same-child same-day session rule is not approved.',
     );
     requireReference(
       approval.targetDeviceAcceptanceReference,
