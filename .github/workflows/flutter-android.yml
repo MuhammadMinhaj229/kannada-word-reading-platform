@@ -35,7 +35,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: flutter-quality-${{ github.event.pull_request.number || github.ref }}
@@ -75,21 +75,8 @@ jobs:
         run: bash scripts/deploy/configure_android_project.sh
 
       - name: Resolve dependencies
-        run: flutter pub get
-
-      - name: Commit resolved dependency lockfile
-        if: github.event_name == 'push' && github.ref == 'refs/heads/feat/flutter-android-foundation'
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          if ! git diff --quiet -- pubspec.lock; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add pubspec.lock
-            git commit -m "Lock resolved Flutter dependencies"
-            git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-            git push origin "HEAD:${GITHUB_REF_NAME}"
-          fi
+          flutter pub get --enforce-lockfile
           git diff --exit-code -- pubspec.lock
 
       - name: Validate deployment scripts and Vercel security configuration
