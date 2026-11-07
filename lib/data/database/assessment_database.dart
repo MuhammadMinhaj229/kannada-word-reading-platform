@@ -768,9 +768,11 @@ class AssessmentDatabase {
       }
 
       final db = _database ?? opened;
-      _database = null;
-      if (identical(_openingDatabase, opening)) _openingDatabase = null;
       if (db != null && db.isOpen) await db.close();
+      // Retain the handle when close fails so a later caller can retry rather
+      // than losing the only reference to an open database connection.
+      if (identical(_database, db)) _database = null;
+      if (identical(_openingDatabase, opening)) _openingDatabase = null;
       if (!completer.isCompleted) completer.complete();
     } catch (error, stackTrace) {
       if (!completer.isCompleted) {
