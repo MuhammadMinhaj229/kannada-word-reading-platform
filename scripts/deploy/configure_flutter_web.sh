@@ -104,9 +104,15 @@ if "index.html" not in files or "main.dart.js" not in files:
     raise SystemExit("Flutter Web shell is missing index.html or main.dart.js.")
 
 precache = ["/" + name for name in files]
-fingerprint = hashlib.sha256(
-    json.dumps(precache, separators=(",", ":")).encode("utf-8")
-).hexdigest()[:16]
+# Include both paths and bytes. Flutter's entry-point paths (for
+# example main.dart.js) can remain stable while their contents change.
+fingerprint_hasher = hashlib.sha256()
+for name in files:
+    fingerprint_hasher.update(name.encode("utf-8"))
+    fingerprint_hasher.update(b"\\0")
+    fingerprint_hasher.update((output / name).read_bytes())
+    fingerprint_hasher.update(b"\\0")
+fingerprint = fingerprint_hasher.hexdigest()[:16]
 manifest = json.dumps(precache, ensure_ascii=False, separators=(",", ":"))
 
 worker = f"""/* Generated from the Flutter Web build; do not edit by hand. */
