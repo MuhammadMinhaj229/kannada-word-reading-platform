@@ -79,9 +79,7 @@ class BundledItemCatalog {
     required String csvText,
     required String nonWordSummaryJson,
   }) {
-    final rows = const CsvToListConverter(
-      shouldParseNumbers: false,
-    ).convert(csvText);
+    final rows = csv.decode(csvText);
     if (rows.length < 2) {
       throw const FormatException('The supplied Kannada source-word file is empty.');
     }
