@@ -5,8 +5,6 @@ import 'dart:html' as html;
 /// Refresh updates from the idle assessor workspace.
 Future<bool> checkAndActivateWebUpdate() async {
   final serviceWorkers = html.window.navigator.serviceWorker;
-  if (serviceWorkers == null) return false;
-
   final registration = await serviceWorkers.getRegistration('/');
   if (registration == null) return false;
 
