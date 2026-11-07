@@ -1,41 +1,28 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/app_theme.dart';
+import '../../../core/config/assessment_release_gate.dart';
 import '../../../core/config/study_protocol.dart';
 import '../../child/presentation/child_welcome_screen.dart';
 
-class AssessorHomeScreen extends StatefulWidget {
-  const AssessorHomeScreen({super.key});
+class AssessorHomeScreen extends StatelessWidget {
+  const AssessorHomeScreen({
+    required this.demoMode,
+    super.key,
+  });
 
-  @override
-  State<AssessorHomeScreen> createState() => _AssessorHomeScreenState();
-}
+  /// Synthetic interaction mode is enabled only by an explicit build flag.
+  /// It never asks for or stores participant identifiers.
+  final bool demoMode;
 
-class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _childIdController = TextEditingController();
-  final _confirmChildIdController = TextEditingController();
-  final _assessorIdController = TextEditingController();
-  final _childNameController = TextEditingController();
-
-  @override
-  void dispose() {
-    _childIdController.dispose();
-    _confirmChildIdController.dispose();
-    _assessorIdController.dispose();
-    _childNameController.dispose();
-    super.dispose();
-  }
-
-  void _openPreview() {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+  void _openDemo(BuildContext context) {
+    if (!demoMode) return;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => ChildWelcomeScreen(
-          childId: _childIdController.text.trim(),
-          assessorId: _assessorIdController.text.trim(),
+        builder: (_) => const ChildWelcomeScreen(
+          childId: 'DEMO-CHILD',
+          assessorId: 'DEMO-ASSESSOR',
+          enableDevicePresentation: false,
         ),
       ),
     );
@@ -45,6 +32,7 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
   Widget build(BuildContext context) {
     final viewport = MediaQuery.sizeOf(context);
     final compact = viewport.width < 900 || viewport.height < 700;
+
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -52,14 +40,14 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
             constraints: const BoxConstraints(maxWidth: 1320),
             child: Padding(
               padding: EdgeInsets.symmetric(
-                horizontal: compact ? 20 : 34,
-                vertical: 22,
+                horizontal: compact ? 18 : 34,
+                vertical: 20,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   _topBar(context),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 22),
                   Expanded(
                     child: compact
                         ? SingleChildScrollView(
@@ -67,7 +55,7 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
                               children: <Widget>[
                                 _introduction(context),
                                 const SizedBox(height: 18),
-                                _participantForm(context),
+                                _launchPanel(context),
                               ],
                             ),
                           )
@@ -86,7 +74,7 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
                                 flex: 10,
                                 child: SingleChildScrollView(
                                   padding: const EdgeInsets.only(bottom: 12),
-                                  child: _participantForm(context),
+                                  child: _launchPanel(context),
                                 ),
                               ),
                             ],
@@ -102,7 +90,6 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
   }
 
   Widget _topBar(BuildContext context) {
-    final narrow = MediaQuery.sizeOf(context).width < 480;
     return Wrap(
       alignment: WrapAlignment.spaceBetween,
       crossAxisAlignment: WrapCrossAlignment.center,
@@ -124,30 +111,27 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
                         fontWeight: FontWeight.w800,
                       ),
                 ),
-                Text(
-                  narrow
-                      ? 'KANNADA ASSESSMENT'
-                      : 'KANNADA WORD READING ASSESSMENT',
-                  style: const TextStyle(
+                const Text(
+                  'KANNADA WORD READING ASSESSMENT',
+                  style: TextStyle(
                     color: AppTheme.muted,
                     fontSize: 9,
                     fontWeight: FontWeight.w800,
-                    letterSpacing: 1.3,
+                    letterSpacing: 1.1,
                   ),
                 ),
               ],
             ),
           ],
         ),
-        if (!narrow)
-          const _StatusPill(
-            icon: Icons.cloud_off_rounded,
-            label: 'OFFLINE-FIRST',
-            color: AppTheme.teal,
-          ),
         const _StatusPill(
-          icon: Icons.science_outlined,
-          label: 'PREVIEW BUILD',
+          icon: Icons.cloud_off_rounded,
+          label: 'OFFLINE-FIRST',
+          color: AppTheme.teal,
+        ),
+        _StatusPill(
+          icon: demoMode ? Icons.science_outlined : Icons.lock_outline_rounded,
+          label: demoMode ? 'SYNTHETIC DEMO' : 'FIELD RELEASE LOCKED',
           color: AppTheme.coral,
         ),
       ],
@@ -181,8 +165,9 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
         ),
         const SizedBox(height: 12),
         Text(
-          'A dedicated offline workspace for administering the Kannada '
-          'word-reading task and safeguarding every response on the tablet.',
+          'An offline-first Android tablet application for administering '
+          'the Kannada word-reading task and safeguarding every response '
+          'on the device.',
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: AppTheme.muted,
               ),
@@ -195,7 +180,8 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
                 : constraints.maxWidth < 620
                     ? 2
                     : 3;
-            final width = (constraints.maxWidth - (columns - 1) * 10) / columns;
+            final width =
+                (constraints.maxWidth - (columns - 1) * 10) / columns;
             return Wrap(
               spacing: 10,
               runSpacing: 10,
@@ -204,48 +190,244 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
                   width: width,
                   value: '${StudyProtocol.sessionCount}',
                   label: 'SESSIONS',
-                  detail: 'Across the study',
+                  detail: 'Requested study structure',
                 ),
                 _MetricCard(
                   width: width,
-                  value: '${StudyProtocol.scoredItemsPerSession}',
-                  label: 'SCORED ITEMS',
+                  value: '${StudyProtocol.presentationsPerSession}',
+                  label: 'PRESENTATIONS',
                   detail: 'Per session',
                 ),
                 _MetricCard(
                   width: width,
-                  value: '${StudyProtocol.practiceItemsPerSession}',
-                  label: 'PRACTICE',
-                  detail: 'Before assessment',
+                  value:
+                      '${StudyProtocol.practicePresentationsPerSession} + ${StudyProtocol.testPresentationsPerSession}',
+                  label: 'PRACTICE + TEST',
+                  detail: 'Per requirements draft',
                 ),
               ],
             );
           },
         ),
         const SizedBox(height: 18),
-        Container(
-          padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFF7E7),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFF2E2C3)),
+        _notice(
+          color: const Color(0xFFFFF7E7),
+          border: const Color(0xFFF2E2C3),
+          icon: Icons.info_outline_rounded,
+          iconColor: const Color(0xFF926B2A),
+          text: demoMode
+              ? 'Synthetic review mode. The examples are not approved study '
+                  'stimuli. Do not enter participant details or use this build '
+                  'to collect research data.'
+              : 'Participant administration is disabled. The signed study '
+                  'protocol, approved Kannada item bank, language assets and '
+                  'device acceptance are not present in this build.',
+          textColor: const Color(0xFF765C2B),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Protocol baseline: ${StudyProtocol.requirementsVersion}. '
+          'The session schedule remains subject to study-team confirmation.',
+          style: const TextStyle(
+            color: AppTheme.muted,
+            fontSize: 11,
+            height: 1.5,
           ),
-          child: const Row(
+        ),
+      ],
+    );
+  }
+
+  Widget _launchPanel(BuildContext context) {
+    if (demoMode) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(22),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Icon(Icons.info_outline_rounded,
-                  color: Color(0xFF926B2A), size: 19),
-              SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Development preview only. The approved item bank, '
-                  'Kannada recordings and participant data workflow are '
-                  'not enabled in this build.',
-                  style: TextStyle(
-                    color: Color(0xFF765C2B),
-                    fontSize: 12,
-                    height: 1.45,
-                  ),
+              const _PanelHeading(
+                icon: Icons.science_outlined,
+                title: 'Synthetic interaction preview',
+                subtitle: 'No participant data is requested or saved.',
+              ),
+              const SizedBox(height: 18),
+              const Text(
+                'Walk through the sample child flow to review the layout, '
+                'touch targets, progress and transitions.',
+                style: TextStyle(
+                  color: AppTheme.muted,
+                  fontSize: 13,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: FilledButton.icon(
+                  onPressed: () => _openDemo(context),
+                  icon: const Icon(Icons.play_arrow_rounded),
+                  label: const Text('Launch synthetic demo'),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Demo IDs are fixed placeholders. This mode does not create '
+                'a child record, session, trial record or export.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppTheme.muted,
+                  fontSize: 10,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final blockers = AssessmentReleaseGate.current.blockers;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(22),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            const _PanelHeading(
+              icon: Icons.lock_outline_rounded,
+              title: 'Participant assessment locked',
+              subtitle: 'No participant workflow is available in this build.',
+            ),
+            const SizedBox(height: 16),
+            _notice(
+              color: const Color(0xFFFFF7E7),
+              border: const Color(0xFFF2E2C3),
+              icon: Icons.shield_outlined,
+              iconColor: const Color(0xFF926B2A),
+              text: 'This is a deliberate safety lock. Do not enter child '
+                  'identifiers or conduct a research session until every '
+                  'release requirement has an approved reference.',
+              textColor: const Color(0xFF765C2B),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'RELEASE BLOCKERS (${blockers.length})',
+              style: const TextStyle(
+                color: AppTheme.ink,
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1,
+              ),
+            ),
+            const SizedBox(height: 10),
+            for (final blocker in blockers)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    const Icon(
+                      Icons.radio_button_unchecked_rounded,
+                      color: AppTheme.coral,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 9),
+                    Expanded(
+                      child: Text(
+                        blocker,
+                        style: const TextStyle(
+                          color: AppTheme.muted,
+                          fontSize: 12,
+                          height: 1.45,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _notice({
+    required Color color,
+    required Color border,
+    required IconData icon,
+    required Color iconColor,
+    required String text,
+    required Color textColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Icon(icon, color: iconColor, size: 19),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: textColor,
+                fontSize: 12,
+                height: 1.5,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PanelHeading extends StatelessWidget {
+  const _PanelHeading({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: <Widget>[
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: AppTheme.mint,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: AppTheme.tealDark),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 3),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  color: AppTheme.muted,
+                  fontSize: 11,
                 ),
               ),
             ],
@@ -253,145 +435,6 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
         ),
       ],
     );
-  }
-
-  Widget _participantForm(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(22),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Row(
-                children: <Widget>[
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: AppTheme.mint,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.badge_outlined,
-                      color: AppTheme.tealDark,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(
-                          'Prepare a child session',
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                        const SizedBox(height: 3),
-                        const Text(
-                          'Enter identifiers to preview the child interface.',
-                          style: TextStyle(
-                            color: AppTheme.muted,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 18),
-              _field(
-                controller: _childIdController,
-                label: 'Child ID',
-                hint: 'Enter study ID',
-                icon: Icons.person_outline_rounded,
-                validator: (value) => _required(value, 'Child ID'),
-              ),
-              const SizedBox(height: 11),
-              _field(
-                controller: _confirmChildIdController,
-                label: 'Confirm Child ID',
-                hint: 'Re-enter the same study ID',
-                icon: Icons.verified_user_outlined,
-                validator: (value) {
-                  final error = _required(value, 'Confirm Child ID');
-                  if (error != null) return error;
-                  if (value!.trim() != _childIdController.text.trim()) {
-                    return 'The Child IDs do not match.';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 11),
-              _field(
-                controller: _assessorIdController,
-                label: 'Assessor ID',
-                hint: 'Enter assessor ID',
-                icon: Icons.assignment_ind_outlined,
-                validator: (value) => _required(value, 'Assessor ID'),
-              ),
-              const SizedBox(height: 11),
-              _field(
-                controller: _childNameController,
-                label: 'Child name (optional)',
-                hint: 'Excluded from default exports',
-                icon: Icons.face_outlined,
-              ),
-              const SizedBox(height: 18),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: _openPreview,
-                  icon: const Icon(Icons.arrow_forward_rounded, size: 18),
-                  label: const Text('Preview child experience'),
-                ),
-              ),
-              const SizedBox(height: 9),
-              const Center(
-                child: Text(
-                  'Session registration and recovery are being built next.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppTheme.muted, fontSize: 10),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _field({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    required IconData icon,
-    String? Function(String?)? validator,
-  }) {
-    return TextFormField(
-      controller: controller,
-      validator: validator,
-      textCapitalization: TextCapitalization.characters,
-      style: const TextStyle(
-        color: AppTheme.ink,
-        fontSize: 13,
-        fontWeight: FontWeight.w600,
-      ),
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        prefixIcon: Icon(icon, size: 18, color: AppTheme.muted),
-        isDense: true,
-      ),
-    );
-  }
-
-  String? _required(String? value, String label) {
-    if (value == null || value.trim().isEmpty) {
-      return '$label is required.';
-    }
-    return null;
   }
 }
 
@@ -474,6 +517,7 @@ class _StatusPill extends StatelessWidget {
         border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Icon(icon, size: 13, color: color),
           const SizedBox(width: 6),
