@@ -132,6 +132,15 @@ class _DemoGameScreenState extends State<DemoGameScreen> {
 
     if (_promptIndex == _prompts.length - 1) {
       setState(() => _completed = true);
+      if (KannadaSpeechService.instance.enabled) {
+        try {
+          await KannadaSpeechService.instance.speakPreview(
+            'ಚೆನ್ನಾಗಿದೆ! ಮಾದರಿ ಆಟ ಮುಗಿದಿದೆ.',
+          );
+        } catch (_) {
+          // The completion screen remains usable without a device voice.
+        }
+      }
       return;
     }
 
