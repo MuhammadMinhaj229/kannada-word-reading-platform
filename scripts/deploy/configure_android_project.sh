@@ -121,6 +121,19 @@ if "isMinifyEnabled = true" not in gradle:
         raise SystemExit("Could not find release build type for R8 hardening.")
     gradle = gradle.replace(release_block, release_hardening, 1)
 
+# Filter native Android plugin libraries to the single supported tablet ABI.
+default_config_marker = """    defaultConfig {
+"""
+arm64_filter = """    defaultConfig {
+        ndk {
+            abiFilters += "arm64-v8a"
+        }
+"""
+if 'abiFilters += "arm64-v8a"' not in gradle:
+    if default_config_marker not in gradle:
+        raise SystemExit("Could not locate Android defaultConfig block for ABI filtering.")
+    gradle = gradle.replace(default_config_marker, arm64_filter, 1)
+
 gradle_path.write_text(gradle, encoding="utf-8")
 
 android_ns = "http://schemas.android.com/apk/res/android"
@@ -174,6 +187,7 @@ RULES
 
 grep -q 'minSdk = 26' "${APP_GRADLE}"
 grep -q 'applicationId = "org.phfi.cdlr.padalab_android"' "${APP_GRADLE}"
+grep -q 'abiFilters += "arm64-v8a"' "${APP_GRADLE}"
 grep -q 'signingConfig = if (padalabReleaseSigningReady)' "${APP_GRADLE}"
 ! grep -q 'signingConfig = signingConfigs.getByName("debug")' "${APP_GRADLE}"
 grep -q 'screenOrientation="landscape"' "${MANIFEST}"
