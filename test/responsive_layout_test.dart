@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:padalab_android/app/padalab_app.dart';
 import 'package:padalab_android/features/child/presentation/child_welcome_screen.dart';
+import 'package:padalab_android/features/child/presentation/demo_game_screen.dart';
 
 const _viewports = <Size>[
   // Small and common Android phones (portrait).
@@ -69,5 +70,25 @@ void main() {
         expect(tester.takeException(), isNull);
       },
     );
+    testWidgets(
+      'child demo game renders without overflow at '
+      '${viewport.width.toInt()}x${viewport.height.toInt()}',
+      (tester) async {
+        tester.view.physicalSize = viewport;
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await tester.pumpWidget(
+          const MaterialApp(home: DemoGameScreen()),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('DEMO ONLY'), findsOneWidget);
+        expect(find.byKey(const ValueKey('demo-word-answer')), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
+
   }
 }
