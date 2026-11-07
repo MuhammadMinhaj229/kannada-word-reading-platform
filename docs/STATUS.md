@@ -2,46 +2,45 @@
 
 ## Active application
 
-- Flutter/Dart is the only active application codebase and lives at the repository root.
-- Android and Web are built from the same source commit.
-- Android remains the canonical offline field target; Flutter Web is a browser UI review target using the same screens.
-- The former Next.js implementation is preserved on branch `archive/nextjs-prototype-before-flutter-root`.
-- Both portrait and landscape orientations are supported; the app uses responsive layouts rather than a fixed orientation.
+- Flutter/Dart under `lib/` is the single application codebase.
+- Android is the intended offline field target; Web is a synthetic-data browser review target only.
+- The former Next.js implementation remains preserved on `archive/nextjs-prototype-before-flutter-root`.
+- Native Android is generated in CI using the pinned Flutter SDK and hardened by `scripts/deploy/configure_android_project.sh`; the Android/Web host directories are not yet committed to the repository.
+- Vercel is the only Web host. The public production branch remains `main`; the Flutter migration is still draft PR #2.
 
-## Responsive quality coverage
+## Implemented engineering work
 
-- Assessor workspace and child welcome screen are tested at 15 viewport sizes each.
-- Test dimensions include compact phones, larger phones, portrait tablets, landscape tablets and desktop browser widths.
-- The wide assessor layout gives both columns their own scroll region; narrow layouts use one vertically scrolling column.
-- The child welcome flow now opens a four-item synthetic demo with working word/non-word buttons, a progress indicator, in-memory response timing, feedback, a result view and restart.
-- This is automated viewport regression coverage, not a guarantee for every physical device, system font or zoom setting. Final acceptance requires the actual tablets used by the study.
+- Explicit build-time demo mode. Normal and release builds default to a participant-safe locked assessor screen; only review builds pass `PADALAB_DEMO_MODE=true`.
+- Four-step synthetic child interaction demo remains available in Web preview and debug APK only.
+- Formal requirements baseline is encoded as six sessions, 90 presentations/session, 5 practice + 85 test, 270 real-word + 270 non-word pool, 10-second stimulus display and reward interval of 10 answers.
+- Removed the unapproved 45-real + 32-non-word random allocator. Runtime now accepts only a frozen 90-trial session manifest with written protocol/allocation references and a bank checksum.
+- Fail-closed release gate lists missing approvals, item-bank review, assets, ethics/data governance, recovery/repeat rules, device acceptance, export schema, supervisor credential and signed release.
+- SQLCipher database and Android secure-storage key provider foundation. A missing key for an existing encrypted database causes a hard failure; legacy plaintext database detection preserves the file and refuses to silently migrate it.
+- Session schema stores an immutable trial manifest. API foundations create a session transactionally, persist a presented-trial event, compute correctness from the frozen item, and commit response plus session-cursor advancement atomically.
+- Android hardening script applies API 26 minimum, landscape orientation, disables Android backup and cleartext traffic, and adds SQLCipher shrinker keep rules.
+- Responsive widget coverage includes phone, tablet portrait/landscape and desktop Web viewports.
+- Unit tests cover the approval gate, secure key storage failure cases, approved manifest structure, and child demo interactions.
 
-## Build and hosting
+## Not yet field-ready
 
-- GitHub Actions runs formatting, static analysis, unit/widget tests, Android debug APK build and Flutter Web build.
-- The latest verified CI run on commit `43c0d2ce8f3e53f51c1bc447b60b90666d3551f0` succeeded for all listed checks and both platform builds.
-- Vercel is the single Web host. The connected project automatically creates branch previews and production deployments from `main`.
-- A branch preview for commit `43c0d2ce8f3e53f51c1bc447b60b90666d3551f0` returned HTTP 200.
-- The production branch is still `main`; the Flutter migration remains in the draft PR and has not been merged.
-- No Cloudflare project, account token or second Web host is required.
+- The repository does not contain the study team's approved 270 real-word + 270 non-word package. The uploaded non-word workbook has 270 structurally audited candidates, but all remain pending native Kannada review; Suganya's written approval is absent.
+- The requirements document says the session schedule is to be finalised after discussion. The exact practice-item sourcing, trial ordering, timeout/no-response behavior, and reward treatment need written confirmation.
+- SQLCipher APIs are not yet wired to the assessor/child screen workflow. Integration tests for real database transactions, interruption recovery and failed-write behavior remain to be completed on Android.
+- No approved Kannada audio recordings or bundled Kannada font have been added; device-level conjunct rendering and audio review are open.
+- Supervisor PIN provisioning, export implementation/CSV dictionary/audit, backup/restore and retention process remain incomplete.
+- The Android host scaffold is generated at build time and hardened in CI, but not yet committed as a stable native platform tree.
+- No production signing keystore or signed release APK exists in protected GitHub secrets.
+- No actual device acceptance is recorded: model, Android version, landscape/full-screen, screen-awake behavior, cold offline launch, audio, timing, Unicode, power loss and update tests.
+- The release gate remains closed. The browser preview and synthetic debug APK are not approved for participants.
 
-## Engineering and research blockers
+## Build status
 
-- The supplied requirements DOCX specifies 270 real + 270 non-words and 5 practice + 85 test items per session; the later 194 non-word / 45+32 scored-item allocation is an unapproved working proposal. The PI/statistician must resolve the protocol in writing.
-- The non-word candidate workbook has 270 entries, all pending native Kannada review and written approval.
-- The synthetic child demo is not the real study game: it uses demonstration examples only and does not persist responses.
-- Full persistent assessor/child/session workflow, session resume/restart and supervisor PIN remain incomplete.
-- Complete trial state machine, immediate response persistence, response correctness capture and reaction-time validation remain incomplete.
-- Bundled Kannada font/audio and licensed visual assets remain incomplete.
-- Reward behavior, summary metrics, protected CSV exports, stable committed Android platform scaffold and migrations remain incomplete.
-- Release signing, Play testing track, installation/rollback instructions and real-device offline testing remain incomplete.
-- Study tablet models and Android versions need hands-on acceptance.
+CI performs dependency resolution, Android host generation/hardening, Dart formatting, static analysis, unit/widget tests, Android debug build, a release-mode safety build and Flutter Web release build. The latest run must be checked on PR #2; do not rely on previous run results after source changes.
 
 ## Update behavior
 
-- Reopened/refreshed Flutter Web preview can receive the latest Vercel deployment after a branch update and network reconnection; an active tab will not replace its own running code.
-- Vercel Web deployment does not update an installed APK.
-- Android binaries require a signed, versioned package distributed through a managed update channel. Install updates between sessions.
-- The current APK is debug-signed and intended only for engineering review.
+- A refreshed/reopened Flutter Web preview can receive the latest Vercel deployment; an already running tab is not hot-replaced.
+- Vercel does not update an installed APK.
+- Android updates require a versioned APK signed with the same release identity and distributed using an approved managed channel. Apply updates between sessions only.
 
-**Do not use the browser preview or current Android foundation with children or for research data collection.**
+**Current state: hardened engineering preview, not a production research instrument.**
