@@ -2,38 +2,30 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:padalab_android/core/config/study_protocol.dart';
 
 void main() {
-  group('StudyProtocol', () {
-    test('uses the six-session 45 + 32 allocation', () {
+  group('Requirements baseline', () {
+    test('retains the requested six-session and 540-item structure', () {
       expect(StudyProtocol.sessionCount, 6);
-      expect(StudyProtocol.realWordsPerSession, 45);
-      expect(StudyProtocol.nonWordsPerSession, 32);
-      expect(StudyProtocol.scoredItemsPerSession, 77);
+      expect(StudyProtocol.realWordPoolCount, 270);
+      expect(StudyProtocol.nonWordPoolCount, 270);
+      expect(StudyProtocol.totalItemBankCount, 540);
+      expect(StudyProtocol.requirementsArithmeticIsConsistent, isTrue);
     });
 
-    test('allocates 462 items and retains two non-word reserves', () {
-      expect(
-        StudyProtocol.sessionCount * StudyProtocol.scoredItemsPerSession,
-        462,
-      );
-      expect(StudyProtocol.allocatedNonWords, 192);
-      expect(StudyProtocol.reserveNonWords, 2);
-      expect(StudyProtocol.allocationArithmeticIsValid, isTrue);
+    test('retains 90 presentations split into five practice and 85 test', () {
+      expect(StudyProtocol.presentationsPerSession, 90);
+      expect(StudyProtocol.practicePresentationsPerSession, 5);
+      expect(StudyProtocol.testPresentationsPerSession, 85);
     });
 
-    test(
-      'separates uploaded candidates from the unapproved working proposal',
-      () {
-        expect(StudyProtocol.plannedNonWordPoolCount, 194);
-        expect(StudyProtocol.uploadedNonWordWorkbookCount, 270);
-        expect(StudyProtocol.approvedNonWordCount, 0);
-        expect(StudyProtocol.uploadedTotalPool, 540);
-        expect(StudyProtocol.workingProposalTotalPool, 464);
-        expect(StudyProtocol.formalRequirementsTotalPool, 540);
-      },
-    );
+    test('retains 10-second stimulus display and reward every 10 answers', () {
+      expect(StudyProtocol.stimulusDisplayDuration, const Duration(seconds: 10));
+      expect(StudyProtocol.rewardIntervalAnswers, 10);
+    });
 
-    test('does not mark the item bank as approved', () {
-      expect(StudyProtocol.itemBankApproved, isFalse);
+    test('does not claim schedule or item-bank approval', () {
+      expect(StudyProtocol.sessionScheduleApproved, isFalse);
+      expect(StudyProtocol.approvedNonWordCount, 0);
+      expect(StudyProtocol.participantWorkflowEnabled, isFalse);
     });
   });
 }
