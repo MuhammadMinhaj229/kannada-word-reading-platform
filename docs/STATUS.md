@@ -13,6 +13,7 @@
 - Assessor workspace and child welcome screen are tested at 15 viewport sizes each.
 - Test dimensions include compact phones, larger phones, portrait tablets, landscape tablets and desktop browser widths.
 - The wide assessor layout gives both columns their own scroll region; narrow layouts use one vertically scrolling column.
+- The child welcome flow now opens a four-item synthetic demo with working word/non-word buttons, a progress indicator, in-memory response timing, feedback, a result view and restart.
 - This is automated viewport regression coverage, not a guarantee for every physical device, system font or zoom setting. Final acceptance requires the actual tablets used by the study.
 
 ## Build and hosting
@@ -28,6 +29,7 @@
 
 - The supplied requirements DOCX specifies 270 real + 270 non-words and 5 practice + 85 test items per session; the later 194 non-word / 45+32 scored-item allocation is an unapproved working proposal. The PI/statistician must resolve the protocol in writing.
 - The non-word candidate workbook has 270 entries, all pending native Kannada review and written approval.
+- The synthetic child demo is not the real study game: it uses demonstration examples only and does not persist responses.
 - Full persistent assessor/child/session workflow, session resume/restart and supervisor PIN remain incomplete.
 - Complete trial state machine, immediate response persistence, response correctness capture and reaction-time validation remain incomplete.
 - Bundled Kannada font/audio and licensed visual assets remain incomplete.
