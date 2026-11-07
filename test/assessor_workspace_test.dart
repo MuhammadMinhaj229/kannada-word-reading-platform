@@ -50,7 +50,7 @@ void main() {
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Review supplied real words'), findsOneWidget);
+    expect(find.text('Supplied Kannada item bank'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
