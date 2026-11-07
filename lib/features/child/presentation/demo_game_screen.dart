@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/app_theme.dart';
 import '../../../core/audio/kannada_speech_service.dart';
+import '../../../data/demo/demo_record_store.dart';
 
 /// A synthetic, non-persistent interaction demo.
 ///
@@ -47,6 +48,8 @@ class _DemoGameScreenState extends State<DemoGameScreen> {
 
   final Stopwatch _stopwatch = Stopwatch();
   final List<_DemoResponse> _responses = <_DemoResponse>[];
+  final String _sessionId = 'demo-\${DateTime.now().microsecondsSinceEpoch}';
+  String? _persistenceWarning;
 
   int _promptIndex = 0;
   bool? _selectedIsWord;
@@ -71,7 +74,7 @@ class _DemoGameScreenState extends State<DemoGameScreen> {
       ..start();
   }
 
-  void _submitAnswer(bool selectedIsWord) {
+  Future<void> _submitAnswer(bool selectedIsWord) async {
     if (_selectedIsWord != null || _completed) return;
 
     _stopwatch.stop();
@@ -82,11 +85,34 @@ class _DemoGameScreenState extends State<DemoGameScreen> {
       phase: _currentPrompt.phase,
       itemId: _currentPrompt.id,
     );
+    final ordinal = _responses.length + 1;
 
     setState(() {
       _selectedIsWord = selectedIsWord;
       _responses.add(response);
+      _persistenceWarning = null;
     });
+
+    try {
+      await DemoRecordStore.instance.append(DemoTrialRecord(
+        sessionId: _sessionId,
+        ordinal: ordinal,
+        phase: response.phase,
+        itemId: response.itemId,
+        stimulus: _currentPrompt.text,
+        itemKind: response.expectedIsWord ? 'word' : 'nonword',
+        response: selectedIsWord ? 'word' : 'nonword',
+        correct: response.selectedIsWord == response.expectedIsWord,
+        reactionTimeMs: response.reactionTimeMs,
+        respondedAt: DateTime.now().toUtc().toIso8601String(),
+      ));
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _persistenceWarning =
+            'This demo response remains visible in memory, but local demo storage failed.';
+      });
+    }
   }
 
   Future<void> _continue() async {
@@ -156,6 +182,7 @@ class _DemoGameScreenState extends State<DemoGameScreen> {
       _selectedIsWord = null;
       _completed = false;
       _responses.clear();
+      _persistenceWarning = null;
       _startClock();
     });
   }
@@ -327,6 +354,18 @@ class _DemoGameScreenState extends State<DemoGameScreen> {
             ),
           ),
         ),
+        if (_persistenceWarning != null) ...<Widget>[
+          const SizedBox(height: 10),
+          Text(
+            _persistenceWarning!,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: AppTheme.coral,
+              fontSize: 11,
+              height: 1.4,
+            ),
+          ),
+        ],
         const SizedBox(height: 16),
         const _DemoSafetyNotice(),
       ],
