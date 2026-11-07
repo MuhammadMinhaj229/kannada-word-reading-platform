@@ -112,12 +112,15 @@ void main() {
 
     final firstOpen = database.database;
     final closing = database.close();
+    // A second caller must wait for close instead of receiving the handle
+    // that the first close operation is about to close.
+    final reopenedAfterClose = database.database;
     databasePath.complete(directory.path);
 
     await closing;
     await firstOpen;
 
-    final reopened = await database.database;
+    final reopened = await reopenedAfterClose;
     expect(reopened.isOpen, isTrue);
     expect(secureStore.writeCalls, 1);
 
