@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'app/padalab_app.dart';
-import 'core/config/app_config.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,6 +14,5 @@ Future<void> main() async {
     ]);
   }
 
-  runApp(const PadalabApp(demoMode: AppConfig.demoMode));
-
+  runApp(const PadalabApp());
 }
