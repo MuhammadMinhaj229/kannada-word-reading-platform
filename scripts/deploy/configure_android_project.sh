@@ -13,7 +13,6 @@ if [[ ! -s "${APP_GRADLE}" || ! -s "${MANIFEST}" ]]; then
 fi
 
 python3 - "${APP_GRADLE}" "${MANIFEST}" <<'PY'
-import re
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -105,6 +104,23 @@ if debug_release in gradle:
 if "signingConfig = if (padalabReleaseSigningReady)" not in gradle:
     raise SystemExit("Conditional release signing and unsigned fallback were not configured.")
 
+# Enable Android R8 shrinking/obfuscation for release builds and keep SQLCipher's
+# native/reflection entry points. Flutter's Dart AOT compilation is separate.
+release_block = """        release {
+"""
+release_hardening = """        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+"""
+if "isMinifyEnabled = true" not in gradle:
+    if release_block not in gradle:
+        raise SystemExit("Could not find release build type for R8 hardening.")
+    gradle = gradle.replace(release_block, release_hardening, 1)
+
 gradle_path.write_text(gradle, encoding="utf-8")
 
 android_ns = "http://schemas.android.com/apk/res/android"
@@ -114,6 +130,17 @@ root = tree.getroot()
 application = root.find("application")
 if application is None:
     raise SystemExit("Android manifest does not contain an application element.")
+
+internet_permission = "{http://schemas.android.com/apk/res/android}name"
+has_internet = any(
+    element.tag == "uses-permission"
+    and element.get(internet_permission) == "android.permission.INTERNET"
+    for element in root.findall("uses-permission")
+)
+if not has_internet:
+    permission = ET.Element("uses-permission")
+    permission.set(internet_permission, "android.permission.INTERNET")
+    root.insert(0, permission)
 
 def attr(name: str) -> str:
     return f"{{{android_ns}}}{name}"
@@ -152,5 +179,21 @@ grep -q 'signingConfig = if (padalabReleaseSigningReady)' "${APP_GRADLE}"
 grep -q 'screenOrientation="landscape"' "${MANIFEST}"
 grep -q 'allowBackup="false"' "${MANIFEST}"
 test -s android/app/proguard-rules.pro
+grep -q 'android.permission.INTERNET' "${MANIFEST}"
+grep -q 'isMinifyEnabled = true' "${APP_GRADLE}"
+grep -q 'isShrinkResources = true' "${APP_GRADLE}"
+
+# Flutter's Gradle settings plugin loads this machine-local SDK path before
+# Gradle configures the Android project. Never commit this file.
+if [[ -z "${FLUTTER_ROOT:-}" || ! -d "${FLUTTER_ROOT:-/nonexistent}" ]]; then
+  FLUTTER_BIN="$(command -v flutter || true)"
+  if [[ -z "${FLUTTER_BIN}" ]]; then
+    echo "Flutter SDK not found; set FLUTTER_ROOT or add flutter to PATH." >&2
+    exit 1
+  fi
+  FLUTTER_ROOT="$(cd "$(dirname "${FLUTTER_BIN}")/.." && pwd)"
+fi
+printf 'flutter.sdk=%s\n' "${FLUTTER_ROOT}" > android/local.properties
+chmod 600 android/local.properties
 
 echo "Configured Padalab Android host. Release signing: ${PADALAB_RELEASE_SIGNING_READY:-configured only via android/key.properties}"
