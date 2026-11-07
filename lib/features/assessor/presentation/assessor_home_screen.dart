@@ -90,40 +90,43 @@ class AssessorHomeScreen extends StatelessWidget {
   }
 
   Widget _topBar(BuildContext context) {
-    return Wrap(
-      alignment: WrapAlignment.spaceBetween,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: 12,
-      runSpacing: 12,
+    final narrow = MediaQuery.sizeOf(context).width < 520;
+
+    final brand = Row(
       children: <Widget>[
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            const _BrandMark(),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  'ಪದLab',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontSize: 23,
-                        fontWeight: FontWeight.w800,
-                      ),
+        const _BrandMark(),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                'ಪದLab',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontSize: 23,
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+              const Text(
+                'KANNADA WORD READING ASSESSMENT',
+                softWrap: true,
+                style: TextStyle(
+                  color: AppTheme.muted,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.1,
                 ),
-                const Text(
-                  'KANNADA WORD READING ASSESSMENT',
-                  style: TextStyle(
-                    color: AppTheme.muted,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.1,
-                  ),
-                ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
+      ],
+    );
+
+    final statuses = Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: <Widget>[
         const _StatusPill(
           icon: Icons.cloud_off_rounded,
           label: 'OFFLINE-FIRST',
@@ -134,6 +137,25 @@ class AssessorHomeScreen extends StatelessWidget {
           label: demoMode ? 'SYNTHETIC DEMO' : 'FIELD RELEASE LOCKED',
           color: AppTheme.coral,
         ),
+      ],
+    );
+
+    if (narrow) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          brand,
+          const SizedBox(height: 12),
+          statuses,
+        ],
+      );
+    }
+
+    return Row(
+      children: <Widget>[
+        Expanded(child: brand),
+        const SizedBox(width: 16),
+        statuses,
       ],
     );
   }
