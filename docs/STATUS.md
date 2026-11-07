@@ -16,7 +16,10 @@
 - Removed the unapproved 45-real + 32-non-word random allocator. Runtime now accepts only a frozen 90-trial session manifest with written protocol/allocation references and a bank checksum.
 - Fail-closed release gate lists missing approvals, item-bank review, assets, ethics/data governance, recovery/repeat rules, device acceptance, export schema, supervisor credential and signed release.
 - SQLCipher database and Android secure-storage key provider foundation. A missing key for an existing encrypted database causes a hard failure; legacy plaintext database detection preserves the file and refuses to silently migrate it. Key/database initialization is single-flight to avoid concurrent creation races.
-- Session schema stores an immutable trial manifest. API foundations create a session transactionally, persist a presented-trial event, verify the full item content against the frozen manifest, compute correctness from the frozen item, and commit response plus session-cursor advancement atomically. Host SQLite FFI tests cover schema/foreign keys, concurrent opens, legacy DB preservation, key-loss handling, tamper rejection and response/cursor atomicity.
+- Session schema stores an immutable trial manifest. API foundations create a session transactionally, persist a presented-trial event, verify the full item content against the frozen manifest, compute correctness from the frozen item, and commit response plus session-cursor advancement atomically. Host SQLite FFI tests cover schema/foreign keys, concurrent opens, legacy DB preservation, key-loss handling, tamper rejection, response idempotency, response/cursor atomicity and close/open race handling.
+- Caller-supplied supervisor booleans were removed; repeat/restart remains disabled until a trusted supervisor-authorization verifier is implemented. Caller-supplied reward counters were removed from response commits pending a PI-approved reward policy.
+- The GitHub Actions debug APK is now built for ARM64 tablet devices, with ABI-content validation, Android signature verification and a SHA-256 checksum.
+- Vercel SSO protection is configured for all deployment targets, including attached project domains.
 - Android hardening script applies API 26 minimum, landscape orientation, Internet permission for Play updates, disables Android backup and cleartext traffic, configures R8 release shrinking and SQLCipher keep rules, and creates machine-local Flutter SDK properties at build time.
 - Responsive widget coverage includes phone, tablet portrait/landscape and desktop Web viewports.
 - Unit tests cover the approval gate, secure key storage failure cases, approved manifest structure, and child demo interactions.
@@ -29,7 +32,7 @@
 - No approved Kannada audio recordings, audio playback dependency or bundled Kannada font have been added; device-level conjunct rendering and audio review are open. Do not synthesize or substitute a voice recording: the study team must approve the native Kannada instruction script and recordings. Scored stimuli remain silent unless the PI explicitly approves a protocol change.
 - Supervisor PIN provisioning, export implementation/CSV dictionary/audit, backup/restore and retention process remain incomplete.
 - The Android host scaffold is generated from pinned Flutter 3.47.9 at build time and hardened in CI; it is not yet committed as a stable native platform tree. The generated scaffold is uploaded as a short-lived CI artifact for inspection.
-- No production signing keystore or signed release APK exists in protected GitHub secrets. The current app ID and the institution-owned signing identity also require written confirmation.
+- No production signing keystore or signed release APK exists in protected GitHub secrets. The current app ID and the institution-owned signing identity also require written confirmation. The ARM64 debug APK is a signed engineering artifact, not a field release.
 - No actual device acceptance is recorded: model, Android version, landscape/full-screen, screen-awake behavior, cold offline launch, SQLCipher/Keystore, audio, timing, Unicode, power loss and Play update tests.
 - The release gate remains closed. The browser preview and synthetic debug APK are not approved for participants.
 
@@ -41,6 +44,7 @@ CI performs dependency resolution, Android host generation/hardening, Dart forma
 
 - A refreshed/reopened Flutter Web preview can receive the latest Vercel deployment; an already running tab is not hot-replaced.
 - Vercel does not update an installed APK.
-- Android release code includes a guarded Google Play in-app update coordinator for Play-installed release builds. It skips debug and Web; high-priority Play updates use the immediate flow, while normal updates use the flexible flow. Managed Google Play/device policy is still required for automatic updates on field tablets. No Play Console track or device policy is configured yet.
+- Android release code exposes **Refresh updates** only from the idle assessor home screen. It checks Google Play on demand; high-priority releases use the immediate flow and normal releases use the flexible flow. Sideloaded APKs cannot use Play In-App Updates. No Play Console track, signing key or device policy is configured yet.
+- See `docs/security-audit.md` for the current controls, CI evidence and remaining blockers.
 
 **Current state: hardened engineering preview, not a production research instrument.**
