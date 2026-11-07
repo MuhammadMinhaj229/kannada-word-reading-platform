@@ -46,7 +46,24 @@ class DatabaseKeyProvider {
   final SecureKeyValueStore _store;
   final Random _secureRandom;
 
-  Future<String> getOrCreate({required bool databaseAlreadyExists}) async {
+  Future<String>? _inFlightKey;
+
+  Future<String> getOrCreate({required bool databaseAlreadyExists}) {
+    final pending = _inFlightKey;
+    if (pending != null) return pending;
+
+    final created = _createOrReadKey(
+      databaseAlreadyExists: databaseAlreadyExists,
+    );
+    _inFlightKey = created;
+    return created.whenComplete(() {
+      if (identical(_inFlightKey, created)) _inFlightKey = null;
+    });
+  }
+
+  Future<String> _createOrReadKey({
+    required bool databaseAlreadyExists,
+  }) async {
     String? existing;
     try {
       existing = await _store.read(storageKey);
