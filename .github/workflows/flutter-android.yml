@@ -66,12 +66,10 @@ jobs:
       - name: Validate deployment scripts
         run: bash -n scripts/deploy/*.sh
 
-      - name: Format and verify Dart sources
+      - name: Verify formatting
         run: |
-          dart format lib test
-          git diff -- lib/features/child/presentation/demo_game_screen.dart test/child_demo_game_test.dart
-          git diff --check
           dart format --output=none --set-exit-if-changed lib test
+          git diff --check
 
       - name: Static analysis
         run: flutter analyze --fatal-infos
