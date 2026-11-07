@@ -57,6 +57,9 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Prepare verified offline Kannada font
+        run: bash scripts/deploy/prepare_assets.sh
+
       - name: Generate Android and Web host projects
         run: flutter create . --platforms=android,web --org org.phfi.cdlr --project-name padalab_android --no-pub
 
