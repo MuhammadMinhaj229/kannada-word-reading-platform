@@ -48,7 +48,7 @@ class DemoExportService {
     final payload = utf8.encode(output.toString());
     final bytes = Uint8List.fromList(<int>[0xEF, 0xBB, 0xBF, ...payload]);
     final fileName = 'padalab-demo-responses';
-    await FileSaver.instance.saveFile(
+    await FileSaver.instance.saveAs(
       name: fileName,
       bytes: bytes,
       fileExtension: 'csv',
@@ -126,7 +126,7 @@ class DemoExportService {
       fileExtension: 'xlsx',
       mimeType: MimeType.other,
     );
-    return const DemoExportResult(fileName: '$fileName.xlsx', recordCount: 0);
+    return DemoExportResult(fileName: '$fileName.xlsx', recordCount: records.length);
   }
 
   String _csvCell(Object? value) {
