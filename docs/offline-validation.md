@@ -1,46 +1,51 @@
 # Offline and cross-platform acceptance plan
 
-## Shared application experience
+## Platform responsibilities
 
-The Flutter target is intended to share its Game / Settings screens and assessment-domain logic between Android and Web. Only platform capabilities and persistence adapters should differ.
+The Android tablet application is the field target. The Flutter Web output on Vercel is a read-only interface and bundled-content review. It must not collect participant identifiers or store participant sessions.
 
-Current branch scope:
-- Game and Settings navigation is shared Flutter UI.
-- Kannada TTS is a device/browser demo preview only; it is not the approved recorded instruction audio.
-- Participant workflow remains locked.
-- Android SQLCipher is a foundation not yet wired to the UI.
-- Flutter Web caches the built application shell and resources with a versioned service worker after the first successful online load. The user can refresh the worker from the assessor's idle screen.
+The two platforms share the Flutter presentation and assessment domain, while persistence and update behavior remain platform-specific.
 
-The existing production Next.js PWA remains the production website until the migration reaches feature parity. It has its own offline service worker and IndexedDB demo persistence. Do not assume the Flutter preview has inherited the Next.js storage workflow.
+## Current branch scope
 
-## Target-device tests
+- Responsive assessor workspace with NavigationRail on wide screens and bottom navigation on narrow screens.
+- Supplied 270-word CSV bundled, parsed and checked for unique entries.
+- Non-word method summary bundled; all candidate items remain pending native review.
+- Android SQLCipher and secure-key storage foundation exists but is not fully connected to the assessor/child session UI.
+- Flutter Web uses a content-derived service-worker fingerprint and manual refresh.
+- Kannada audio playback is limited to bundled recordings with an approval reference. The source recording is not yet segmented into approved clips.
 
-Run these checks on the exact Android tablet model and Android version intended for the study. Emulator and host-SQLite results alone are insufficient.
+## Target-device checks
+
+Run these on the exact Android tablet model and Android version intended for the study. Emulator and host SQLite tests alone are insufficient.
 
 | Test | Required pass condition |
 |---|---|
-| Android first install | Install signed APK from the institution-approved channel; all required assets are bundled and app opens without network access. |
-| Android cold offline launch | Force-stop, enable airplane mode, relaunch from app icon; assessor screen opens without network. |
-| Android UI navigation | Game and Settings render consistently in landscape and every enabled screen works offline. |
-| Android local database | SQLCipher opens the encrypted database with Android secure storage/Keystore; missing key and legacy plaintext cases fail safely. |
-| Android data durability | After the approved workflow is integrated, every shown trial and response is committed before next stimulus; force-stop and inspect recovery. |
-| Web first load | Visit online, allow the service worker install and confirm every precached asset is available. |
-| Web cold offline launch | Close the browser/PWA, disconnect network and reopen; app shell and local static resources load from cache. |
-| Web navigation | Game and Settings can be navigated while offline; no external network resource is required for the demo shell. |
-| Web update | Publish a new version, press Refresh updates while idle, verify worker activation/reload and preserve local browser records when a data adapter is eventually enabled. |
-| Update safety | No update activation is triggered automatically during a trial or active data transaction. |
-| Kannada rendering | Approved akshara combinations and conjuncts render with the approved bundled font without missing glyphs or clipping. |
-| Audio offline | PHFI/CDLR-approved Kannada recordings are bundled and play offline. Device TTS is only a preview fallback and does not count as audio acceptance. |
-| Scored-trial audio | Scored stimuli remain silent unless the PI explicitly approves a protocol change. |
-| Touch and reaction time | Each response tap registers exactly once; PI/statistician accepts timing accuracy on target hardware. |
-| Timeout and recovery | No-response, interruption, resume, restart and repeat behavior follows the signed protocol; no duplicate/skipped ordinals. |
-| Export and restore | Approved CSV files preserve Kannada UTF-8 BOM, follow the signed dictionary and restore records without data loss. |
-| Privacy | No participant data or telemetry leaves the device/browser; no analytics, crash upload or remote logging. |
+| Package compatibility | Signed APK installs on the target ARM64 tablet with Android 8.0 (API 26) or later. |
+| First install | All required app assets are bundled; app opens without network access. |
+| Cold offline launch | Force-stop, enable airplane mode and relaunch; assessor workspace opens. |
+| Responsive layout | All enabled screens render without clipping or overflow in supported landscape tablet sizes and browser phone/tablet/desktop sizes. |
+| Local database | SQLCipher opens with Android secure storage/Keystore; missing-key and legacy plaintext cases fail safely. |
+| Response durability | Each presented trial and response is committed before the next stimulus; force-stop and inspect recovery. |
+| Resume | App restores the same frozen manifest, current ordinal and any pending presented trial. |
+| Kannada rendering | Approved akshara combinations and conjuncts render using the bundled font without clipping or missing glyphs. |
+| Kannada audio | PHFI/CDLR-approved instruction recordings are bundled and play offline with no TTS or network fallback. |
+| Scored-trial audio | Scored stimuli remain silent unless the PI approves a protocol amendment. |
+| Reaction time | Each touch registers exactly once; timing accuracy is accepted on the target tablet. |
+| Timeout/recovery | No-response, interruption, resume, restart and repeat rules match the signed protocol. |
+| Export | Approved CSV preserves the UTF-8 BOM and signed dictionary; names are excluded by default. |
+| Update safety | No application update is activated during an active assessment or data transaction. |
+| Privacy | No participant identifiers or records leave the device; no analytics, crash upload or remote logging. |
+| Power loss | A forced shutdown during a trial does not lose or duplicate committed responses. |
 
-## Browser storage boundary
+## Browser review checks
 
-The Flutter Web branch currently has an offline shell only. It does not yet persist participant sessions through an IndexedDB/browser-local adapter. Do not enter participant information in this preview. If Web participant capture remains required, the browser adapter must be implemented and separately tested for persistence, export, restore, deletion, storage quota failure and multi-tab behavior.
+- First online load precaches the Flutter Web shell and local resources.
+- Cold offline browser/PWA launch loads the shell and required static resources from cache.
+- A changed asset byte produces a new service-worker cache identity, even when the URL remains unchanged.
+- The assessor-triggered refresh activates the new worker only when the user requests it.
+- Browser entry fields remain read-only; no participant data is accepted or persisted.
 
 ## Release gate
 
-Do not mark the instrument field-ready until the study approvals, final item/audio/font assets, full data workflows, actual tablet checks and privacy/security review all have evidence. The participant release gate must remain closed in the meantime.
+Do not use the application with research participants until the written protocol, approved item bank, signed allocations, audio/font assets, ethics/data-governance decisions, supervisor controls, exports and actual-tablet checks all have recorded evidence. CI and browser preview success do not replace this acceptance.
