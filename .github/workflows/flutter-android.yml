@@ -95,6 +95,7 @@ jobs:
           path: |
             lib/
             test/
+            pubspec.lock
           if-no-files-found: error
           retention-days: 7
 
