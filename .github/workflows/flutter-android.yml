@@ -149,6 +149,8 @@ jobs:
           test -s build/web/main.dart.js
           test -d build/web/assets
           test -s build/web/manifest.json
+          test -s build/web/service-worker.js
+          grep -q 'navigator.serviceWorker.register' build/web/index.html
           ! grep -q "A new Flutter project" build/web/index.html build/web/manifest.json
 
       - name: Verify ARM64 APK and generate checksum
