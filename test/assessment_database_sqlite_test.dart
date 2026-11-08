@@ -4,9 +4,20 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:padalab_android/data/database/assessment_database.dart';
 import 'package:padalab_android/data/security/database_key_provider.dart';
+import 'package:padalab_android/core/config/assessment_release_gate.dart';
 import 'package:padalab_android/features/assessment/domain/models/session_allocation.dart';
 import 'package:padalab_android/features/assessment/domain/models/study_item.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+
+class _OpenReleaseAuthorization implements AssessmentReleaseAuthorization {
+  const _OpenReleaseAuthorization();
+
+  @override
+  bool get isOpen => true;
+
+  @override
+  List<String> get blockers => const <String>[];
+}
 
 class _TestSecureStore implements SecureKeyValueStore {
   final Map<String, String> values = <String, String>{};
@@ -44,6 +55,7 @@ void main() {
   AssessmentDatabase createDatabase(_TestSecureStore secureStore) {
     return AssessmentDatabase(
       keyProvider: DatabaseKeyProvider(store: secureStore),
+      releaseGate: const _OpenReleaseAuthorization(),
       factory: databaseFactoryFfiNoIsolate,
       databasesPathProvider: () async => directory.path,
     );
@@ -106,6 +118,7 @@ void main() {
     final databasePath = Completer<String>();
     final database = AssessmentDatabase(
       keyProvider: DatabaseKeyProvider(store: secureStore),
+      releaseGate: const _OpenReleaseAuthorization(),
       factory: databaseFactoryFfiNoIsolate,
       databasesPathProvider: () => databasePath.future,
     );
