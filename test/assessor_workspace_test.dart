@@ -29,6 +29,9 @@ void main() {
     expect(find.text('Application settings'), findsOneWidget);
     expect(find.text('Supplied Kannada item bank'), findsOneWidget);
     expect(find.text('Kannada instruction recordings'), findsOneWidget);
+    expect(find.textContaining('not a signed protocol'), findsOneWidget);
+    expect(find.textContaining('interpretation disputed'), findsOneWidget);
+    expect(find.textContaining('tablet validation pending'), findsOneWidget);
     expect(find.textContaining('demo'), findsNothing);
     expect(tester.takeException(), isNull);
   });
