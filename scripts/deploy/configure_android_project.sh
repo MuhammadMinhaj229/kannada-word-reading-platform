@@ -214,10 +214,10 @@ main_activity.set(attr("exported"), "true")
 tree.write(manifest_path, encoding="utf-8", xml_declaration=True)
 PY
 
-# Pin the generated Gradle wrapper to the official binary distribution and
-# verify the archive before Gradle executes it. Flutter's generated template
-# currently points at a GitHub release asset that is unreliable in some CI
-# network paths; the official Gradle distribution host avoids that redirect.
+# Pin the generated Gradle wrapper to Gradle's direct distribution CDN and
+# verify the archive before Gradle executes it. The standard services.gradle.org
+# URL redirected this CI runner to a GitHub release asset that returned 504;
+# downloads.gradle.org is also an official Gradle distribution host.
 WRAPPER_PROPERTIES="android/gradle/wrapper/gradle-wrapper.properties"
 if [[ ! -s "${WRAPPER_PROPERTIES}" ]]; then
   echo "Generated Android Gradle wrapper properties are missing." >&2
@@ -232,7 +232,7 @@ properties = {
     "distributionBase": "GRADLE_USER_HOME",
     "distributionPath": "wrapper/dists",
     "distributionUrl": (
-        r"https\://services.gradle.org/distributions/gradle-9.3.1-bin.zip"
+        r"https\://downloads.gradle.org/distributions/gradle-9.3.1-bin.zip"
     ),
     "distributionSha256Sum": (
         "b266d5ff6b90eada6dc3b20cb090e3731302e553a27c5d3e4df1f0d76beaff06"
@@ -250,7 +250,7 @@ path.write_text(
 )
 PY
 
-grep -Fq 'distributionUrl=https\://services.gradle.org/distributions/gradle-9.3.1-bin.zip' "${WRAPPER_PROPERTIES}"
+grep -Fq 'distributionUrl=https\://downloads.gradle.org/distributions/gradle-9.3.1-bin.zip' "${WRAPPER_PROPERTIES}"
 grep -Fq 'distributionSha256Sum=b266d5ff6b90eada6dc3b20cb090e3731302e553a27c5d3e4df1f0d76beaff06' "${WRAPPER_PROPERTIES}"
 grep -Fq 'retries=3' "${WRAPPER_PROPERTIES}"
 
