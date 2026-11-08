@@ -84,6 +84,33 @@ jobs:
       - name: Harden generated Android host
         run: bash scripts/deploy/configure_android_project.sh
 
+      - name: Use the lean Gradle binary distribution
+        shell: bash
+        run: |
+          set -euo pipefail
+          WRAPPER="android/gradle/wrapper/gradle-wrapper.properties"
+          test -s "$WRAPPER"
+          python3 - "$WRAPPER" <<'PY'
+          import sys
+          from pathlib import Path
+
+          path = Path(sys.argv[1])
+          content = path.read_text(encoding="utf-8")
+          lines = content.splitlines()
+          matches = [i for i, line in enumerate(lines) if line.startswith("distributionUrl=")]
+          if len(matches) != 1:
+              raise SystemExit("Expected exactly one Gradle distributionUrl.")
+          index = matches[0]
+          value = lines[index]
+          if value.endswith("-all.zip"):
+              lines[index] = value[:-len("-all.zip")] + "-bin.zip"
+          elif not value.endswith("-bin.zip"):
+              raise SystemExit("Unknown Gradle distribution archive; refusing an implicit change.")
+          path.write_text("\\n".join(lines) + "\\n", encoding="utf-8")
+          print(f"Configured Gradle binary distribution: {lines[index]}")
+          PY
+          grep -q -- '-bin.zip' "$WRAPPER"
+
       - name: Resolve dependencies
         run: |
           flutter pub get
@@ -118,7 +145,23 @@ jobs:
         run: flutter test --reporter expanded
 
       - name: Build ARM64 Android debug APK
-        run: flutter build apk --debug --target-platform android-arm64
+        shell: bash
+        run: |
+          set -euo pipefail
+          max_attempts=3
+          for attempt in $(seq 1 "$max_attempts"); do
+            echo "Android build attempt $attempt/$max_attempts"
+            if flutter build apk --debug --target-platform android-arm64; then
+              exit 0
+            fi
+            if [[ "$attempt" -eq "$max_attempts" ]]; then
+              echo "Android build failed after $max_attempts attempts." >&2
+              exit 1
+            fi
+            delay=$((attempt * 20))
+            echo "Build failed; retrying after ${delay}s to tolerate transient dependency/CDN errors."
+            sleep "$delay"
+          done
 
       - name: Build Flutter Web
         run: flutter build web --release --base-href /
