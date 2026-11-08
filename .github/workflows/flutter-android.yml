@@ -202,21 +202,47 @@ jobs:
           test -s "$APK"
           test -s "$APK.sha256"
 
-      - name: Move preview tag to this validated main commit
+      - name: Create or move preview tag to this validated main commit
         uses: actions/github-script@v8
         with:
           script: |
             const { owner, repo } = context.repo;
             const ref = 'tags/padalab-preview';
+            const targetSha = context.sha;
+
+            let existing;
             try {
-              await github.rest.git.updateRef({
-                owner, repo, ref, sha: context.sha, force: true
-              });
+              existing = await github.rest.git.getRef({ owner, repo, ref });
             } catch (error) {
               if (error.status !== 404) throw error;
-              await github.rest.git.createRef({
-                owner, repo, ref: 'refs/' + ref, sha: context.sha
+
+              try {
+                existing = await github.rest.git.createRef({
+                  owner,
+                  repo,
+                  ref: 'refs/' + ref,
+                  sha: targetSha,
+                });
+                core.info('Created the engineering-preview tag.');
+              } catch (createError) {
+                // A competing run may have created the tag after getRef.
+                // Re-read only for GitHub's "reference already exists" response.
+                if (createError.status !== 422) throw createError;
+                existing = await github.rest.git.getRef({ owner, repo, ref });
+              }
+            }
+
+            if (existing.data.object.sha !== targetSha) {
+              await github.rest.git.updateRef({
+                owner,
+                repo,
+                ref,
+                sha: targetSha,
+                force: true,
               });
+              core.info('Moved the engineering-preview tag to the validated commit.');
+            } else {
+              core.info('The engineering-preview tag already points to this commit.');
             }
 
       - name: Publish or refresh the stable preview APK release
