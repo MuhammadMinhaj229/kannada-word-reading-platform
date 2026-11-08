@@ -277,15 +277,15 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
           ),
           const _MetricData(
             value: '6',
-            label: 'Required sessions',
-            detail: 'Schedule awaits sign-off',
-            color: AppTheme.deepInk,
+            label: 'Baseline sessions',
+            detail: 'Not approved by study team',
+            color: AppTheme.coral,
           ),
           const _MetricData(
             value: '10 s',
-            label: 'Stimulus display',
-            detail: 'Requirements baseline',
-            color: AppTheme.deepInk,
+            label: 'Baseline stimulus time',
+            detail: 'Not approved by study team',
+            color: AppTheme.coral,
           ),
         ];
 
@@ -436,7 +436,7 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
             const _SectionHeading(
               icon: Icons.fact_check_outlined,
               title: 'Field-release status',
-              subtitle: 'Verified prerequisites',
+              subtitle: 'Release readiness checks',
             ),
             const SizedBox(height: 18),
             _ReadinessLine(

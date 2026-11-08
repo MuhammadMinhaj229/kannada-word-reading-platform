@@ -16,6 +16,8 @@ void main() {
     expect(find.text('ಪದLab'), findsOneWidget);
     expect(find.text('FIELD ASSESSMENT WORKSPACE'), findsOneWidget);
     expect(find.text('Participant and session entry'), findsOneWidget);
+    expect(find.text('Baseline sessions'), findsOneWidget);
+    expect(find.text('Required sessions'), findsNothing);
     expect(find.text('Production release requirements'), findsNothing);
     expect(find.textContaining('demo'), findsNothing);
 
