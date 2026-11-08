@@ -114,8 +114,8 @@ class BundledItemCatalog {
     }
 
     String value(List<dynamic> row, String column) {
-      final index = indexes[column]!;
-      if (index >= row.length) return '';
+      final index = indexes[column];
+      if (index == null || index >= row.length) return '';
       return row[index]?.toString().trim() ?? '';
     }
 
