@@ -69,6 +69,7 @@ def main() -> int:
         "/flutter.js",
         "/version.json",
         "/manifest.json",
+        "/app-release.json",
     )
     for path in required_revalidation_paths:
         cache_control = by_source.get(path, {}).get("cache-control", "")

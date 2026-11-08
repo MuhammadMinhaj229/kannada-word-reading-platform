@@ -20,12 +20,12 @@ jobs:
     timeout-minutes: 45
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
       - name: Set up Java
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "17"
@@ -106,7 +106,7 @@ jobs:
           stat --printf='Signed release APK size: %s bytes\n' "$APK"
 
       - name: Upload signed APK and checksum
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: padalab-android-arm64-signed-release
           path: |

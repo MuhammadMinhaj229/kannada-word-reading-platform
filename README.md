@@ -105,6 +105,14 @@ bash scripts/deploy/configure_flutter_web.sh build/web
 
 The Flutter application was merged into `main` by PR #2 on 7 November 2026. `main` is the single working/production source branch. The production Vercel deployment was built from merge commit `85a05c229be430a9bc53d600d9db79c18a3bcddf` and reached `READY`; the canonical review URL is https://kannada-word-reading-platform.vercel.app/. The Vercel browser build is an SSO-protected, no-index, read-only review surface and must not be used for participant data entry. Feature-branch previews may still be generated for controlled review. The service-worker cache identity is derived from both asset paths and file contents.
 
+## Web offline mode and Android APK download
+
+The Flutter Web review build is installable as a PWA and precaches the Flutter shell and bundled assets after its first successful online load. Its **Refresh app** control checks for a new deployment only when clicked; it does not use a timer or repeatedly reload the page. The **Download Android APK** control opens the stable engineering-preview release below.
+
+[Download the latest ARM64 Android preview APK](https://github.com/MuhammadMinhaj229/kannada-word-reading-platform/releases/download/padalab-preview/padalab-android-arm64-debug.apk)
+
+The APK is debug-signed and for engineering review only, not participant field use. Android and Web are built from the same Flutter source commit and contain the same UI and bundled content. Android storage and device services are native; participant data remains local and is not synchronised to Vercel or GitHub. Web refresh updates Web assets only. Android in-app updates use Google Play and require a Play-installed build.
+
 ## Android APK distribution
 
 The current native target is Android 8.0 (API 26) or later on ARM64 (`arm64-v8a`) tablets. Device compatibility must be confirmed on the actual study tablet; a single APK cannot be guaranteed on every vendor, architecture or Android release.

@@ -1,26 +1,25 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-OUTPUT_DIR="${1:-build/web}"
-INDEX_FILE="${OUTPUT_DIR}/index.html"
-MANIFEST_FILE="${OUTPUT_DIR}/manifest.json"
+OUTPUT_DIR="\${1:-build/web}"
+INDEX_FILE="\${OUTPUT_DIR}/index.html"
+MANIFEST_FILE="\${OUTPUT_DIR}/manifest.json"
 
-if [[ ! -s "${INDEX_FILE}" || ! -s "${MANIFEST_FILE}" ]]; then
-  echo "Flutter Web output is incomplete; expected index.html and manifest.json in ${OUTPUT_DIR}" >&2
+if [[ ! -s "\${INDEX_FILE}" || ! -s "\${MANIFEST_FILE}" ]]; then
+  echo "Flutter Web output is incomplete; expected index.html and manifest.json in \${OUTPUT_DIR}" >&2
   exit 1
 fi
 
-python3 - "${INDEX_FILE}" "${MANIFEST_FILE}" <<'PY'
+python3 - "\${INDEX_FILE}" "\${MANIFEST_FILE}" <<'PY'
 import json
 import sys
 from pathlib import Path
 
 index_path = Path(sys.argv[1])
 manifest_path = Path(sys.argv[2])
-
 title = "ಪದLab | Kannada Word Reading Assessment"
 description = (
-    "ಪದLab is an offline-first Kannada word-reading assessment application "
+    "PadLab is an offline-first Kannada word-reading assessment application "
     "for authorised research assessors."
 )
 theme_color = "#0F766E"
@@ -38,18 +37,16 @@ html = html.replace(
     '<meta name="apple-mobile-web-app-title" content="ಪದLab">',
     1,
 )
-html = html.replace(
-    "<title>padalab_android</title>",
-    f"<title>{title}</title>",
-    1,
-)
+html = html.replace("<title>padalab_android</title>", f"<title>{title}</title>", 1)
 head_tags = []
 if '<meta name="theme-color"' not in html:
     head_tags.append(f'<meta name="theme-color" content="{theme_color}">')
 if '<meta name="robots"' not in html:
-    head_tags.append(
-        '<meta name="robots" content="noindex, nofollow, noarchive">'
-    )
+    head_tags.append('<meta name="robots" content="noindex, nofollow, noarchive">')
+if '<meta name="apple-mobile-web-app-capable"' not in html:
+    head_tags.append('<meta name="apple-mobile-web-app-capable" content="yes">')
+if '<meta name="mobile-web-app-capable"' not in html:
+    head_tags.append('<meta name="mobile-web-app-capable" content="yes">')
 if head_tags:
     newline = chr(10)
     html = html.replace(
@@ -70,9 +67,12 @@ manifest.update(
         "theme_color": theme_color,
         "background_color": background_color,
         "display": "standalone",
+        "display_override": ["standalone", "minimal-ui"],
         "orientation": "any",
         "start_url": "/",
         "scope": "/",
+        "prefer_related_applications": False,
+        "categories": ["education", "productivity"],
     }
 )
 manifest_path.write_text(
@@ -81,94 +81,117 @@ manifest_path.write_text(
 )
 PY
 
-# Flutter Web assets are static. Generate a same-origin service worker that
-# pre-caches the complete build, serves the shell offline, and waits for an
-# assessor-requested update before replacing the running worker.
-python3 - "${OUTPUT_DIR}" <<'PY'
+python3 - "\${OUTPUT_DIR}" <<'PY'
+import json
+import os
+import re
+import sys
+from pathlib import Path
+
+root = Path.cwd()
+output = Path(sys.argv[1])
+pubspec = (root / "pubspec.yaml").read_text(encoding="utf-8")
+match = re.search(r"(?m)^version:\s*([^\s#]+)", pubspec)
+if not match:
+    raise SystemExit("Could not read PadLab version from pubspec.yaml.")
+
+release = {
+    "application": "PadLab",
+    "version": match.group(1),
+    "commit": (
+        os.environ.get("VERCEL_GIT_COMMIT_SHA")
+        or os.environ.get("GITHUB_SHA")
+        or "local"
+    ),
+    "channel": "engineering-preview",
+    "apkDownloadUrl": (
+        "https://github.com/MuhammadMinhaj229/kannada-word-reading-platform/releases/download/"
+        "padalab-preview/padalab-android-arm64-debug.apk"
+    ),
+    "apkSigning": "debug",
+    "participantReady": False,
+    "participantDataSync": False,
+    "webUpdateMode": "manual-user-triggered",
+}
+(output / "app-release.json").write_text(
+    json.dumps(release, ensure_ascii=False, indent=2) + chr(10),
+    encoding="utf-8",
+)
+PY
+
+python3 - "\${OUTPUT_DIR}" <<'PY'
 import hashlib
 import json
 import sys
 from pathlib import Path
 
 output = Path(sys.argv[1])
-index = output / "index.html"
-if not index.is_file():
-    raise SystemExit("Flutter Web index.html is missing.")
-
+required = {"index.html", "main.dart.js", "manifest.json", "app-release.json"}
 files = sorted(
     path.relative_to(output).as_posix()
     for path in output.rglob("*")
-    if path.is_file() and path.name not in {"service-worker.js"}
+    if path.is_file() and path.name != "service-worker.js"
 )
-if "index.html" not in files or "main.dart.js" not in files:
-    raise SystemExit("Flutter Web shell is missing index.html or main.dart.js.")
+missing = sorted(required.difference(files))
+if missing:
+    raise SystemExit("Flutter Web output is missing: " + ", ".join(missing))
 
-precache = ["/" + name for name in files]
-# Include both paths and bytes. Flutter's entry-point paths (for
-# example main.dart.js) can remain stable while their contents change.
-fingerprint_hasher = hashlib.sha256()
+hasher = hashlib.sha256()
 for name in files:
-    fingerprint_hasher.update(name.encode("utf-8"))
-    fingerprint_hasher.update(b"\\0")
-    fingerprint_hasher.update((output / name).read_bytes())
-    fingerprint_hasher.update(b"\\0")
-fingerprint = fingerprint_hasher.hexdigest()[:16]
-manifest = json.dumps(precache, ensure_ascii=False, separators=(",", ":"))
+    hasher.update(name.encode("utf-8"))
+    hasher.update(b"\0")
+    hasher.update((output / name).read_bytes())
+    hasher.update(b"\0")
+fingerprint = hasher.hexdigest()[:16]
+precache = ["/" + name for name in files]
+precache_json = json.dumps(precache, ensure_ascii=False, separators=(",", ":"))
 
 worker = f"""/* Generated from the Flutter Web build; do not edit by hand. */
 const CACHE_NAME = "padalab-shell-{fingerprint}";
-const PRECACHE_URLS = {manifest};
+const PRECACHE_URLS = {precache_json};
 
 self.addEventListener("install", (event) => {{
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
   );
 }});
-
+// First install does not immediately take control of an open page.
+// A waiting update activates only after the user presses Refresh app.
 self.addEventListener("activate", (event) => {{
   event.waitUntil((async () => {{
     const names = await caches.keys();
     await Promise.all(names
       .filter((name) => name.startsWith("padalab-shell-") && name !== CACHE_NAME)
       .map((name) => caches.delete(name)));
-    await self.clients.claim();
   }})());
 }});
-
 self.addEventListener("message", (event) => {{
   if (event.data && event.data.type === "SKIP_WAITING") {{
     self.skipWaiting();
   }}
 }});
-
 self.addEventListener("fetch", (event) => {{
   const request = event.request;
   const url = new URL(request.url);
   if (request.method !== "GET" || url.origin !== self.location.origin) return;
 
-  if (request.mode === "navigate") {{
-    event.respondWith((async () => {{
+  event.respondWith((async () => {{
+    const cache = await caches.open(CACHE_NAME);
+    if (request.mode === "navigate") {{
       try {{
         const response = await fetch(request);
-        if (response && response.ok) {{
-          const cache = await caches.open(CACHE_NAME);
-          await cache.put("/index.html", response.clone());
-        }}
+        if (response && response.ok) await cache.put("/index.html", response.clone());
         return response;
       }} catch (_) {{
-        return (await caches.match("/index.html")) || (await caches.match("/"));
+        return (await cache.match("/index.html")) || (await cache.match("/"));
       }}
-    }})());
-    return;
-  }}
+    }}
 
-  event.respondWith((async () => {{
-    const cached = await caches.match(request);
+    const cached = await cache.match(request);
     if (cached) return cached;
     try {{
       const response = await fetch(request);
-      if (response && response.ok) {{
-        const cache = await caches.open(CACHE_NAME);
+      if (response && response.ok && response.type !== "opaque") {{
         await cache.put(request, response.clone());
       }}
       return response;
@@ -180,7 +203,6 @@ self.addEventListener("fetch", (event) => {{
 """
 (output / "service-worker.js").write_text(worker, encoding="utf-8")
 
-html = index.read_text(encoding="utf-8")
 registration = """
 <script>
   if ("serviceWorker" in navigator) {
@@ -190,28 +212,23 @@ registration = """
           window.padlabServiceWorkerRegistration = registration;
         })
         .catch(function (error) {
-          console.error("Padalab offline cache could not be registered.", error);
+          console.error("PadLab offline cache registration failed.", error);
         });
     });
-    navigator.serviceWorker.addEventListener("controllerchange", function () {
-      window.location.reload();
-    }, { once: true });
   }
 </script>
 """
-if "navigator.serviceWorker.register(\"/service-worker.js\"" not in html:
+index = output / "index.html"
+html = index.read_text(encoding="utf-8")
+if 'navigator.serviceWorker.register("/service-worker.js"' not in html:
     html = html.replace("</body>", registration + "\n</body>", 1)
 index.write_text(html, encoding="utf-8")
 PY
 
-test -s "${OUTPUT_DIR}/service-worker.js"
-grep -q "navigator.serviceWorker.register" "${INDEX_FILE}"
+test -s "\${OUTPUT_DIR}/service-worker.js"
+test -s "\${OUTPUT_DIR}/app-release.json"
+python3 -m json.tool "\${MANIFEST_FILE}" >/dev/null
+python3 -m json.tool "\${OUTPUT_DIR}/app-release.json" >/dev/null
+python3 scripts/deploy/validate_flutter_web_output.py "\${OUTPUT_DIR}"
 
-grep -q "ಪದLab" "${INDEX_FILE}"
-if grep -q "A new Flutter project" "${INDEX_FILE}" "${MANIFEST_FILE}"; then
-  echo "Default Flutter scaffold metadata remains in the web output." >&2
-  exit 1
-fi
-python3 -m json.tool "${MANIFEST_FILE}" >/dev/null
-
-echo "Configured Padalab web metadata in ${OUTPUT_DIR}"
+echo "Configured PadLab offline PWA metadata and manual update flow in \${OUTPUT_DIR}"

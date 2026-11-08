@@ -8,6 +8,7 @@ import '../../../core/config/assessment_release_gate.dart';
 import '../../../core/config/study_protocol.dart';
 import '../../../core/update/play_update_service.dart';
 import '../../../core/update/web_update_service.dart';
+import '../../../core/update/apk_download_service.dart';
 import '../../assessment/data/bundled_item_catalog.dart';
 
 class AssessorHomeScreen extends StatefulWidget {
@@ -177,9 +178,10 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
           label: kIsWeb ? 'BROWSER REVIEW · READ ONLY' : 'FIELD RELEASE GATED',
           color: AppTheme.coral,
         ),
-        if (kIsWeb)
-          const _ManualWebUpdateButton()
-        else if (!kDebugMode &&
+        if (kIsWeb) ...<Widget>[
+          const _ManualWebUpdateButton(),
+          const _ApkDownloadButton(),
+        ] else if (!kDebugMode &&
             defaultTargetPlatform == TargetPlatform.android &&
             AppConfig.playUpdatesEnabled)
           const _ManualUpdateButton(),
@@ -803,6 +805,23 @@ class _ManualWebUpdateButtonState extends State<_ManualWebUpdateButton> {
             )
           : const Icon(Icons.refresh_rounded, size: 15),
       label: Text(_checking ? 'Checking' : 'Refresh app'),
+    );
+  }
+}
+
+class _ApkDownloadButton extends StatelessWidget {
+  const _ApkDownloadButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message:
+          'Downloads the ARM64 debug-signed engineering preview. Not approved for participant data collection.',
+      child: OutlinedButton.icon(
+        onPressed: ApkDownloadService.openLatestAndroidPreview,
+        icon: const Icon(Icons.android_rounded, size: 15),
+        label: const Text('Download Android APK'),
+      ),
     );
   }
 }
