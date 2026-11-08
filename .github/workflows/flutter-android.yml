@@ -260,3 +260,31 @@ jobs:
           files: |
             release/padalab-android-arm64-debug.apk
             release/padalab-android-arm64-debug.apk.sha256
+
+      - name: Verify published preview release assets
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const response = await github.rest.repos.getReleaseByTag({
+              owner,
+              repo,
+              tag: 'padalab-preview',
+            });
+            const release = response.data;
+            if (!release.prerelease || release.draft) {
+              throw new Error('The engineering preview must be a published prerelease.');
+            }
+
+            const required = [
+              'padalab-android-arm64-debug.apk',
+              'padalab-android-arm64-debug.apk.sha256',
+            ];
+            const assets = new Map(release.assets.map((asset) => [asset.name, asset]));
+            for (const name of required) {
+              const asset = assets.get(name);
+              if (!asset || asset.size <= 0) {
+                throw new Error(`Published preview is missing a non-empty asset: ${name}`);
+              }
+              core.info(`Verified release asset: ${name} (${asset.size} bytes)`);
+            }
