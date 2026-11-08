@@ -207,13 +207,24 @@ jobs:
         with:
           script: |
             const { owner, repo } = context.repo;
-            const ref = 'tags/padalab-preview';
-            try {
+            const tagName = 'padalab-preview';
+            const ref = 'tags/' + tagName;
+
+            // GitHub's update-ref endpoint can return 422 for a missing ref
+            // (rather than 404). Discover the exact ref first, then choose
+            // create or update explicitly instead of interpreting error codes.
+            const matches = await github.rest.git.listMatchingRefs({
+              owner, repo, ref
+            });
+            const existing = matches.data.find(
+              item => item.ref === 'refs/' + ref
+            );
+
+            if (existing) {
               await github.rest.git.updateRef({
                 owner, repo, ref, sha: context.sha, force: true
               });
-            } catch (error) {
-              if (error.status !== 404) throw error;
+            } else {
               await github.rest.git.createRef({
                 owner, repo, ref: 'refs/' + ref, sha: context.sha
               });
