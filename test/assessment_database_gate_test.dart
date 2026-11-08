@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:padalab_android/data/database/assessment_database.dart';
 import 'package:padalab_android/data/security/database_key_provider.dart';
 import 'package:padalab_android/features/assessment/domain/models/session_allocation.dart';
+import 'package:padalab_android/features/assessment/domain/models/study_item.dart';
 
 import 'helpers/test_item_bank.dart';
 
@@ -22,6 +23,50 @@ class _CountingSecureStore implements SecureKeyValueStore {
 }
 
 void main() {
+
+  test('closed field gate rejects trial writes before database/key access', () async {
+    final secureStore = _CountingSecureStore();
+    final database = AssessmentDatabase(
+      keyProvider: DatabaseKeyProvider(store: secureStore),
+    );
+
+    const planned = PlannedTrial(
+      ordinal: 1,
+      phase: TrialPhase.test,
+      phaseTrialNumber: 1,
+      item: StudyItem(
+        id: 'REAL-001',
+        text: 'ಮನೆ',
+        type: StudyItemType.realWord,
+      ),
+    );
+
+    await expectLater(
+      database.beginTrial(
+        sessionUuid: 'TEST-SESSION',
+        plannedTrial: planned,
+        shownAt: DateTime(2026, 11, 8, 10),
+        appVersion: '0.1.0+1',
+        itemBankVersion: 'TEST-BANK',
+      ),
+      throwsA(isA<StateError>()),
+    );
+
+    await expectLater(
+      database.completeTrial(
+        trialUuid: 'TEST-TRIAL',
+        response: 'word',
+        reactionTimeMs: 250,
+        answeredAt: DateTime(2026, 11, 8, 10, 0, 0, 250),
+      ),
+      throwsA(isA<StateError>()),
+    );
+
+    expect(secureStore.readCalls, 0);
+    expect(secureStore.writeCalls, 0);
+    await database.close();
+  });
+
   test('closed field gate rejects session before database/key access', () async {
     final bank = createValidTestItemBank();
     final manifest = SessionAllocation(
