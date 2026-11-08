@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-OUTPUT_DIR="\${1:-build/web}"
-INDEX_FILE="\${OUTPUT_DIR}/index.html"
-MANIFEST_FILE="\${OUTPUT_DIR}/manifest.json"
+OUTPUT_DIR="${1:-build/web}"
+INDEX_FILE="${OUTPUT_DIR}/index.html"
+MANIFEST_FILE="${OUTPUT_DIR}/manifest.json"
 
-if [[ ! -s "\${INDEX_FILE}" || ! -s "\${MANIFEST_FILE}" ]]; then
-  echo "Flutter Web output is incomplete; expected index.html and manifest.json in \${OUTPUT_DIR}" >&2
+if [[ ! -s "${INDEX_FILE}" || ! -s "${MANIFEST_FILE}" ]]; then
+  echo "Flutter Web output is incomplete; expected index.html and manifest.json in ${OUTPUT_DIR}" >&2
   exit 1
 fi
 
-python3 - "\${INDEX_FILE}" "\${MANIFEST_FILE}" <<'PY'
+python3 - "${INDEX_FILE}" "${MANIFEST_FILE}" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -81,7 +81,7 @@ manifest_path.write_text(
 )
 PY
 
-python3 - "\${OUTPUT_DIR}" <<'PY'
+python3 - "${OUTPUT_DIR}" <<'PY'
 import json
 import os
 import re
@@ -119,7 +119,7 @@ release = {
 )
 PY
 
-python3 - "\${OUTPUT_DIR}" <<'PY'
+python3 - "${OUTPUT_DIR}" <<'PY'
 import hashlib
 import json
 import sys
@@ -225,10 +225,10 @@ if 'navigator.serviceWorker.register("/service-worker.js"' not in html:
 index.write_text(html, encoding="utf-8")
 PY
 
-test -s "\${OUTPUT_DIR}/service-worker.js"
-test -s "\${OUTPUT_DIR}/app-release.json"
-python3 -m json.tool "\${MANIFEST_FILE}" >/dev/null
-python3 -m json.tool "\${OUTPUT_DIR}/app-release.json" >/dev/null
-python3 scripts/deploy/validate_flutter_web_output.py "\${OUTPUT_DIR}"
+test -s "${OUTPUT_DIR}/service-worker.js"
+test -s "${OUTPUT_DIR}/app-release.json"
+python3 -m json.tool "${MANIFEST_FILE}" >/dev/null
+python3 -m json.tool "${OUTPUT_DIR}/app-release.json" >/dev/null
+python3 scripts/deploy/validate_flutter_web_output.py "${OUTPUT_DIR}"
 
-echo "Configured PadLab offline PWA metadata and manual update flow in \${OUTPUT_DIR}"
+echo "Configured PadLab offline PWA metadata and manual update flow in ${OUTPUT_DIR}"
