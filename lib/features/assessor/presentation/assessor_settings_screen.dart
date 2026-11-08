@@ -365,15 +365,15 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
       child: Column(
         children: <Widget>[
           _statusLine(
-            label: 'Android database',
-            value: 'SQLCipher foundation present',
+            label: 'SQLCipher implementation',
+            value: 'Code and host tests present',
             good: true,
           ),
           const SizedBox(height: 9),
           _statusLine(
-            label: 'Database key',
-            value: 'Android secure-storage integration',
-            good: true,
+            label: 'Secure key storage',
+            value: 'Integration present; tablet test pending',
+            good: false,
           ),
           const SizedBox(height: 9),
           _statusLine(
@@ -407,19 +407,27 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
     return _sectionCard(
       icon: Icons.policy_outlined,
       title: 'Protocol baseline',
-      subtitle: StudyProtocol.requirementsVersion,
+      subtitle: StudyProtocol.requirementsVersion +
+          ' · not approved for field use',
       child: Column(
         children: <Widget>[
+          const _Notice(
+            text: 'These values are transcribed requirements only. The study ' 
+                'team has not approved the final session count, item allocation, ' 
+                'stimulus timing or reward policy. They must not be used to ' 
+                'administer a participant assessment.',
+          ),
+          const SizedBox(height: 14),
           _statusLine(
             label: 'Sessions',
             value: StudyProtocol.sessionCount.toString(),
-            good: true,
+            good: false,
           ),
           const SizedBox(height: 9),
           _statusLine(
             label: 'Presentations per session',
             value: StudyProtocol.presentationsPerSession.toString(),
-            good: true,
+            good: false,
           ),
           const SizedBox(height: 9),
           _statusLine(
@@ -428,14 +436,14 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
                 ' practice + ' +
                 StudyProtocol.testPresentationsPerSession.toString() +
                 ' test',
-            good: true,
+            good: false,
           ),
           const SizedBox(height: 9),
           _statusLine(
             label: 'Stimulus duration',
             value: StudyProtocol.stimulusDisplayDuration.inSeconds.toString() +
                 ' seconds',
-            good: true,
+            good: false,
           ),
           const SizedBox(height: 9),
           _statusLine(
@@ -443,7 +451,7 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
             value: 'Every ' +
                 StudyProtocol.rewardIntervalAnswers.toString() +
                 ' answers',
-            good: true,
+            good: false,
           ),
           const SizedBox(height: 10),
           const _Notice(
