@@ -361,19 +361,19 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
     return _sectionCard(
       icon: Icons.security_outlined,
       title: 'Data protection and storage',
-      subtitle: 'Android private storage · encrypted SQLite',
+      subtitle: 'Engineering foundations · field-device acceptance pending',
       child: Column(
         children: <Widget>[
           _statusLine(
             label: 'Android database',
-            value: 'SQLCipher foundation present',
-            good: true,
+            value: 'SQLCipher foundation; tablet validation pending',
+            good: false,
           ),
           const SizedBox(height: 9),
           _statusLine(
             label: 'Database key',
-            value: 'Android secure-storage integration',
-            good: true,
+            value: 'Secure-storage adapter; device acceptance pending',
+            good: false,
           ),
           const SizedBox(height: 9),
           _statusLine(
@@ -388,15 +388,13 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
             good: false,
           ),
           const SizedBox(height: 10),
-          const Text(
-            'The field build must keep participant information on the tablet. '
-            'No analytics, crash upload, cloud sync or remote research API is '
-            'configured in this application.',
-            style: TextStyle(
-              color: AppTheme.muted,
-              fontSize: 12,
-              height: 1.5,
-            ),
+          const _Notice(
+            text: 'The database and key-storage code are engineering foundations, '
+                'not proof of acceptance on the study tablet. Device reboot, '
+                'offline recovery, backup/restore, retention and device-loss '
+                'procedures still require testing and institutional approval. '
+                'No analytics, crash upload, cloud sync or remote research API '
+                'is configured in this application.',
           ),
         ],
       ),
@@ -406,20 +404,21 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
   Widget _protocolCard() {
     return _sectionCard(
       icon: Icons.policy_outlined,
-      title: 'Protocol baseline',
-      subtitle: StudyProtocol.requirementsVersion,
+      title: 'Unapproved protocol transcription',
+      subtitle: StudyProtocol.requirementsVersion + ' · not a signed protocol',
       child: Column(
         children: <Widget>[
           _statusLine(
-            label: 'Sessions',
-            value: StudyProtocol.sessionCount.toString(),
-            good: true,
+            label: 'Session count',
+            value: StudyProtocol.sessionCount.toString() + ' · unapproved baseline',
+            good: false,
           ),
           const SizedBox(height: 9),
           _statusLine(
             label: 'Presentations per session',
-            value: StudyProtocol.presentationsPerSession.toString(),
-            good: true,
+            value: StudyProtocol.presentationsPerSession.toString() +
+                ' · interpretation disputed',
+            good: false,
           ),
           const SizedBox(height: 9),
           _statusLine(
@@ -427,29 +426,31 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
             value: StudyProtocol.practicePresentationsPerSession.toString() +
                 ' practice + ' +
                 StudyProtocol.testPresentationsPerSession.toString() +
-                ' test',
-            good: true,
+                ' test · unapproved',
+            good: false,
           ),
           const SizedBox(height: 9),
           _statusLine(
             label: 'Stimulus duration',
             value: StudyProtocol.stimulusDisplayDuration.inSeconds.toString() +
-                ' seconds',
-            good: true,
+                ' seconds · unapproved',
+            good: false,
           ),
           const SizedBox(height: 9),
           _statusLine(
             label: 'Reward interval',
             value: 'Every ' +
                 StudyProtocol.rewardIntervalAnswers.toString() +
-                ' answers',
-            good: true,
+                ' answers · conflicting proposal exists',
+            good: false,
           ),
           const SizedBox(height: 10),
           const _Notice(
-            text: 'The requirements document says the visit schedule is to be '
-                'finalised with the study team. Session scheduling, allocation '
-                'and other protocol rules must be approved before administration.',
+            text: 'A separate study interpretation specifies 90 scored trials '
+                'per block, while this transcription specifies 90 total '
+                'presentations including five practice trials. Reward cadence '
+                'also conflicts. The PI/statistician must approve one protocol '
+                'in writing before any trial engine or allocation is enabled.',
           ),
         ],
       ),
