@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:padalab_android/features/assessment/data/bundled_item_catalog.dart';
 
@@ -26,6 +27,52 @@ void main() {
       'C_suffix_prefix': 67,
       'D_prefix_suffix': 67,
     });
+  });
+
+
+  test('rejects duplicate source-word column names', () async {
+    final source = await rootBundle.loadString(BundledItemCatalog.realWordsAsset);
+    final summary = await rootBundle.loadString(BundledItemCatalog.nonWordSummaryAsset);
+    final duplicateHeader = source.replaceFirst('"transcription"', '"word"');
+
+    expect(
+      () => BundledItemCatalog.parse(
+        csvText: duplicateHeader,
+        nonWordSummaryJson: summary,
+      ),
+      throwsFormatException,
+    );
+  });
+
+  test('rejects missing required metadata in an otherwise valid row', () async {
+    final source = await rootBundle.loadString(BundledItemCatalog.realWordsAsset);
+    final summary = await rootBundle.loadString(BundledItemCatalog.nonWordSummaryAsset);
+    final missingTranscription = source.replaceFirst(
+      '"ಹೂ","huu","flower","noun"',
+      '"ಹೂ","","flower","noun"',
+    );
+
+    expect(
+      () => BundledItemCatalog.parse(
+        csvText: missingTranscription,
+        nonWordSummaryJson: summary,
+      ),
+      throwsFormatException,
+    );
+  });
+
+  test('rejects malformed numeric source metadata instead of dropping it', () async {
+    final source = await rootBundle.loadString(BundledItemCatalog.realWordsAsset);
+    final summary = await rootBundle.loadString(BundledItemCatalog.nonWordSummaryAsset);
+    final malformedAoA = source.replaceFirst(',2.12,1,2,1', ',not-a-number,1,2,1');
+
+    expect(
+      () => BundledItemCatalog.parse(
+        csvText: malformedAoA,
+        nonWordSummaryJson: summary,
+      ),
+      throwsFormatException,
+    );
   });
 
   test('retains the source word metadata distributions', () async {
