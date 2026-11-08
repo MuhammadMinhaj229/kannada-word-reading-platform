@@ -87,9 +87,17 @@ class BundledItemCatalog {
     final headers = rows.first
         .map((value) => value.toString().trim().toLowerCase())
         .toList(growable: false);
-    final indexes = <String, int>{
-      for (var i = 0; i < headers.length; i += 1) headers[i]: i,
-    };
+    final indexes = <String, int>{};
+    for (var i = 0; i < headers.length; i += 1) {
+      final header = headers[i];
+      if (header.isEmpty) {
+        throw const FormatException('The source-word file contains an empty column name.');
+      }
+      if (indexes.containsKey(header)) {
+        throw FormatException('The source-word file contains a duplicate column: ' + header + '.');
+      }
+      indexes[header] = i;
+    }
     const required = <String>[
       'word',
       'transcription',
@@ -106,8 +114,8 @@ class BundledItemCatalog {
     }
 
     String value(List<dynamic> row, String column) {
-      final index = indexes[column]!;
-      if (index >= row.length) return '';
+      final index = indexes[column];
+      if (index == null || index >= row.length) return '';
       return row[index]?.toString().trim() ?? '';
     }
 
@@ -116,17 +124,52 @@ class BundledItemCatalog {
 
     final words = <KannadaSourceWord>[];
     final uniqueWords = <String>{};
-    for (final row in rows.skip(1)) {
+    for (var rowIndex = 1; rowIndex < rows.length; rowIndex += 1) {
+      final row = rows[rowIndex];
       if (row.every((cell) => cell == null || cell.toString().trim().isEmpty)) {
         continue;
       }
 
-      final text = value(row, 'word');
-      if (text.isEmpty) {
-        throw const FormatException('A source-word row has an empty Kannada word.');
+      final rowNumber = rowIndex + 1;
+      for (final column in required) {
+        if (value(row, column).isEmpty) {
+          throw FormatException(
+            'Source-word row ' + rowNumber.toString() +
+            ' is missing required metadata: ' + column + '.',
+          );
+        }
       }
+
+      final text = value(row, 'word');
       if (!uniqueWords.add(text)) {
         throw FormatException('Duplicate Kannada source word: ' + text);
+      }
+
+      final meanAoARaw = value(row, 'mean_aoa');
+      final syllablesRaw = value(row, 'syllables');
+      final phonemesRaw = value(row, 'phonemes');
+      final morphemesRaw = value(row, 'morphemes');
+
+      final meanAoA = meanAoARaw.isEmpty ? null : doubleValue(meanAoARaw);
+      final syllables = syllablesRaw.isEmpty ? null : integerValue(syllablesRaw);
+      final phonemes = phonemesRaw.isEmpty ? null : integerValue(phonemesRaw);
+      final morphemes = morphemesRaw.isEmpty ? null : integerValue(morphemesRaw);
+
+      if (meanAoARaw.isNotEmpty && (meanAoA == null || meanAoA < 0)) {
+        throw FormatException('Invalid mean_AoA in source-word row ' + rowNumber.toString() + '.');
+      }
+      for (final entry in <String, int?>{
+        'syllables': syllables,
+        'phonemes': phonemes,
+        'morphemes': morphemes,
+      }.entries) {
+        if (entry.value == null && value(row, entry.key).isNotEmpty ||
+            entry.value != null && entry.value! < 1) {
+          throw FormatException(
+            'Invalid ' + entry.key + ' value in source-word row ' +
+            rowNumber.toString() + '.',
+          );
+        }
       }
 
       final ordinal = words.length + 1;
@@ -138,10 +181,10 @@ class BundledItemCatalog {
         partOfSpeech: value(row, 'pos'),
         ageBand: value(row, 'age band'),
         aksharaType: value(row, 'akshara type'),
-        meanAgeOfAcquisition: doubleValue(value(row, 'mean_aoa')),
-        syllables: integerValue(value(row, 'syllables')),
-        phonemes: integerValue(value(row, 'phonemes')),
-        morphemes: integerValue(value(row, 'morphemes')),
+        meanAgeOfAcquisition: meanAoA,
+        syllables: syllables,
+        phonemes: phonemes,
+        morphemes: morphemes,
       ));
     }
 

@@ -23,10 +23,11 @@ import 'active_session_snapshot.dart';
 class AssessmentDatabase {
   AssessmentDatabase({
     DatabaseKeyProvider? keyProvider,
-    this._releaseGate = AssessmentReleaseGate.current,
+    AssessmentReleaseAuthorization? releaseGate,
     sqlcipher_api.DatabaseFactory? factory,
     Future<String> Function()? databasesPathProvider,
   })  : _keyProvider = keyProvider ?? DatabaseKeyProvider(),
+        _releaseGate = releaseGate ?? AssessmentReleaseGate.current,
         _databaseFactory = factory ?? databaseFactory,
         _databasesPathProvider = databasesPathProvider ?? getDatabasesPath;
 
@@ -38,7 +39,7 @@ class AssessmentDatabase {
   static const Uuid _uuid = Uuid();
 
   final DatabaseKeyProvider _keyProvider;
-  final AssessmentReleaseGate _releaseGate;
+  final AssessmentReleaseAuthorization _releaseGate;
   final sqlcipher_api.DatabaseFactory _databaseFactory;
   final Future<String> Function() _databasesPathProvider;
 
@@ -530,6 +531,12 @@ class AssessmentDatabase {
     required String appVersion,
     required String itemBankVersion,
   }) async {
+    if (!_releaseGate.isOpen) {
+      throw StateError(
+        'Trial presentation is locked until the signed field-release '
+        'authorization is verified: ${_releaseGate.blockers.join(' ')}',
+      );
+    }
     final db = await database;
     final trialUuid = _uuid.v4();
 
@@ -606,6 +613,12 @@ class AssessmentDatabase {
     required int? reactionTimeMs,
     required DateTime? answeredAt,
   }) async {
+    if (!_releaseGate.isOpen) {
+      throw StateError(
+        'Trial response persistence is locked until the signed field-release '
+        'authorization is verified: ${_releaseGate.blockers.join(' ')}',
+      );
+    }
     if (response != 'word' && response != 'nonword' && response != 'none') {
       throw ArgumentError.value(response, 'response');
     }
