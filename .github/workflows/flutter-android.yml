@@ -160,7 +160,7 @@ jobs:
           stat --printf='ARM64 debug APK size: %s bytes\n' "$APK"
 
       - name: Upload ARM64 Android debug APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: padalab-android-arm64-debug-apk
           path: |
@@ -170,7 +170,7 @@ jobs:
           retention-days: 14
 
       - name: Upload Flutter Web validation build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: padalab-flutter-web-preview
           path: build/web/
