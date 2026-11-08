@@ -27,6 +27,7 @@ class AssessmentDatabase {
     sqlcipher_api.DatabaseFactory? factory,
     Future<String> Function()? databasesPathProvider,
   })  : _keyProvider = keyProvider ?? DatabaseKeyProvider(),
+        _releaseGate = releaseGate ?? AssessmentReleaseGate.current,
         _databaseFactory = factory ?? databaseFactory,
         _databasesPathProvider = databasesPathProvider ?? getDatabasesPath;
 
