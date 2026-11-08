@@ -6,6 +6,7 @@ void main() {
   final shownAt = DateTime.utc(2026, 11, 4, 12, 30);
 
   TrialRecord fixture({
+    int ordinal = 1,
     String phase = 'test',
     String? response = 'word',
     bool? correct = true,
@@ -14,6 +15,7 @@ void main() {
     return TrialRecord(
       trialUuid: 'trial-001',
       sessionUuid: 'session-001',
+      ordinal: ordinal,
       phase: phase,
       trialNumber: 1,
       itemId: 'W001',
@@ -39,10 +41,13 @@ void main() {
 
     expect(row['item_id'], 'W001');
     expect(row['item_text'], 'ಕಮಲ');
+    expect(row['ordinal'], 1);
+    expect(row['phase'], 'test');
     expect(row['item_type'], 'word');
     expect(row['response'], 'word');
     expect(row['correct'], 1);
     expect(row['rt_ms'], 742);
+    expect(row['status'], 'answered');
     expect(row['shown_at'], shownAt.toIso8601String());
   });
 
@@ -57,6 +62,7 @@ void main() {
     expect(row['correct'], isNull);
     expect(row['rt_ms'], isNull);
     expect(row['answered_at'], isNull);
+    expect(row['status'], 'no_response');
   });
 
   test('rejects invalid trial phases', () {
@@ -64,6 +70,50 @@ void main() {
       () => fixture(phase: 'scored').toDatabaseMap(),
       throwsArgumentError,
     );
+  });
+
+
+  test('serializes an unanswered presentation with the database status', () {
+    final row = fixture(
+      response: null,
+      correct: null,
+      reactionTimeMs: null,
+    ).toDatabaseMap();
+
+    expect(row['status'], 'presented');
+    expect(row['response'], isNull);
+    expect(row['rt_ms'], isNull);
+    expect(row['answered_at'], isNull);
+  });
+
+  test('rejects an invalid global manifest ordinal', () {
+    expect(
+      () => fixture(ordinal: 0).toDatabaseMap(),
+      throwsArgumentError,
+    );
+  });
+
+  test('rejects an answer timestamp before the stimulus timestamp', () {
+    final invalid = TrialRecord(
+      trialUuid: 'trial-001',
+      sessionUuid: 'session-001',
+      ordinal: 1,
+      phase: 'test',
+      trialNumber: 1,
+      itemId: 'W001',
+      itemText: 'ಕಮಲ',
+      itemType: 'word',
+      shownAt: shownAt,
+      answeredAt: shownAt.subtract(const Duration(milliseconds: 1)),
+      response: 'word',
+      correct: true,
+      reactionTimeMs: 1,
+      coinsSoFar: 0,
+      appVersion: '0.1.0',
+      itemBankVersion: 'pending',
+    );
+
+    expect(() => invalid.toDatabaseMap(), throwsArgumentError);
   });
 
   test('serializes local timestamps with an explicit UTC offset', () {
