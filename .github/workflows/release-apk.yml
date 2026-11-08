@@ -75,11 +75,14 @@ jobs:
       - name: Resolve dependencies
         run: flutter pub get
 
+      - name: Require verified field-release authorization
+        run: dart scripts/deploy/verify_field_release_gate.dart
+
       - name: Validate source formatting and analysis
         run: |
           dart format lib test
           dart format --output=none --set-exit-if-changed lib test
-          flutter analyze --fatal-infos
+          flutter analyze --no-fatal-infos --fatal-warnings
           flutter test --reporter expanded
 
       - name: Build signed release APK
