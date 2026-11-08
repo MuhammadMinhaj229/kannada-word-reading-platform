@@ -3,7 +3,7 @@
 **Application:** Flutter / Dart  
 **Field target:** offline-first Android tablets  
 **Browser target:** read-only review build on Vercel  
-**Current branch:** `feat/flutter-android-foundation`  
+**Current branch:** `main`  
 **Release state:** engineering candidate; participant release gate remains closed
 
 ## Product architecture
@@ -103,7 +103,7 @@ bash scripts/deploy/configure_flutter_web.sh build/web
 - Output directory: `build/web`
 - Flutter SDK: pinned in `.flutter-version`
 
-Feature-branch pushes create Vercel previews. The configured production branch remains `main`; the Flutter migration is still under PR #2 and has not been promoted to production. The service-worker cache identity is derived from both asset paths and file contents. The web build is no-index and does not accept participant details.
+The Flutter application was merged into `main` by PR #2 on 7 November 2026. `main` is the single working/production source branch. The production Vercel deployment was built from merge commit `85a05c229be430a9bc53d600d9db79c18a3bcddf` and reached `READY`; the canonical review URL is https://kannada-word-reading-platform.vercel.app/. The Vercel browser build is an SSO-protected, no-index, read-only review surface and must not be used for participant data entry. Feature-branch previews may still be generated for controlled review. The service-worker cache identity is derived from both asset paths and file contents.
 
 ## Android APK distribution
 
@@ -120,18 +120,14 @@ Create a reviewed tag such as `padalab-v0.1.0` to publish a signed APK and SHA-2
 
 See [Android installation and compatibility](docs/android-installation.md).
 
-## Research protocol baseline
+## Research protocol status — awaiting written sign-off
 
-The requirements baseline records:
+The current `StudyProtocol` constants mirror one interpretation of the 2 Nov 2026 requirements: six sessions, 90 total presentations per session (five practice + 85 test), a 10-second stimulus display and a reward interval every ten answers. These constants are a requirements transcription, **not evidence of PI/statistician approval**.
 
-- 270 real words and 270 non-word candidates
-- Six sessions
-- 90 presentations per session: five practice and 85 test
-- Ten-second stimulus display
-- Reward interval specified as every ten answers
+The repository also records a conflicting 90-scored-trial interpretation (45 real words + 45 non-words per block) and an older 77-scored-trial proposal (45 real + 32 non-words, plus five provisional practice items). The reward interval also appears as every five completed scored trials in an earlier decision note. No interpretation has been selected as final.
 
-The source requirements say the visit schedule must be finalised with the study team. The final allocation/order, timeout/no-response rule, practice-item sourcing, reward behavior, repeat/restart rules and same-day policy must be approved in writing. The application must not infer these rules.
-
+Do not change the trial engine, generate frozen session allocations or administer the task until the PI/statistician resolves the conflicts in writing. The decision register and sign-off checklist are in [protocol decisions](docs/protocol-decisions.md). The participant workflow remains disabled.
+ 
 ## Kannada instruction audio
 
 The application uses bundled, offline recordings only. Device text-to-speech is not used as a participant fallback. The supplied 12-minute source recording has not yet been transcribed, segmented into the required instruction clips and linked to a written PHFI/CDLR approval reference. The app's audio manifest therefore remains closed until approved clips are added and validated on the target tablet.
