@@ -214,6 +214,46 @@ main_activity.set(attr("exported"), "true")
 tree.write(manifest_path, encoding="utf-8", xml_declaration=True)
 PY
 
+# Pin the generated Gradle wrapper to Gradle's direct distribution CDN and
+# verify the archive before Gradle executes it. The standard services.gradle.org
+# URL redirected this CI runner to a GitHub release asset that returned 504;
+# downloads.gradle-dn.com is also an official Gradle distribution host.
+WRAPPER_PROPERTIES="android/gradle/wrapper/gradle-wrapper.properties"
+if [[ ! -s "${WRAPPER_PROPERTIES}" ]]; then
+  echo "Generated Android Gradle wrapper properties are missing." >&2
+  exit 1
+fi
+python3 - "${WRAPPER_PROPERTIES}" <<'PY'
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+properties = {
+    "distributionBase": "GRADLE_USER_HOME",
+    "distributionPath": "wrapper/dists",
+    "distributionUrl": (
+        r"https\://downloads.gradle-dn.com/distributions/gradle-9.3.1-bin.zip"
+    ),
+    "distributionSha256Sum": (
+        "b266d5ff6b90eada6dc3b20cb090e3731302e553a27c5d3e4df1f0d76beaff06"
+    ),
+    "networkTimeout": "120000",
+    "retries": "3",
+    "retryBackOffMs": "1000",
+    "zipStoreBase": "GRADLE_USER_HOME",
+    "zipStorePath": "wrapper/dists",
+}
+
+path.write_text(
+    "".join(f"{key}={value}\n" for key, value in properties.items()),
+    encoding="utf-8",
+)
+PY
+
+grep -Fq 'distributionUrl=https\://downloads.gradle-dn.com/distributions/gradle-9.3.1-bin.zip' "${WRAPPER_PROPERTIES}"
+grep -Fq 'distributionSha256Sum=b266d5ff6b90eada6dc3b20cb090e3731302e553a27c5d3e4df1f0d76beaff06' "${WRAPPER_PROPERTIES}"
+grep -Fq 'retries=3' "${WRAPPER_PROPERTIES}"
+
 mkdir -p android/app
 cat > android/app/proguard-rules.pro <<'RULES'
 # SQLCipher uses reflective/native entry points. Keep these classes intact
