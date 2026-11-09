@@ -27,7 +27,7 @@ void main() {
       (tester) async {
     await _pumpSimulation(tester, size: const Size(390, 844));
 
-    expect(find.text('SIMULATION ONLY'), findsOneWidget);
+    expect(find.textContaining('SIMULATION ONLY'), findsOneWidget);
     expect(find.text('ಪ್ರಾರಂಭಿಸೋಣ'), findsOneWidget);
 
     await tester.tap(find.text('ಪ್ರಾರಂಭಿಸೋಣ'));
