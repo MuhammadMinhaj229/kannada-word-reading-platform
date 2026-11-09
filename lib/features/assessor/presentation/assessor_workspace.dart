@@ -41,10 +41,10 @@ class _AssessorWorkspaceState extends State<AssessorWorkspace> {
         final wide = constraints.maxWidth >= 900;
         final pages = IndexedStack(
           index: _selectedIndex,
-          children: const <Widget>[
-            AssessorHomeScreen(),
-            ChildTaskSimulationScreen(),
-            AssessorSettingsScreen(),
+          children: <Widget>[
+            const AssessorHomeScreen(),
+            ChildTaskSimulationScreen(isActive: _selectedIndex == 1),
+            const AssessorSettingsScreen(),
           ],
         );
 
