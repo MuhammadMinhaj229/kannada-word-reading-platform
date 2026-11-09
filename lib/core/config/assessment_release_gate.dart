@@ -1,17 +1,10 @@
-/// Interface used by the persistence boundary so every participant-data
-/// mutation can be tested with an explicit test authorizer.
-abstract interface class AssessmentReleaseAuthorization {
-  bool get isOpen;
-  List<String> get blockers;
-}
-
 /// Fail-closed field-release gate.
 ///
 /// This branch intentionally exposes no constructor that can open the gate.
 /// A future release must add a reviewed signature verifier tied to a study-team
 /// public key and a signed, versioned release manifest. Setting booleans or
 /// supplying reference strings in application code must never unlock a study.
-class AssessmentReleaseGate implements AssessmentReleaseAuthorization {
+class AssessmentReleaseGate {
   const AssessmentReleaseGate._();
 
   static const current = AssessmentReleaseGate._();
@@ -38,9 +31,7 @@ class AssessmentReleaseGate implements AssessmentReleaseAuthorization {
     'A signed field-release approval manifest is not present.',
   ];
 
-  @override
   bool get isOpen => false;
 
-  @override
   List<String> get blockers => _blockers;
 }
