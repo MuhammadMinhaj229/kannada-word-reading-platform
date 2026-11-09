@@ -3,7 +3,7 @@
 ## Source, CI and deployments
 
 - `main` is the production source branch.
-- Latest main commit: `c25aa723ffd2fa4dbafc14c3fd7b0b4372179511`.
+- Latest main commit: `213447aaab293d620876876815c41413fce10144`.
 - PR #9 merged on 8 November 2026: [Fix engineering preview publication and protocol readiness UX](https://github.com/MuhammadMinhaj229/kannada-word-reading-platform/pull/9).
 - Main-branch workflow run #42473020877 completed successfully. Formatting, static analysis, all 65 unit/widget tests, ARM64 Android debug build, Flutter Web build, Web metadata checks, APK verification and both validation artifact uploads passed.
 - The workflow published/updated the stable prerelease tag `padalab-preview` at the same commit as `main`.
