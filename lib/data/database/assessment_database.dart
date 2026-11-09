@@ -718,6 +718,13 @@ class AssessmentDatabase {
   }
 
   Future<void> markInterrupted(String sessionUuid) async {
+    if (!_releaseGate.isOpen) {
+      throw StateError(
+        'Session interruption persistence is locked until the signed '
+        'field-release authorization is verified: '
+        '${_releaseGate.blockers.join(' ')}',
+      );
+    }
     final db = await database;
     final updated = await db.update(
       'sessions',
