@@ -1,10 +1,10 @@
-# Repository and field-readiness status — 8 November 2026
+# Repository and field-readiness status — 9 November 2026
 
 ## Source, CI and deployments
 
 - `main` is the production source branch.
-- Latest main commit: `c25aa723ffd2fa4dbafc14c3fd7b0b4372179511`.
-- PR #9 merged on 8 November 2026: [Fix engineering preview publication and protocol readiness UX](https://github.com/MuhammadMinhaj229/kannada-word-reading-platform/pull/9).
+- Latest main commit: `594c84ca535cf3c25277bf1dc0d5ecb9ea2b59cf`.
+- PR #9 merged on 8 November 2026: [Fix engineering preview publication and protocol readiness UX](https://github.com/MuhammadMinhaj229/kannada-word-reading-platform/pull/9).\n- PR #11 merged on 9 November 2026: [Harden trial persistence, item-bank validation and signed release gate](https://github.com/MuhammadMinhaj229/kannada-word-reading-platform/pull/11). The database authorization boundary is now bound to the private, fail-closed release gate; item-bank/trial validation and Gradle checksum pinning were added.
 - Main-branch workflow run #42473020877 completed successfully. Formatting, static analysis, all 65 unit/widget tests, ARM64 Android debug build, Flutter Web build, Web metadata checks, APK verification and both validation artifact uploads passed.
 - The workflow published/updated the stable prerelease tag `padalab-preview` at the same commit as `main`.
 - [Stable Android engineering-preview release](https://github.com/MuhammadMinhaj229/kannada-word-reading-platform/releases/tag/padalab-preview) contains `padalab-android-arm64-debug.apk` and its `.sha256` checksum.
@@ -24,13 +24,14 @@
 - CI validation for formatting, static analysis, unit/widget tests, Android ARM64 debug APK and Flutter Web.
 - Stable engineering-preview APK publication with exact tag discovery/update and checksum upload.
 - Assessor UI now labels protocol figures as unapproved baselines; release blockers remain visible.
+- Child-facing Task preview added for QA: 5 practice + 10 synthetic test cards, no child correctness feedback, response-time capture in memory, neutral 10-answer milestone and separate assessor-only QA results. The stopwatch starts after the stimulus is rendered; app backgrounding or leaving the preview invalidates the run and requires a restart.
 
 ## Protocol and content blockers
 
 - **Protocol not frozen.** The requirements transcription says 6 × 90 total presentations (5 practice + 85 test); another study baseline describes 90 scored per block (45 real + 45 non-word); an older 77-scored proposal is marked planning-only. Reward cadence also conflicts (every 10 answers versus every 5 completed scored trials). See [protocol sign-off register](protocol-decisions.md).
 - **Non-word bank not approved.** 270 candidates remain Pending; 0/270 approved. Native Kannada review and written study-team approval are required.
 - **Instruction audio not approved.** The source recording still needs transcription, segmentation, native-speaker recording/QA and written approval references.
-- **Participant workflow is disabled.** The assessor session UI is not fully integrated with SQLCipher persistence, trusted assessor/supervisor authorization, frozen allocation, trial timing, recovery and audit.
+- **Participant workflow is disabled.** The new child-facing Task preview is a QA simulation only: synthetic fixtures and in-memory responses, with no participant identifiers or SQLCipher writes. It is isolated from the participant database and invalidates a QA run when focus is lost. The production participant flow is still not integrated with SQLCipher persistence, trusted assessor/supervisor authorization, a PI-approved frozen allocation, response/timeout rules, interruption recovery and audit.
 - **Governance/export work is incomplete.** Protected CSV/XLSX export, REDCap mapping, backup/restore, retention/deletion and audit review are not yet accepted.
 - **Target tablet acceptance is pending.** Actual-device offline, audio, Kannada rendering, touch, timing, pause/restart, database recovery, update and battery tests remain.
 - **Institutional Android release signing is pending.** The currently published APK is debug-signed; the institution must approve package/signing ownership and provision a protected production signing key. Managed Play/internal distribution and update policy are not active.
