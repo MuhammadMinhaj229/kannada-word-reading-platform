@@ -32,7 +32,6 @@ void main() {
     expect(find.text('ಪ್ರಾರಂಭಿಸೋಣ'), findsOneWidget);
 
     await tester.ensureVisible(find.text('ಪ್ರಾರಂಭಿಸೋಣ'));
-    await tester.ensureVisible(find.text('ಪ್ರಾರಂಭಿಸೋಣ'));
     await tester.tap(find.text('ಪ್ರಾರಂಭಿಸೋಣ'));
     await tester.pumpAndSettle();
 
@@ -65,6 +64,27 @@ void main() {
     expect(find.textContaining('Incorrect'), findsNothing);
     expect(find.textContaining('ಸರಿಯಾಗಿದೆ'), findsNothing);
     expect(find.textContaining('ತಪ್ಪಾಗಿದೆ'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('stimulus and response controls are available in the first rendered frame',
+      (tester) async {
+    await _pumpSimulation(tester, size: const Size(800, 600));
+
+    await tester.tap(find.text('ಪ್ರಾರಂಭಿಸೋಣ'));
+    await tester.pump();
+
+    expect(find.text('ಕುನಮೆ'), findsOneWidget);
+    final wordChoice = find.widgetWithText(FilledButton, 'ಪದ');
+    expect(tester.widget<FilledButton>(wordChoice).onPressed, isNotNull);
+
+    // The post-frame stopwatch has started by the time the first stimulus
+    // frame completes, so an immediate response is accepted without waiting
+    // for a second frame to enable the choice controls.
+    await tester.tap(wordChoice);
+    await tester.pump();
+
+    expect(find.text('ತೊಪಲಿ'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
