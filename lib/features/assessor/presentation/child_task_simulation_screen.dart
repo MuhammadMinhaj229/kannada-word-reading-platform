@@ -488,19 +488,17 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
               ),
             ],
           ),
+          // Do not animate scored stimulus onset: the response clock starts
+          // after this stable text has completed its first rendered frame.
           child: Center(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 160),
-              child: Text(
-                stimulus.text,
-                key: ValueKey<String>(stimulus.text),
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                      fontSize: 44,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.2,
-                    ),
-              ),
+            child: Text(
+              stimulus.text,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                    fontSize: 44,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.2,
+                  ),
             ),
           ),
         ),
