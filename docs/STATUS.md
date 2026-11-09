@@ -23,7 +23,8 @@
 - Web review build, manual update behavior and service-worker cache fingerprinting.
 - CI validation for formatting, static analysis, unit/widget tests, Android ARM64 debug APK and Flutter Web.
 - Stable engineering-preview APK publication with exact tag discovery/update and checksum upload.
-- Assessor UI now labels protocol figures as unapproved baselines; release blockers remain visible.\n- Child-facing Task preview added for QA: 5 practice + 10 synthetic test cards, no child correctness feedback, response-time capture in memory, neutral 10-answer milestone and separate assessor-only QA results.
+- Assessor UI now labels protocol figures as unapproved baselines; release blockers remain visible.
+- Child-facing Task preview added for QA: 5 practice + 10 synthetic test cards, no child correctness feedback, response-time capture in memory, neutral 10-answer milestone and separate assessor-only QA results.
 
 ## Protocol and content blockers
 
