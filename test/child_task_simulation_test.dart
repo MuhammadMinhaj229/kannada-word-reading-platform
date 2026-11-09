@@ -139,6 +139,16 @@ void main() {
     expect(find.text('Restart QA run'), findsOneWidget);
     expect(find.text('ಪೆಲುಮಿ'), findsNothing);
 
+    // The assessor can interact with the app only after it becomes active.
+    await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+      SystemChannels.lifecycle.name,
+      const StringCodec().encodeMessage(
+        AppLifecycleState.resumed.toString(),
+      ),
+      (_) {},
+    );
+    await tester.pumpAndSettle();
+
     await tester.tap(find.text('Restart QA run'));
     await tester.pumpAndSettle();
 
