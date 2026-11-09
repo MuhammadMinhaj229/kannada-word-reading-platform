@@ -35,16 +35,30 @@ void main() {
     await tester.tap(startButton);
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('ಅಭ್ಯಾಸ'), findsOneWidget);
-    expect(find.textContaining('/ 5'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Text &&
+            widget.data?.startsWith('ಅಭ್ಯಾಸ') == true &&
+            widget.data?.contains('/ 5') == true,
+      ),
+      findsOneWidget,
+    );
     expect(find.text('ಕುನಮೆ'), findsOneWidget);
 
     for (var index = 0; index < 5; index += 1) {
       await _answerWord(tester);
     }
 
-    expect(find.textContaining('ಮುಖ್ಯ ಹಂತ'), findsOneWidget);
-    expect(find.textContaining('/ 10'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Text &&
+            widget.data?.startsWith('ಮುಖ್ಯ ಹಂತ') == true &&
+            widget.data?.contains('/ 10') == true,
+      ),
+      findsOneWidget,
+    );
     expect(find.text('ಪೆಲುಮಿ'), findsOneWidget);
     expect(find.textContaining('Correct'), findsNothing);
     expect(find.textContaining('Incorrect'), findsNothing);
