@@ -52,7 +52,6 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
   bool _showMilestone = false;
   bool _isComplete = false;
   bool _showResults = false;
-  bool _trialReady = false;
   bool _wasInterrupted = false;
 
   _QaStimulus get _currentStimulus => _stimuli[_currentIndex];
@@ -94,16 +93,12 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
     if (!mounted) return;
     setState(() {
       _wasInterrupted = true;
-      _trialReady = false;
     });
   }
 
   void _startSimulation() {
     if (!widget.isActive || _wasInterrupted) return;
-    setState(() {
-      _started = true;
-      _trialReady = false;
-    });
+    setState(() => _started = true);
     _startTrialClockAfterRender();
   }
 
@@ -119,18 +114,19 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
           _showResults) {
         return;
       }
+      // The response controls are already painted with the stimulus. The
+      // handler rejects an early event until this post-frame start occurs,
+      // avoiding an extra frame of latency between stimulus and active input.
       _trialClock
         ..stop()
         ..reset()
         ..start();
-      setState(() => _trialReady = true);
     });
   }
 
   void _recordAnswer(bool selectedWord) {
     if (!widget.isActive ||
         !_started ||
-        !_trialReady ||
         !_trialClock.isRunning ||
         _wasInterrupted ||
         _showMilestone ||
@@ -154,7 +150,6 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
 
     setState(() {
       _currentIndex += 1;
-      _trialReady = false;
       _showMilestone = _responses.length % _milestoneEveryAnswers == 0;
     });
     if (!_showMilestone) {
@@ -173,7 +168,6 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
       _showMilestone = false;
       _isComplete = false;
       _showResults = false;
-      _trialReady = false;
       _wasInterrupted = false;
     });
   }
@@ -525,7 +519,7 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
                 SizedBox(
                   width: width,
                   child: FilledButton(
-                    onPressed: _trialReady ? () => _recordAnswer(true) : null,
+                    onPressed: () => _recordAnswer(true),
                     style: _choiceStyle(),
                     child: const Text('ಪದ'),
                   ),
@@ -533,7 +527,7 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
                 SizedBox(
                   width: width,
                   child: FilledButton(
-                    onPressed: _trialReady ? () => _recordAnswer(false) : null,
+                    onPressed: () => _recordAnswer(false),
                     style: _choiceStyle(),
                     child: const Text('ಪದವಲ್ಲ'),
                   ),
@@ -583,7 +577,6 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
       onAction: () {
         setState(() {
           _showMilestone = false;
-          _trialReady = false;
         });
         _startTrialClockAfterRender();
       },
