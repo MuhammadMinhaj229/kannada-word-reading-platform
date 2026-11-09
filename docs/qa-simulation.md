@@ -10,7 +10,9 @@ The **Task preview** navigation entry launches a fully interactive, non-particip
 - Complete five practice cards, then ten scored QA cards.
 - At ten responses, continue past the neutral milestone.
 - Finish the flow, then open **Assessor results** to inspect the synthetic response key and reaction times.
-- Use **Run again** to reset the simulation.\n- If the app is backgrounded, the browser loses focus, or the assessor leaves **Task preview**, the current QA run is invalidated. Restart it from the beginning so time spent outside the visible stimulus is never counted as reaction time.\n- Reaction-time measurement begins after the stimulus frame has rendered; the answer controls remain disabled until the clock starts.
+- Use **Run again** to reset the simulation.
+- If the app is backgrounded, the browser loses focus, or the assessor leaves **Task preview**, the current QA run is invalidated. Restart it from the beginning so time spent outside the visible stimulus is never counted as reaction time.
+- Reaction-time measurement begins after the stimulus frame has rendered; the answer controls remain disabled until the clock starts.
 
 ## Data boundary
 
