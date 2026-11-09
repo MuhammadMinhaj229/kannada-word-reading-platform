@@ -8,14 +8,18 @@ import '../../../app/app_theme.dart';
 /// widget memory. It never reads the approved item bank, opens the release
 /// gate, creates a participant, or writes to SQLCipher.
 class ChildTaskSimulationScreen extends StatefulWidget {
-  const ChildTaskSimulationScreen({super.key});
+  const ChildTaskSimulationScreen({super.key, this.isActive = true});
+
+  /// False while another assessor workspace tab is visible.
+  final bool isActive;
 
   @override
   State<ChildTaskSimulationScreen> createState() =>
       _ChildTaskSimulationScreenState();
 }
 
-class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen> {
+class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
+    with WidgetsBindingObserver {
   static const int _practiceCount = 5;
   static const int _scoredCount = 10;
   static const int _milestoneEveryAnswers = 10;
@@ -48,31 +52,90 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen> {
   bool _showMilestone = false;
   bool _isComplete = false;
   bool _showResults = false;
+  bool _trialReady = false;
+  bool _wasInterrupted = false;
 
   _QaStimulus get _currentStimulus => _stimuli[_currentIndex];
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didUpdateWidget(covariant ChildTaskSimulationScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isActive && !widget.isActive) {
+      _interruptSimulation();
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      _interruptSimulation();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _trialClock.stop();
     super.dispose();
   }
 
-  void _startSimulation() {
+  void _interruptSimulation() {
+    if (!_started || _isComplete || _showResults || _wasInterrupted) return;
+    _trialClock.stop();
+    if (!mounted) return;
     setState(() {
-      _started = true;
-      _beginTrialClock();
+      _wasInterrupted = true;
+      _trialReady = false;
     });
   }
 
-  void _beginTrialClock() {
-    _trialClock
-      ..stop()
-      ..reset()
-      ..start();
+  void _startSimulation() {
+    if (!widget.isActive || _wasInterrupted) return;
+    setState(() {
+      _started = true;
+      _trialReady = false;
+    });
+    _startTrialClockAfterRender();
+  }
+
+  /// Start RT only after the new stimulus has completed its first frame.
+  void _startTrialClockAfterRender() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted ||
+          !widget.isActive ||
+          !_started ||
+          _wasInterrupted ||
+          _showMilestone ||
+          _isComplete ||
+          _showResults) {
+        return;
+      }
+      _trialClock
+        ..stop()
+        ..reset()
+        ..start();
+      setState(() => _trialReady = true);
+    });
   }
 
   void _recordAnswer(bool selectedWord) {
-    if (!_started || _showMilestone || _isComplete || _showResults) {
+    if (!widget.isActive ||
+        !_started ||
+        !_trialReady ||
+        !_trialClock.isRunning ||
+        _wasInterrupted ||
+        _showMilestone ||
+        _isComplete ||
+        _showResults) {
       return;
     }
 
@@ -91,10 +154,11 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen> {
 
     setState(() {
       _currentIndex += 1;
+      _trialReady = false;
       _showMilestone = _responses.length % _milestoneEveryAnswers == 0;
     });
     if (!_showMilestone) {
-      _beginTrialClock();
+      _startTrialClockAfterRender();
     }
   }
 
@@ -109,6 +173,8 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen> {
       _showMilestone = false;
       _isComplete = false;
       _showResults = false;
+      _trialReady = false;
+      _wasInterrupted = false;
     });
   }
 
@@ -239,6 +305,7 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen> {
   }
 
   Widget _buildStage(BuildContext context) {
+    if (_wasInterrupted) return _buildInterrupted(context);
     if (_showResults) return _buildResults(context);
     if (_isComplete) return _buildCompletion(context);
     if (_showMilestone) return _buildMilestone(context);
@@ -460,7 +527,7 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen> {
                 SizedBox(
                   width: width,
                   child: FilledButton(
-                    onPressed: () => _recordAnswer(true),
+                    onPressed: _trialReady ? () => _recordAnswer(true) : null,
                     style: _choiceStyle(),
                     child: const Text('ಪದ'),
                   ),
@@ -468,7 +535,7 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen> {
                 SizedBox(
                   width: width,
                   child: FilledButton(
-                    onPressed: () => _recordAnswer(false),
+                    onPressed: _trialReady ? () => _recordAnswer(false) : null,
                     style: _choiceStyle(),
                     child: const Text('ಪದವಲ್ಲ'),
                   ),
@@ -518,10 +585,25 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen> {
       onAction: () {
         setState(() {
           _showMilestone = false;
-          _beginTrialClock();
+          _trialReady = false;
         });
+        _startTrialClockAfterRender();
       },
       secondary: 'Neutral progress milestone — QA simulation only.',
+    );
+  }
+
+  Widget _buildInterrupted(BuildContext context) {
+    return _MessagePanel(
+      icon: Icons.pause_circle_outline_rounded,
+      title: 'QA run interrupted',
+      message:
+          'This run was stopped because the task lost focus. '
+          'To keep response-time measurements valid, start a fresh QA run.',
+      actionLabel: 'Restart QA run',
+      onAction: _resetSimulation,
+      secondary: 'Previous responses remain visible only in this temporary '
+          'screen until you restart. Nothing was saved.',
     );
   }
 
