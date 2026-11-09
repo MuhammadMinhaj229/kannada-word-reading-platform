@@ -149,3 +149,10 @@ Implemented on this branch: Flutter application shell, responsive navigation, su
 Not yet complete: assessor/session UI wiring to SQLCipher, child trial presentation and recovery, session history and repeat authorization, approved 540-item bank/allocation manifest, approved Kannada audio clips, protected export/REDCap mapping, tablet integration/acceptance and institution signing-key provisioning.
 
 **The participant release gate intentionally remains closed.** Passing CI or building an APK does not establish ethics approval, linguistic validity, audio approval, data-integrity acceptance or field readiness.
+
+
+## Child task QA simulation
+
+The assessor workspace includes a **Task preview** screen for testing the child-facing Word / Non-word interaction. It runs five practice cards and ten scored QA cards using synthetic placeholder strings, records responses and reaction times only in memory, and exposes the QA key only in the separate assessor results view. It does not use the approved item bank or write participant records. This is an interface/engineering simulation, not a validated study task. See [QA simulation instructions](docs/qa-simulation.md).
+
+The simulation does not change the participant release gate or resolve the outstanding PI/statistician protocol decisions.
