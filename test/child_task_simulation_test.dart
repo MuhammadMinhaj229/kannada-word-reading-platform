@@ -13,63 +13,6 @@ Future<void> _pumpSimulation(WidgetTester tester, {Size? size}) async {
     const MaterialApp(home: ChildTaskSimulationScreen()),
   );
   await tester.pumpAndSettle();
-  testWidgets('discarded when app is backgrounded during a trial',
-      (tester) async {
-    await _pumpSimulation(tester, size: const Size(800, 600));
-
-    await tester.tap(find.text('ಪ್ರಾರಂಭಿಸೋಣ'));
-    await tester.pumpAndSettle();
-    expect(find.text('ಕುನಮೆ'), findsOneWidget);
-
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
-    await tester.pumpAndSettle();
-
-    expect(find.text('QA run interrupted'), findsOneWidget);
-    expect(find.text('Restart QA run'), findsOneWidget);
-    expect(find.text('ಪೆಲುಮಿ'), findsNothing);
-
-    await tester.tap(find.text('Restart QA run'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('ಪ್ರಾರಂಭಿಸೋಣ'), findsOneWidget);
-    expect(find.text('QA run interrupted'), findsNothing);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('discarded when assessor switches away from Task preview',
-      (tester) async {
-    var isActive = true;
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: StatefulBuilder(
-          builder: (context, setParentState) {
-            return ChildTaskSimulationScreen(isActive: isActive);
-          },
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('ಪ್ರಾರಂಭಿಸೋಣ'));
-    await tester.pumpAndSettle();
-    expect(find.text('ಕುನಮೆ'), findsOneWidget);
-
-    // Rebuild the same State with isActive=false, as the IndexedStack does
-    // when the assessor navigates to Assessment or Settings.
-    isActive = false;
-    await tester.pumpWidget(
-      MaterialApp(
-        home: ChildTaskSimulationScreen(isActive: isActive),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('QA run interrupted'), findsOneWidget);
-    expect(find.text('Restart QA run'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
 }
 
 Future<void> _answerWord(WidgetTester tester) async {
@@ -87,9 +30,8 @@ void main() {
     expect(find.textContaining('SIMULATION ONLY'), findsOneWidget);
     expect(find.text('ಪ್ರಾರಂಭಿಸೋಣ'), findsOneWidget);
 
-    final startButton = find.text('ಪ್ರಾರಂಭಿಸೋಣ');
-    await tester.ensureVisible(startButton);
-    await tester.tap(startButton);
+    await tester.ensureVisible(find.text('ಪ್ರಾರಂಭಿಸೋಣ'));
+    await tester.tap(find.text('ಪ್ರಾರಂಭಿಸೋಣ'));
     await tester.pumpAndSettle();
 
     expect(
@@ -159,6 +101,58 @@ void main() {
     expect(find.text('Scored answers'), findsOneWidget);
     expect(find.text('Correct (QA key)'), findsWidgets);
     expect(find.text('Trial-by-trial inspection'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('discards the current run when the app is backgrounded',
+      (tester) async {
+    await _pumpSimulation(tester, size: const Size(800, 600));
+
+    await tester.tap(find.text('ಪ್ರಾರಂಭಿಸೋಣ'));
+    await tester.pumpAndSettle();
+    expect(find.text('ಕುನಮೆ'), findsOneWidget);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pumpAndSettle();
+
+    expect(find.text('QA run interrupted'), findsOneWidget);
+    expect(find.text('Restart QA run'), findsOneWidget);
+    expect(find.text('ಪೆಲುಮಿ'), findsNothing);
+
+    await tester.tap(find.text('Restart QA run'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('ಪ್ರಾರಂಭಿಸೋಣ'), findsOneWidget);
+    expect(find.text('QA run interrupted'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('discards the current run when assessor leaves Task preview',
+      (tester) async {
+    var isActive = true;
+    late StateSetter updateParent;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StatefulBuilder(
+          builder: (context, setState) {
+            updateParent = setState;
+            return ChildTaskSimulationScreen(isActive: isActive);
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('ಪ್ರಾರಂಭಿಸೋಣ'));
+    await tester.pumpAndSettle();
+    expect(find.text('ಕುನಮೆ'), findsOneWidget);
+
+    updateParent(() => isActive = false);
+    await tester.pumpAndSettle();
+
+    expect(find.text('QA run interrupted'), findsOneWidget);
+    expect(find.text('Restart QA run'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
