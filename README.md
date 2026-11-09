@@ -146,7 +146,7 @@ See [audio asset requirements](assets/audio/README.md).
 
 Implemented on this branch: Flutter application shell, responsive navigation, supplied real-word asset and parser, non-word method/review summary, offline audio player service and approval manifest, SQLCipher/database foundations, responsive layout tests, Web service-worker content fingerprinting, and protected signed-APK workflow.
 
-Not yet complete: assessor/session UI wiring to SQLCipher, child trial presentation and recovery, session history and repeat authorization, approved 540-item bank/allocation manifest, approved Kannada audio clips, protected export/REDCap mapping, tablet integration/acceptance and institution signing-key provisioning.
+Not yet complete: production assessor/session UI wiring to SQLCipher, the participant child-trial workflow and recovery, session history and repeat authorization, the PI-approved item bank/allocation manifest, approved Kannada audio clips, protected export/REDCap mapping, tablet integration/acceptance and institution signing-key provisioning. The separate Task preview is a synthetic QA simulation only.
 
 **The participant release gate intentionally remains closed.** Passing CI or building an APK does not establish ethics approval, linguistic validity, audio approval, data-integrity acceptance or field readiness.
 
