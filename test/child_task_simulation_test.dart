@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:padalab_android/features/assessor/presentation/child_task_simulation_screen.dart';
 
@@ -115,7 +116,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('ಕುನಮೆ'), findsOneWidget);
 
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+      SystemChannels.lifecycle.name,
+      const StringCodec().encodeMessage(
+        AppLifecycleState.paused.toString(),
+      ),
+      (_) {},
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('QA run interrupted'), findsOneWidget);
