@@ -98,13 +98,6 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen> {
     }
   }
 
-  void _continueAfterMilestone() {
-    setState(() {
-      _showMilestone = false;
-      _beginTrialClock();
-    });
-  }
-
   void _resetSimulation() {
     _trialClock
       ..stop()
