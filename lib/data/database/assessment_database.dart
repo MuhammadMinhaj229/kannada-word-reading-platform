@@ -23,11 +23,10 @@ import 'active_session_snapshot.dart';
 class AssessmentDatabase {
   AssessmentDatabase({
     DatabaseKeyProvider? keyProvider,
-    AssessmentReleaseAuthorization? releaseGate,
     sqlcipher_api.DatabaseFactory? factory,
     Future<String> Function()? databasesPathProvider,
   })  : _keyProvider = keyProvider ?? DatabaseKeyProvider(),
-        _releaseGate = releaseGate ?? AssessmentReleaseGate.current,
+        _releaseGate = AssessmentReleaseGate.current,
         _databaseFactory = factory ?? databaseFactory,
         _databasesPathProvider = databasesPathProvider ?? getDatabasesPath;
 
@@ -39,7 +38,7 @@ class AssessmentDatabase {
   static const Uuid _uuid = Uuid();
 
   final DatabaseKeyProvider _keyProvider;
-  final AssessmentReleaseAuthorization _releaseGate;
+  final AssessmentReleaseGate _releaseGate;
   final sqlcipher_api.DatabaseFactory _databaseFactory;
   final Future<String> Function() _databasesPathProvider;
 
