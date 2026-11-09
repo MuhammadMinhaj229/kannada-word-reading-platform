@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/app_theme.dart';
 import 'assessor_home_screen.dart';
 import 'assessor_settings_screen.dart';
+import 'child_task_simulation_screen.dart';
 
 /// Shared responsive navigation for Android tablets and browser review.
 class AssessorWorkspace extends StatefulWidget {
@@ -22,6 +23,11 @@ class _AssessorWorkspaceState extends State<AssessorWorkspace> {
       label: 'Assessment',
     ),
     NavigationDestination(
+      icon: Icon(Icons.play_circle_outline_rounded),
+      selectedIcon: Icon(Icons.play_circle_fill_rounded),
+      label: 'Task preview',
+    ),
+    NavigationDestination(
       icon: Icon(Icons.tune_outlined),
       selectedIcon: Icon(Icons.tune_rounded),
       label: 'Settings',
@@ -37,6 +43,7 @@ class _AssessorWorkspaceState extends State<AssessorWorkspace> {
           index: _selectedIndex,
           children: const <Widget>[
             AssessorHomeScreen(),
+            ChildTaskSimulationScreen(),
             AssessorSettingsScreen(),
           ],
         );
@@ -64,6 +71,11 @@ class _AssessorWorkspaceState extends State<AssessorWorkspace> {
                       icon: Icon(Icons.assignment_outlined),
                       selectedIcon: Icon(Icons.assignment_rounded),
                       label: Text('Assessment'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.play_circle_outline_rounded),
+                      selectedIcon: Icon(Icons.play_circle_fill_rounded),
+                      label: Text('Task preview'),
                     ),
                     NavigationRailDestination(
                       icon: Icon(Icons.tune_outlined),
