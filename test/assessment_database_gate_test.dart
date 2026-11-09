@@ -67,6 +67,22 @@ void main() {
     await database.close();
   });
 
+  test('closed field gate rejects interruption writes before database/key access', () async {
+    final secureStore = _CountingSecureStore();
+    final database = AssessmentDatabase(
+      keyProvider: DatabaseKeyProvider(store: secureStore),
+    );
+
+    await expectLater(
+      database.markInterrupted('TEST-SESSION'),
+      throwsA(isA<StateError>()),
+    );
+
+    expect(secureStore.readCalls, 0);
+    expect(secureStore.writeCalls, 0);
+    await database.close();
+  });
+
   test('closed field gate rejects session before database/key access', () async {
     final bank = createValidTestItemBank();
     final manifest = SessionAllocation(
