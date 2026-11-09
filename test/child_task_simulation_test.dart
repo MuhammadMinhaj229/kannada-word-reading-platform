@@ -69,7 +69,7 @@ void main() {
 
   testWidgets('stimulus and response controls are available in the first rendered frame',
       (tester) async {
-    await _pumpSimulation(tester, size: const Size(800, 600));
+    await _pumpSimulation(tester, size: const Size(1280, 900));
 
     await tester.tap(find.text('ಪ್ರಾರಂಭಿಸೋಣ'));
     await tester.pump();
