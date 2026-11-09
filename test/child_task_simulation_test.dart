@@ -116,6 +116,16 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('ಕುನಮೆ'), findsOneWidget);
 
+    // Test bindings may already start in paused state. Drive a complete
+    // resume -> background transition so the second message is observable.
+    await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+      SystemChannels.lifecycle.name,
+      const StringCodec().encodeMessage(
+        AppLifecycleState.resumed.toString(),
+      ),
+      (_) {},
+    );
+    await tester.pumpAndSettle();
     await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
       SystemChannels.lifecycle.name,
       const StringCodec().encodeMessage(
