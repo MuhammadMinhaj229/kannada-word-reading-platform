@@ -84,7 +84,7 @@ jobs:
       - name: Harden generated Android host
         run: bash scripts/deploy/configure_android_project.sh
 
-      - name: Use the lean Gradle binary distribution
+      - name: Pin official Gradle binary distribution and checksum
         shell: bash
         run: |
           set -euo pipefail
@@ -95,22 +95,22 @@ jobs:
           from pathlib import Path
 
           path = Path(sys.argv[1])
-          content = path.read_text(encoding="utf-8")
-          lines = content.splitlines()
-          matches = [i for i, line in enumerate(lines) if line.startswith("distributionUrl=")]
-          if len(matches) != 1:
-              raise SystemExit("Expected exactly one Gradle distributionUrl.")
-          index = matches[0]
-          value = lines[index]
-          if value.endswith("-all.zip"):
-              lines[index] = value[:-len("-all.zip")] + "-bin.zip"
-          elif not value.endswith("-bin.zip"):
-              raise SystemExit("Unknown Gradle distribution archive; refusing an implicit change.")
-          path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-          print(f"Configured Gradle binary distribution: {lines[index]}")
+          lines = [
+              line for line in path.read_text(encoding="utf-8").splitlines()
+              if not line.startswith("distributionUrl=")
+              and not line.startswith("distributionSha256Sum=")
+          ]
+          # Keep the Flutter 3.47.9-generated Gradle 9.3.1 line, but use
+          # Gradle's official distribution host and independently published
+          # SHA-256 (gradle.org/release-checksums/).
+          lines.extend([
+              "distributionUrl=https\\://services.gradle.org/distributions/gradle-9.3.1-bin.zip",
+              "distributionSha256Sum=b266d5ff6b90eada6dc3b20cb090e3731302e553a27c5d3e4df1f0d76beaff06",
+          ])
+          path.write_text("\\n".join(lines) + "\\n", encoding="utf-8")
           PY
-          grep -q -- '-bin.zip' "$WRAPPER"
-
+          grep -Fq 'distributionUrl=https\\://services.gradle.org/distributions/gradle-9.3.1-bin.zip' "$WRAPPER"
+          grep -Fq 'distributionSha256Sum=b266d5ff6b90eada6dc3b20cb090e3731302e553a27c5d3e4df1f0d76beaff06' "$WRAPPER"
       - name: Resolve dependencies
         run: |
           flutter pub get
