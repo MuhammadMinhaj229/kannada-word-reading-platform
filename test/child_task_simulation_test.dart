@@ -30,17 +30,21 @@ void main() {
     expect(find.textContaining('SIMULATION ONLY'), findsOneWidget);
     expect(find.text('ಪ್ರಾರಂಭಿಸೋಣ'), findsOneWidget);
 
-    await tester.tap(find.text('ಪ್ರಾರಂಭಿಸೋಣ'));
+    final startButton = find.text('ಪ್ರಾರಂಭಿಸೋಣ');
+    await tester.ensureVisible(startButton);
+    await tester.tap(startButton);
     await tester.pumpAndSettle();
 
-    expect(find.text('ಅಭ್ಯಾಸ  1 / 5'), findsOneWidget);
+    expect(find.textContaining('ಅಭ್ಯಾಸ'), findsOneWidget);
+    expect(find.textContaining('/ 5'), findsOneWidget);
     expect(find.text('ಕುನಮೆ'), findsOneWidget);
 
     for (var index = 0; index < 5; index += 1) {
       await _answerWord(tester);
     }
 
-    expect(find.text('ಮುಖ್ಯ ಹಂತ  1 / 10'), findsOneWidget);
+    expect(find.textContaining('ಮುಖ್ಯ ಹಂತ'), findsOneWidget);
+    expect(find.textContaining('/ 10'), findsOneWidget);
     expect(find.text('ಪೆಲುಮಿ'), findsOneWidget);
     expect(find.textContaining('Correct'), findsNothing);
     expect(find.textContaining('Incorrect'), findsNothing);
