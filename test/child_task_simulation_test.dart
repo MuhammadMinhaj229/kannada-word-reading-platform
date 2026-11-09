@@ -31,6 +31,7 @@ void main() {
     expect(find.text('ಪ್ರಾರಂಭಿಸೋಣ'), findsOneWidget);
 
     await tester.ensureVisible(find.text('ಪ್ರಾರಂಭಿಸೋಣ'));
+    await tester.ensureVisible(find.text('ಪ್ರಾರಂಭಿಸೋಣ'));
     await tester.tap(find.text('ಪ್ರಾರಂಭಿಸೋಣ'));
     await tester.pumpAndSettle();
 
@@ -70,6 +71,7 @@ void main() {
       (tester) async {
     await _pumpSimulation(tester, size: const Size(1280, 900));
 
+    await tester.ensureVisible(find.text('ಪ್ರಾರಂಭಿಸೋಣ'));
     await tester.tap(find.text('ಪ್ರಾರಂಭಿಸೋಣ'));
     await tester.pumpAndSettle();
 
@@ -108,6 +110,7 @@ void main() {
       (tester) async {
     await _pumpSimulation(tester, size: const Size(800, 600));
 
+    await tester.ensureVisible(find.text('ಪ್ರಾರಂಭಿಸೋಣ'));
     await tester.tap(find.text('ಪ್ರಾರಂಭಿಸೋಣ'));
     await tester.pumpAndSettle();
     expect(find.text('ಕುನಮೆ'), findsOneWidget);
@@ -144,6 +147,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.text('ಪ್ರಾರಂಭಿಸೋಣ'));
     await tester.tap(find.text('ಪ್ರಾರಂಭಿಸೋಣ'));
     await tester.pumpAndSettle();
     expect(find.text('ಕುನಮೆ'), findsOneWidget);
