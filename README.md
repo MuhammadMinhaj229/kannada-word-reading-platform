@@ -1,8 +1,8 @@
 # ಪದLab — Kannada Word Reading Assessment
 
 **Application:** Flutter / Dart  
-**Field target:** offline-first Android tablets  
-**Browser target:** read-only review build on Vercel  
+**Online target:** interactive Flutter workspace on Vercel  
+**Offline target:** downloadable Android APK for tablets  
 **Current branch:** `main`  
 **Release state:** engineering candidate; participant release gate remains closed
 
@@ -12,10 +12,10 @@ PadLab has one Flutter application codebase. Android and Web are separate build 
 
 | Target | Intended role | Data boundary |
 |---|---|---|
-| Android APK | Assessor-operated field application | Encrypted SQLite in private device storage |
-| Flutter Web | Interface and bundled-content review on Vercel | Read-only; no participant identifiers or records |
+| Flutter Web | Interactive online workspace on Vercel | Item-bank review, Settings, task QA preview and release readiness; no participant identifiers or research records |
+| Android APK | Downloadable offline Android application | Intended field platform; encrypted local storage foundations, with participant use locked until approvals and end-to-end acceptance |
 
-The browser build is not a participant data-collection target. Vercel serves the Flutter Web output; GitHub Actions builds the Android package. No cloud database, remote participant API, analytics or telemetry service is part of the current architecture.
+Vercel is the working online workspace: users can inspect the bundled Kannada catalogue, review release readiness, configure available settings and run the interactive non-participant Task preview. The browser does not accept or store participant identifiers or research responses. The Android APK is the downloadable offline build from the same Flutter source. It bundles the application and content so the app shell and review features work without a network connection after installation. No cloud database, remote participant API, analytics or telemetry service is part of the current architecture.
 
 ## Supplied study content
 
@@ -72,7 +72,7 @@ Install Flutter stable **3.47.9**, Java 17 and the Android SDK.
 ```bash
 flutter create . --platforms=android,web --org org.phfi.cdlr --project-name padalab_android --no-pub
 bash scripts/deploy/configure_android_project.sh
-flutter pub get
+flutter pub get --enforce-lockfile
 dart format lib test
 flutter analyze --fatal-infos
 flutter test --reporter expanded
@@ -81,13 +81,13 @@ flutter run
 
 The normal application entry point is the assessor workspace. There is no build flag that switches the application into a synthetic assessment flow.
 
-Run the browser review target with:
+Run the online workspace locally with:
 
 ```bash
 flutter run -d chrome
 ```
 
-Build the Vercel review output with:
+Build the Vercel online workspace with:
 
 ```bash
 flutter build web --release --base-href /
@@ -96,6 +96,11 @@ bash scripts/deploy/configure_flutter_web.sh build/web
 
 ## Vercel deployment
 
+Vercel is the primary online destination for the interactive Flutter workspace.
+
+- Project: `kannada-word-reading-platform`
+- Git repository: `MuhammadMinhaj229/kannada-word-reading-platform`
+- Production branch: `main`
 - Root directory: repository root
 - Framework preset: none
 - Install command: `bash scripts/deploy/install_flutter.sh`
@@ -103,15 +108,19 @@ bash scripts/deploy/configure_flutter_web.sh build/web
 - Output directory: `build/web`
 - Flutter SDK: pinned in `.flutter-version`
 
-The Flutter application and production-readiness fixes are merged into `main`. Latest main commit: `594c84ca535cf3c25277bf1dc0d5ecb9ea2b59cf` (PR #11 merged 9 November 2026). PR #11 hardens trial persistence, item-bank validation, release authorization and the signed Android release workflow. The earlier main CI run #42473020877 passed formatting, static analysis, all 65 unit/widget tests, ARM64 Android debug build, Flutter Web build, metadata checks and artifact verification. The merged PR #11 adds further validation and fail-closed database authorization. The Vercel production deployment from this exact commit reached `READY`; canonical review URL: https://kannada-word-reading-platform.vercel.app/. The deployed `app-release.json` is labelled `engineering-preview`, with `participantReady: false` and `participantDataSync: false`. The Vercel browser build is a no-index, read-only review surface and must not be used for participant data entry. The stable GitHub prerelease [padalab-preview](https://github.com/MuhammadMinhaj229/kannada-word-reading-platform/releases/tag/padalab-preview) publishes a debug-signed ARM64 APK and SHA-256 checksum for engineering review only, not field use. Feature-branch previews may still be generated for controlled review. The service-worker cache identity is derived from both asset paths and file contents.
+The live website is [PadLab on Vercel](https://kannada-word-reading-platform.vercel.app/). It is the interactive online workspace for item-bank review, Settings, release-readiness information and the non-participant Task preview. The Flutter Web build is installable as a PWA and caches the application shell and bundled assets after its first successful online load. The user-triggered **Refresh app** control checks for an updated deployment; it does not force-reload an active session.
 
-## Web offline mode and Android APK download
+The website is not the participant data-collection target. Participant identifiers and research responses remain disabled in the browser. The Android APK is the offline tablet build. Keep the Vercel project’s deployment access controls enabled while institutional research approvals are pending.
 
-The Flutter Web review build is installable as a PWA and precaches the Flutter shell and bundled assets after its first successful online load. Its **Refresh app** control checks for a new deployment only when clicked; it does not use a timer or repeatedly reload the page. The **Download Android APK** control opens the stable engineering-preview release below.
+## Web workspace and offline Android APK
 
-[Download the latest ARM64 Android preview APK](https://github.com/MuhammadMinhaj229/kannada-word-reading-platform/releases/download/padalab-preview/padalab-android-arm64-debug.apk)
+The Vercel website provides the interactive online workspace. It includes the responsive assessor workspace, supplied item catalogue, Settings, release-readiness information and the child-facing non-participant Task preview. The PWA service worker caches the Flutter shell and bundled static assets after the first successful online load. It does not store participant data.
 
-The APK is debug-signed and for engineering review only, not participant field use. Android and Web are built from the same Flutter source commit and contain the same UI and bundled content. Android storage and device services are native; participant data remains local and is not synchronised to Vercel or GitHub. Web refresh updates Web assets only. Android in-app updates use Google Play and require a Play-installed build.
+The website header includes **Download offline APK**, which opens the stable ARM64 Android engineering build:
+
+[Download the latest ARM64 offline Android APK](https://github.com/MuhammadMinhaj229/kannada-word-reading-platform/releases/download/padalab-preview/padalab-android-arm64-debug.apk)
+
+The current APK is debug-signed and is for engineering review only; it is not an approved participant field release. After installation, the application shell and bundled content are available offline. Android private storage and native device services are separate from the Vercel website. Web refresh updates the website only; it does not update an installed APK.
 
 ## Android APK distribution
 
