@@ -72,7 +72,8 @@ Install Flutter stable **3.47.9**, Java 17 and the Android SDK.
 ```bash
 flutter create . --platforms=android,web --org org.phfi.cdlr --project-name padalab_android --no-pub
 bash scripts/deploy/configure_android_project.sh
-flutter pub get --enforce-lockfile
+flutter pub get
+# CI and Vercel builds fail if dependency resolution changes pubspec.lock.
 dart format lib test
 flutter analyze --fatal-infos
 flutter test --reporter expanded
