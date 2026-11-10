@@ -12,10 +12,10 @@ PadLab has one Flutter application codebase. Android and Web are separate build 
 
 | Target | Intended role | Data boundary |
 |---|---|---|
-| Flutter Web | Interactive online workspace on Vercel | Item-bank review, Settings, task QA preview and release readiness; no participant identifiers or research records |
+| Flutter Web | Independent browser application on Vercel | Browser-local, non-sensitive workspace preferences only; no participant identifiers or research records |
 | Android APK | Downloadable offline Android application | Intended field platform; encrypted local storage foundations, with participant use locked until approvals and end-to-end acceptance |
 
-Vercel is the working online workspace: users can inspect the bundled Kannada catalogue, review release readiness, configure available settings and run the interactive non-participant Task preview. The browser does not accept or store participant identifiers or research responses. The Android APK is the downloadable offline build from the same Flutter source. It bundles the application and content so the app shell and review features work without a network connection after installation. No cloud database, remote participant API, analytics or telemetry service is part of the current architecture.
+Vercel is the working online workspace: users can inspect the bundled Kannada catalogue, review release readiness, configure available settings and run the interactive non-participant Task preview. The Web and Android applications share Flutter UI/domain code but use independent local data stores. The browser stores only non-sensitive workspace preferences; it does not accept or store participant identifiers or research responses. The Android APK is the downloadable offline build from the same Flutter source. It bundles the application and content so the app shell and review features work without a network connection after installation. No cloud database, remote participant API, analytics, telemetry, automatic upload or cross-device synchronization is part of the current architecture.
 
 ## Supplied study content
 
