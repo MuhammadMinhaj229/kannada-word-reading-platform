@@ -113,7 +113,8 @@ jobs:
           grep -Fq 'distributionSha256Sum=b266d5ff6b90eada6dc3b20cb090e3731302e553a27c5d3e4df1f0d76beaff06' "$WRAPPER"
       - name: Resolve dependencies
         run: |
-          flutter pub get --enforce-lockfile
+          flutter pub get
+          git diff -- pubspec.lock
           git diff --exit-code -- pubspec.lock
 
       - name: Validate deployment scripts and Vercel security configuration
