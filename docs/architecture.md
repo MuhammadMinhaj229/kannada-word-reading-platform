@@ -55,6 +55,7 @@ Flutter Web online workspace on Vercel
 - **Domain services** enforce the approved protocol, trial transitions, scoring and reaction-time rules.
 - **Repositories** are the only application-facing path to persisted study data.
 - **SQLCipher services** own schema, migrations, transactions and integrity constraints on Android.
+- **Web workspace boundary** serves bundled/static content and in-memory QA only; it has no participant identifier or research-record persistence.
 - **Platform adapters** own recorded audio, screen-awake/fullscreen behavior, file creation and Android share-sheet interactions.
 - **Approval verifier** validates a signed, versioned study package before the participant workflow can be enabled.
 
@@ -83,12 +84,12 @@ No-response timeout, repeat/restart and reward behavior must follow the signed p
 - Android assessment data remains in private application storage protected by SQLCipher.
 - Database keys are stored using Android secure storage/Keystore integration.
 - No participant sync, analytics, crash telemetry or remote research API is configured.
-- Browser review is read-only and must not contain participant records.
+- The Vercel workspace is interactive for content review and non-participant QA, but must not accept participant identifiers or persist research records.
 - CSV exports must use the signed data dictionary, UTF-8 BOM and formula-injection-safe cell encoding; names are excluded by default.
 
 ## Deployment boundary
 
 - GitHub Actions validates Flutter, builds the Android review artifact and builds the Flutter Web output.
-- Vercel hosts the static Flutter Web review target.
+- Vercel hosts the interactive Flutter Web workspace and its cached PWA shell.
 - The signed ARM64 Android APK is built through the protected release workflow and distributed through the study-approved channel.
 - Web deployment never updates an already installed APK.
