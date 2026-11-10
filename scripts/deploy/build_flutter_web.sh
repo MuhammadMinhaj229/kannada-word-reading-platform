@@ -16,7 +16,8 @@ export FLUTTER_ALLOW_ROOT=true
 "${FLUTTER_BIN}" config --no-analytics --enable-web
 "${FLUTTER_BIN}" create . --platforms=web --org org.phfi.cdlr --project-name padalab_android --no-pub
 bash scripts/deploy/prepare_assets.sh
-"${FLUTTER_BIN}" pub get --enforce-lockfile
+"${FLUTTER_BIN}" pub get
+git diff --exit-code -- pubspec.lock
 "${FLUTTER_BIN}" build web --release --base-href /
 
 bash scripts/deploy/configure_flutter_web.sh build/web
