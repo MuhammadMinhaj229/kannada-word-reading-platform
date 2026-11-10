@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../app/app_theme.dart';
+import '../../../core/storage/browser_workspace_preferences.dart';
 import 'assessor_home_screen.dart';
 import 'assessor_settings_screen.dart';
 import 'child_task_simulation_screen.dart';
@@ -15,6 +18,26 @@ class AssessorWorkspace extends StatefulWidget {
 
 class _AssessorWorkspaceState extends State<AssessorWorkspace> {
   int _selectedIndex = 0;
+  bool _userSelectedTab = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreSelectedTab();
+  }
+
+  Future<void> _restoreSelectedTab() async {
+    final savedIndex = await BrowserWorkspacePreferences.loadSelectedTab();
+    if (!mounted || _userSelectedTab || savedIndex == _selectedIndex) return;
+    setState(() => _selectedIndex = savedIndex);
+  }
+
+  void _selectDestination(int index) {
+    if (index < 0 || index >= _destinations.length) return;
+    _userSelectedTab = true;
+    setState(() => _selectedIndex = index);
+    unawaited(BrowserWorkspacePreferences.saveSelectedTab(index));
+  }
 
   static const _destinations = <NavigationDestination>[
     NavigationDestination(
@@ -54,9 +77,7 @@ class _AssessorWorkspaceState extends State<AssessorWorkspace> {
               children: <Widget>[
                 NavigationRail(
                   selectedIndex: _selectedIndex,
-                  onDestinationSelected: (index) {
-                    setState(() => _selectedIndex = index);
-                  },
+                  onDestinationSelected: _selectDestination,
                   labelType: NavigationRailLabelType.all,
                   backgroundColor: Colors.white,
                   selectedIconTheme: const IconThemeData(
@@ -95,9 +116,7 @@ class _AssessorWorkspaceState extends State<AssessorWorkspace> {
           body: pages,
           bottomNavigationBar: NavigationBar(
             selectedIndex: _selectedIndex,
-            onDestinationSelected: (index) {
-              setState(() => _selectedIndex = index);
-            },
+            onDestinationSelected: _selectDestination,
             destinations: _destinations,
           ),
         );

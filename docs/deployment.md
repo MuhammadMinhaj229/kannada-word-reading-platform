@@ -17,6 +17,8 @@ The repository contains one application codebase: Flutter/Dart under `lib/`. Bot
 
 The outputs differ because Android requires an installable native package while Web requires browser assets. They are not separately maintained applications. GitHub Actions validates the shared source and builds both targets. Vercel's Git integration publishes the Web target from that same repository/commit.
 
+The two targets have independent local data stores. Web browser storage is limited to non-sensitive workspace preferences and is scoped to the browser origin/profile; it is not equivalent to SQLCipher/Android Keystore and is not approved for participant records. Android stores its local field data in SQLCipher under app-private storage. No participant data is uploaded, imported, synchronized or shared between platforms. A Vercel deployment updates Web assets only; it does not update an installed APK.
+
 ## Vercel project
 
 - Project: `kannada-word-reading-platform`
