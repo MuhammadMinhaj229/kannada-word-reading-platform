@@ -4,7 +4,8 @@
 
 - `main` is the production source branch.
 - Main branch was subsequently advanced by reviewed Dependabot merges; the 10 November base commit for the Option C architecture branch is `68415f9aa1bb2d0a7231d5fed72403f7086fc53a`.
-- PR #9 merged on 8 November 2026: [Fix engineering preview publication and protocol readiness UX](https://github.com/MuhammadMinhaj229/kannada-word-reading-platform/pull/9).\n- PR #11 merged on 9 November 2026: [Harden trial persistence, item-bank validation and signed release gate](https://github.com/MuhammadMinhaj229/kannada-word-reading-platform/pull/11). The database authorization boundary is now bound to the private, fail-closed release gate; item-bank/trial validation and Gradle checksum pinning were added.
+- PR #9 merged on 8 November 2026: [Fix engineering preview publication and protocol readiness UX](https://github.com/MuhammadMinhaj229/kannada-word-reading-platform/pull/9).
+- PR #11 merged on 9 November 2026: [Harden trial persistence, item-bank validation and signed release gate](https://github.com/MuhammadMinhaj229/kannada-word-reading-platform/pull/11). The database authorization boundary is now bound to the private, fail-closed release gate; item-bank/trial validation and Gradle checksum pinning were added.
 - Main-branch workflow run #42473020877 completed successfully. Formatting, static analysis, all 65 unit/widget tests, ARM64 Android debug build, Flutter Web build, Web metadata checks, APK verification and both validation artifact uploads passed.
 - The workflow published/updated the stable prerelease tag `padalab-preview` at the same commit as `main`.
 - [Stable Android engineering-preview release](https://github.com/MuhammadMinhaj229/kannada-word-reading-platform/releases/tag/padalab-preview) contains `padalab-android-arm64-debug.apk` and its `.sha256` checksum.
@@ -13,7 +14,16 @@
 - The deployed `app-release.json` identifies the channel as `engineering-preview`, with `participantReady: false` and `participantDataSync: false`.
 - Vercel Web is an independent Flutter application with a browser-local storage target. Android uses its own SQLCipher/Keystore-backed storage. There is no synchronization or shared participant backend. Participant data entry remains disabled on Web pending separate institutional approval.
 
-## Accepted platform architecture — Option C (10 November 2026)\n\n- One Flutter/Dart source codebase builds the Vercel Web application and Android APK.\n- Web and Android have independent local data stores: browser-local storage for Web and SQLCipher in Android private storage for Android.\n- No cross-device synchronization, cloud participant database, remote participant API, background upload or data bridge is permitted.\n- Vercel deployment updates Web assets only; Android APK distribution remains a separate release process.\n- The decision and acceptance criteria are recorded in [platform storage architecture](platform-storage-architecture.md).\n- **Implementation gap:** the current Web target remains a review/QA surface and does not yet have a structured IndexedDB persistence adapter. This architecture decision is accepted but does not claim that browser persistence has been implemented.\n\n## Implemented engineering foundations
+## Accepted platform architecture — Option C (10 November 2026)
+
+- One Flutter/Dart source codebase builds the Vercel Web application and Android APK.
+- Web and Android have independent local data stores: browser-local storage for Web and SQLCipher in Android private storage for Android.
+- No cross-device synchronization, cloud participant database, remote participant API, background upload or data bridge is permitted.
+- Vercel deployment updates Web assets only; Android APK distribution remains a separate release process.
+- The decision and acceptance criteria are recorded in [platform storage architecture](platform-storage-architecture.md).
+- **Implementation gap:** the current Web target remains a review/QA surface and does not yet have a structured IndexedDB persistence adapter. This architecture decision is accepted but does not claim that browser persistence has been implemented.
+
+## Implemented engineering foundations
 
 - Flutter application shell and responsive assessor workspace.
 - 270 supplied real Kannada words parsed and validated with source metadata.
