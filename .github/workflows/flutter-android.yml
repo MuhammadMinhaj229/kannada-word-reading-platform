@@ -229,7 +229,7 @@ jobs:
       contents: write
     steps:
       - name: Download the validated ARM64 APK artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: padalab-android-arm64-debug-apk
           path: staging
