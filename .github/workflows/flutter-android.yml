@@ -114,6 +114,7 @@ jobs:
       - name: Resolve dependencies
         run: |
           flutter pub get
+          git diff -- pubspec.lock
           git diff --exit-code -- pubspec.lock
 
       - name: Validate deployment scripts and Vercel security configuration

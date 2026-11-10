@@ -19,8 +19,9 @@ index_path = Path(sys.argv[1])
 manifest_path = Path(sys.argv[2])
 title = "ಪದLab | Kannada Word Reading Assessment"
 description = (
-    "PadLab is an offline-first Kannada word-reading assessment application "
-    "for authorised research assessors."
+    "PadLab is an interactive online workspace for Kannada item-bank review, "
+    "settings and non-participant QA, with an offline Android build for "
+    "authorised field use."
 )
 theme_color = "#0F766E"
 background_color = "#F7F8F2"
@@ -104,6 +105,12 @@ release = {
         or "local"
     ),
     "channel": "engineering-preview",
+    "webRole": "interactive_online_workspace",
+    "webFeatures": ["item-bank-review", "settings", "task-preview", "release-readiness"],
+    "webOfflineMode": "cached-app-shell-and-bundled-assets",
+    "androidRole": "offline_android_build",
+    "androidOfflineCapable": True,
+    "participantDataEntry": False,
     "apkDownloadUrl": (
         "https://github.com/MuhammadMinhaj229/kannada-word-reading-platform/releases/download/"
         "padalab-preview/padalab-android-arm64-debug.apk"

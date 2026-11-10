@@ -4,7 +4,7 @@
 
 The field product is a native Flutter/Dart Android application for assessor-operated tablets. It must function without Wi-Fi or mobile data and retain research records inside the application's private encrypted storage.
 
-The Flutter Web target is a read-only browser review of the same application screens, hosted on Vercel. It must not accept participant identifiers or collect research records. The earlier Next.js/PWA code is preserved on the archive branch and is not part of the active Flutter source tree.
+The Flutter Web target is the interactive online workspace hosted on Vercel. It shares the application presentation and bundled content and provides item-bank review, Settings, release-readiness information and the non-participant Task preview. The browser must not accept participant identifiers or research responses. The Android APK is the downloadable offline build and the intended field platform after institutional approvals and actual-device acceptance. The earlier Next.js/PWA code is preserved on the archive branch and is not part of the active Flutter source tree.
 
 ## Application structure
 
@@ -40,11 +40,12 @@ Flutter / Dart application
     ├── approved Kannada instruction recordings
     └── bundled Kannada font and licensed visual assets
 
-Flutter Web review build
+Flutter Web online workspace on Vercel
 └── same presentation system
-    ├── bundled source-word and review metadata
-    ├── read-only browser interface
-    └── no participant identifier or record storage
+    ├── item-bank and release-readiness review
+    ├── Settings and non-participant Task QA preview
+    ├── installable PWA shell with bundled static assets
+    └── no participant identifier or research-record storage
 ```
 
 ## Separation of responsibilities
@@ -54,6 +55,7 @@ Flutter Web review build
 - **Domain services** enforce the approved protocol, trial transitions, scoring and reaction-time rules.
 - **Repositories** are the only application-facing path to persisted study data.
 - **SQLCipher services** own schema, migrations, transactions and integrity constraints on Android.
+- **Web workspace boundary** serves bundled/static content and in-memory QA only; it has no participant identifier or research-record persistence.
 - **Platform adapters** own recorded audio, screen-awake/fullscreen behavior, file creation and Android share-sheet interactions.
 - **Approval verifier** validates a signed, versioned study package before the participant workflow can be enabled.
 
@@ -82,12 +84,12 @@ No-response timeout, repeat/restart and reward behavior must follow the signed p
 - Android assessment data remains in private application storage protected by SQLCipher.
 - Database keys are stored using Android secure storage/Keystore integration.
 - No participant sync, analytics, crash telemetry or remote research API is configured.
-- Browser review is read-only and must not contain participant records.
+- The Vercel workspace is interactive for content review and non-participant QA, but must not accept participant identifiers or persist research records.
 - CSV exports must use the signed data dictionary, UTF-8 BOM and formula-injection-safe cell encoding; names are excluded by default.
 
 ## Deployment boundary
 
 - GitHub Actions validates Flutter, builds the Android review artifact and builds the Flutter Web output.
-- Vercel hosts the static Flutter Web review target.
+- Vercel hosts the interactive Flutter Web workspace and its cached PWA shell.
 - The signed ARM64 Android APK is built through the protected release workflow and distributed through the study-approved channel.
 - Web deployment never updates an already installed APK.

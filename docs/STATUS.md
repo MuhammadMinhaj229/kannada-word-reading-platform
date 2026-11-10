@@ -1,41 +1,46 @@
-# Repository and field-readiness status — 9 November 2026
+# Repository and delivery status — 10 November 2026
 
-## Source, CI and deployments
+## Delivery model
 
-- `main` is the production source branch.
-- Latest main commit: `594c84ca535cf3c25277bf1dc0d5ecb9ea2b59cf`.
-- PR #9 merged on 8 November 2026: [Fix engineering preview publication and protocol readiness UX](https://github.com/MuhammadMinhaj229/kannada-word-reading-platform/pull/9).\n- PR #11 merged on 9 November 2026: [Harden trial persistence, item-bank validation and signed release gate](https://github.com/MuhammadMinhaj229/kannada-word-reading-platform/pull/11). The database authorization boundary is now bound to the private, fail-closed release gate; item-bank/trial validation and Gradle checksum pinning were added.
-- Main-branch workflow run #42473020877 completed successfully. Formatting, static analysis, all 65 unit/widget tests, ARM64 Android debug build, Flutter Web build, Web metadata checks, APK verification and both validation artifact uploads passed.
-- The workflow published/updated the stable prerelease tag `padalab-preview` at the same commit as `main`.
-- [Stable Android engineering-preview release](https://github.com/MuhammadMinhaj229/kannada-word-reading-platform/releases/tag/padalab-preview) contains `padalab-android-arm64-debug.apk` and its `.sha256` checksum.
-- The release APK is debug-signed and is not a production/field APK. It is for controlled engineering review only.
-- Vercel production deployment `dpl_9S6PVz3GW214tpvmJqHLfp6trNsC` reached `READY` from the same main commit. Canonical review URL: https://kannada-word-reading-platform.vercel.app/.
-- The deployed `app-release.json` identifies the channel as `engineering-preview`, with `participantReady: false` and `participantDataSync: false`.
-- Vercel Web is a no-index review surface, not a participant data-collection target. The Android build is the intended field platform once all approvals and acceptance gates are satisfied.
+- **Vercel is the working online website** for the interactive Flutter workspace: bundled Kannada item-bank review, Settings, release-readiness information and the non-participant Task preview.
+- **The Android APK is the downloadable offline version** built from the same Flutter source. The installed application shell and bundled content are available without a network connection.
+- The Vercel PWA caches its shell and bundled static assets after the first successful online load. It does not persist participant data.
+- Browser participant identifiers and research responses remain disabled. Participant data collection is intended for the Android application only, after every study approval and field-acceptance requirement is completed.
+- Live website: https://kannada-word-reading-platform.vercel.app/
+- Stable Android engineering APK: https://github.com/MuhammadMinhaj229/kannada-word-reading-platform/releases/tag/padalab-preview
+
+## Source, pull requests and CI
+
+- `main` is the production source branch; Vercel is linked to this repository.
+- PR #11 security and data-integrity hardening is merged.
+- PR #15 child-facing Task QA preview is merged. It remains synthetic and stores responses in memory only.
+- Dependabot PRs #12, #13 and #14 are merged: `actions/download-artifact@v8`, `actions/github-script@v9` and `softprops/action-gh-release@v3`.
+- Dependency lockfile drift discovered after those merges is being corrected by committing the resolved transitive versions and enforcing the lock in CI, Vercel and signed-release builds.
+- The validation workflow covers Dart formatting, static analysis, unit/widget tests, Android ARM64 debug packaging, Flutter Web build, metadata checks and artifact verification.
+- Ordinary CI publishes a debug-signed engineering APK and checksum. It is not a signed field release.
 
 ## Implemented engineering foundations
 
-- Flutter application shell and responsive assessor workspace.
-- 270 supplied real Kannada words parsed and validated with source metadata.
-- 270 non-word candidates structurally catalogued; none approved for use.
-- Offline audio service with an approval manifest and no device TTS fallback.
-- SQLCipher and secure-key storage foundations, frozen session-manifest persistence and transactional trial APIs.
-- Web review build, manual update behavior and service-worker cache fingerprinting.
-- CI validation for formatting, static analysis, unit/widget tests, Android ARM64 debug APK and Flutter Web.
-- Stable engineering-preview APK publication with exact tag discovery/update and checksum upload.
-- Assessor UI now labels protocol figures as unapproved baselines; release blockers remain visible.
-- Child-facing Task preview added for QA: 5 practice + 10 synthetic test cards, no child correctness feedback, response-time capture in memory, neutral 10-answer milestone and separate assessor-only QA results. The stopwatch starts after the stimulus is rendered; app backgrounding or leaving the preview invalidates the run and requires a restart.
+- One Flutter/Dart application codebase for Android and Web.
+- Responsive assessor workspace with Assessment, Task preview and Settings navigation.
+- 270 supplied real Kannada words bundled and parsed with source metadata.
+- 270 non-word candidates catalogued in the required 68 / 68 / 67 / 67 construction proportions; all remain pending native Kannada approval.
+- Interactive non-participant Task preview: five practice cards and ten synthetic QA cards, in-memory responses, reaction-time logic, assessor-only results and lifecycle interruption handling.
+- Offline audio service that plays only bundled approved recordings; no device TTS fallback.
+- SQLCipher and Android secure-key foundations, frozen session-manifest persistence and transactional trial APIs.
+- PWA service worker with content-derived cache identity and user-triggered refresh.
+- Separate Android signed-release workflow requiring institution-owned signing credentials and a verified release authorization gate.
 
-## Protocol and content blockers
+## Research and release blockers
 
-- **Protocol not frozen.** The requirements transcription says 6 × 90 total presentations (5 practice + 85 test); another study baseline describes 90 scored per block (45 real + 45 non-word); an older 77-scored proposal is marked planning-only. Reward cadence also conflicts (every 10 answers versus every 5 completed scored trials). See [protocol sign-off register](protocol-decisions.md).
-- **Non-word bank not approved.** 270 candidates remain Pending; 0/270 approved. Native Kannada review and written study-team approval are required.
-- **Instruction audio not approved.** The source recording still needs transcription, segmentation, native-speaker recording/QA and written approval references.
-- **Participant workflow is disabled.** The new child-facing Task preview is a QA simulation only: synthetic fixtures and in-memory responses, with no participant identifiers or SQLCipher writes. It is isolated from the participant database and invalidates a QA run when focus is lost. The production participant flow is still not integrated with SQLCipher persistence, trusted assessor/supervisor authorization, a PI-approved frozen allocation, response/timeout rules, interruption recovery and audit.
-- **Governance/export work is incomplete.** Protected CSV/XLSX export, REDCap mapping, backup/restore, retention/deletion and audit review are not yet accepted.
-- **Target tablet acceptance is pending.** Actual-device offline, audio, Kannada rendering, touch, timing, pause/restart, database recovery, update and battery tests remain.
-- **Institutional Android release signing is pending.** The currently published APK is debug-signed; the institution must approve package/signing ownership and provision a protected production signing key. Managed Play/internal distribution and update policy are not active.
+- **Protocol not frozen.** Conflicting study interpretations remain unresolved, including trial counts, practice inclusion, reward cadence, visit/session structure, timing and interruption rules. PI/statistician written approval is required.
+- **Non-word bank not approved.** 0/270 candidates are approved. Native Kannada review and written study-team approval are required.
+- **Instruction audio not approved.** The supplied recording still needs transcription, segmentation, approved clips and approval references.
+- **Participant workflow not complete.** Assessor/session/child workflow, supervisor authorization, end-to-end SQLCipher integration, session history/resume/recovery and audit still need completion.
+- **Governance and export work incomplete.** Ethics/consent, retention and device-loss procedures, export dictionary, REDCap mapping, backup/restore and deletion process need institutional sign-off.
+- **Target tablet acceptance pending.** Offline cold launch, Kannada shaping, audio, touch, reaction timing, SQLCipher/Keystore, power-loss recovery, battery and update behavior must be tested on the actual tablet.
+- **Production Android signing pending.** Institution must approve the permanent package identity and own/provision the signing key and protected GitHub secrets. The currently published APK is debug-signed.
 
 ## Safety disposition
 
-PadLab is an engineering candidate and review deployment, not an approved research instrument. Do not enter participant identifiers or administer the task. Do not distribute the debug APK as a field release. Keep participant data entry closed until protocol, item bank, audio, ethics/data governance, session workflow, export, target-device acceptance and institutional signing evidence are complete.
+PadLab is an engineering candidate, not yet an approved research instrument. Keep the participant release gate closed. Do not collect participant identifiers or administer study trials until the PI/statistician protocol, linguistic review, audio, ethics/data-governance, session workflow, export, device acceptance and institutional signing evidence are complete. A green CI run or a Vercel deployment does not establish field readiness.

@@ -48,6 +48,18 @@ def main() -> int:
         fail("PWA manifest has no install icons")
     if not release.get("commit") or not release.get("version"):
         fail("release manifest must identify app version and source commit")
+    if release.get("webRole") != "interactive_online_workspace":
+        fail("release manifest does not identify the Vercel online workspace")
+    if release.get("androidRole") != "offline_android_build":
+        fail("release manifest does not identify the offline Android build")
+    if release.get("androidOfflineCapable") is not True:
+        fail("Android build must be marked offline-capable")
+    if release.get("participantDataEntry") is not False:
+        fail("participant data entry must remain disabled in the browser")
+    features = release.get("webFeatures")
+    required_features = {"item-bank-review", "settings", "task-preview", "release-readiness"}
+    if not isinstance(features, list) or not required_features.issubset(set(features)):
+        fail("online workspace feature metadata is incomplete")
     if release.get("participantReady") is not False:
         fail("engineering preview must remain explicitly non-field-ready")
     if release.get("participantDataSync") is not False:

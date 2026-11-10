@@ -2,7 +2,7 @@
 
 ## Hosting decision
 
-**Primary Web host: Vercel.** The GitHub repository is already connected to the Vercel project `kannada-word-reading-platform`. We will not introduce Cloudflare or a second hosting provider.
+**Primary online workspace: Vercel.** The GitHub repository is connected to the Vercel project `kannada-word-reading-platform`. Vercel serves the interactive Flutter workspace; GitHub Releases distributes the downloadable offline Android APK. We will not introduce Cloudflare or a second hosting provider.
 
 Vercel's CDN is automatically included with each deployment and is globally distributed. Vercel currently documents 126+ Points of Presence across 51 countries and more than 20 compute regions. Static Flutter files are served through that edge network; the current application has no cloud API or database requirement. See the official [CDN overview](https://vercel.com/docs/cdn) and [global network documentation](https://vercel.com/docs/regions).
 
@@ -12,8 +12,8 @@ The repository contains one application codebase: Flutter/Dart under `lib/`. Bot
 
 | Target | Role | Delivery |
 |---|---|---|
-| Android | Canonical offline field application | Android debug APK from GitHub Actions now; signed release build after device, protocol and signing gates |
-| Flutter Web | Browser UI review using the same Flutter screens | Vercel Git preview for branches; Vercel production deployment from `main` |
+| Flutter Web | Interactive online workspace | Vercel production deployment from `main`; PWA caches the app shell and bundled assets; participant data entry remains disabled |
+| Android | Downloadable offline tablet application | ARM64 APK from GitHub Releases; signed field release only after protocol, ethics, device and institutional-signing gates |
 
 The outputs differ because Android requires an installable native package while Web requires browser assets. They are not separately maintained applications. GitHub Actions validates the shared source and builds both targets. Vercel's Git integration publishes the Web target from that same repository/commit.
 
@@ -30,15 +30,15 @@ The outputs differ because Android requires an installable native package while 
 
 Vercel creates a preview deployment for feature-branch pushes and pull requests. Merges to the configured production branch `main` create a production deployment. This is the documented Git integration model; see [Deploying Git Repositories](https://vercel.com/docs/git).
 
-### Current preview
+### Production workspace
 
-A Flutter branch preview was verified at:
+The canonical online workspace is:
 
-`https://kannada-word-reading-platform-c0fao2oyj.vercel.app`
+https://kannada-word-reading-platform.vercel.app/
 
-It returned HTTP 200 for the Flutter build at commit `43c0d2ce8f3e53f51c1bc447b60b90666d3551f0`. This is a branch preview, not the production domain. The production branch remains `main`; do not merge the draft Flutter PR merely to replace the production app while the research and engineering gates below remain open.
+The Vercel project is linked to `MuhammadMinhaj229/kannada-word-reading-platform`; merges to `main` publish the Flutter Web application. The workspace is interactive for bundled item-bank review, Settings, release readiness and the non-participant Task preview. Its PWA caches the application shell and bundled static assets after the first successful online load.
 
-Vercel SSO protection is configured for **all deployment targets**, including attached project domains; this was changed from `all_except_custom_domains` during the security audit. Keep SSO enabled while the instrument is under development. The current Web preview should not be indexed by search engines and must not contain participant data. SSO controls who can open the deployment; it does not make the demo suitable for storing participant information.
+The site does not accept participant identifiers or research responses. Vercel deployment access protection and the no-index headers remain enabled while the research instrument is under development. A Vercel deployment being `READY` means the website built and deployed; it does not authorize participant data collection.
 
 ## Build and cache behavior
 
@@ -46,7 +46,7 @@ The Vercel build downloads the pinned Flutter SDK and builds `build/web`. `scrip
 
 Do not enable immutable caching for all Web files unless the build is configured to use Flutter's content-hashed asset output. Entry points and the current un-hashed bundle must revalidate so a reopened browser app can receive the latest release. An already-running browser tab will not hot-swap its executing code; never force-refresh during an assessment.
 
-Flutter Web is a review target. Do not assume that a hosted build provides the native Android app's SQLite, durable offline storage, power-loss recovery, audio timing or field behavior.
+The Vercel workspace is an interactive online application, but it does not provide the Android app's SQLCipher storage, durable local research records, power-loss recovery or approved field-session behavior. The Android APK is the downloadable offline tablet build.
 
 ## Android updates after installation
 
