@@ -4,7 +4,7 @@
 
 The field product is a native Flutter/Dart Android application for assessor-operated tablets. It must function without Wi-Fi or mobile data and retain research records inside the application's private encrypted storage.
 
-The Flutter Web target is a read-only browser review of the same application screens, hosted on Vercel. It must not accept participant identifiers or collect research records. The earlier Next.js/PWA code is preserved on the archive branch and is not part of the active Flutter source tree.
+The Flutter Web target is the interactive online workspace hosted on Vercel. It shares the application presentation and bundled content and provides item-bank review, Settings, release-readiness information and the non-participant Task preview. The browser must not accept participant identifiers or research responses. The Android APK is the downloadable offline build and the intended field platform after institutional approvals and actual-device acceptance. The earlier Next.js/PWA code is preserved on the archive branch and is not part of the active Flutter source tree.
 
 ## Application structure
 
@@ -40,11 +40,12 @@ Flutter / Dart application
     ├── approved Kannada instruction recordings
     └── bundled Kannada font and licensed visual assets
 
-Flutter Web review build
+Flutter Web online workspace on Vercel
 └── same presentation system
-    ├── bundled source-word and review metadata
-    ├── read-only browser interface
-    └── no participant identifier or record storage
+    ├── item-bank and release-readiness review
+    ├── Settings and non-participant Task QA preview
+    ├── installable PWA shell with bundled static assets
+    └── no participant identifier or research-record storage
 ```
 
 ## Separation of responsibilities
