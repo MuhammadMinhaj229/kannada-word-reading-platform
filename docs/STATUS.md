@@ -9,6 +9,14 @@
 - Live website: https://kannada-word-reading-platform.vercel.app/
 - Stable Android engineering APK: https://github.com/MuhammadMinhaj229/kannada-word-reading-platform/releases/tag/padalab-preview
 
+## Option C platform storage
+
+- Web and Android are independent local applications built from one Flutter/Dart codebase; there is no shared participant database, API, import/export bridge or cross-device synchronization.
+- Web uses browser-local storage only for small, non-sensitive workspace preferences. Participant identifiers, child names, trial responses and research records remain disabled on Web.
+- Android retains SQLCipher in app-private storage with its Android Keystore-backed key foundation; field collection remains locked until study, governance, workflow and tablet-acceptance gates pass.
+- The current Web adapter persists only the selected workspace tab. Structured IndexedDB persistence is not implemented; do not describe the Web app as a participant data-collection system.
+- Vercel deployments update Web assets only. Android APK delivery and updates remain separate.
+
 ## Source, pull requests and CI
 
 - `main` is the production source branch; Vercel is linked to this repository.
