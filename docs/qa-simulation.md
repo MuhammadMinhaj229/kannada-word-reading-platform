@@ -4,8 +4,8 @@ The **Task preview** navigation entry launches a fully interactive, non-particip
 
 ## Run it
 
-- On Android: install the engineering-preview APK, open **Task preview**, and tap **ಪ್ರಾರಂಭಿಸೋಣ**.
-- In the browser review build: open the app and select **Task preview** from the navigation rail or bottom navigation.
+- On Android: install the offline engineering APK, open **Task preview**, and tap **ಪ್ರಾರಂಭಿಸೋಣ**.
+- In the Vercel online workspace: open the app and select **Task preview** from the navigation rail or bottom navigation.
 - Select **ಪದ** or **ಪದವಲ್ಲ** for each card.
 - Complete five practice cards, then ten scored QA cards.
 - At ten responses, continue past the neutral milestone.
