@@ -9,7 +9,15 @@
 - No cloud database, API client, analytics, crash telemetry, remote logging or automatic upload is configured.
 - Child study ID is the default identifier. Child names are optional and excluded from default exports.
 - Trial persistence must complete before the next stimulus can be presented. Trial response and session-cursor advancement are committed in one database transaction.
-- The browser build uses synthetic data only. It must not collect participant information.
+- The browser build is an independent Web application. It has no connection to Android storage and no participant-data synchronization.
+- Browser-local storage is intended for non-sensitive workspace preferences and QA state. Structured browser data should use IndexedDB; localStorage is reserved for small preferences.
+- Participant identifiers, child names, trial responses and research session records remain disabled in the Web build until the institution separately approves browser-based collection and its governance controls.
+
+## Independent Web storage boundary
+
+The accepted platform decision is documented in [platform storage architecture](platform-storage-architecture.md). Browser storage is scoped to an origin/profile, can be cleared or evicted, may be unavailable in private browsing, and is exposed to same-origin script execution. It is not equivalent to SQLCipher or Android Keystore protection. Do not describe browser records as encrypted, tamper-proof or suitable for participant data without a separately reviewed design and institutional approval.
+
+The Web and Android data stores are independent. No shared API, cloud database, background upload, import bridge or cross-device synchronization is part of this product architecture.
 
 ## Important implementation boundary
 
