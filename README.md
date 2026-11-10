@@ -2,7 +2,7 @@
 
 **Application:** Flutter / Dart  
 **Field target:** offline-first Android tablets  
-**Browser target:** read-only review build on Vercel  
+**Browser target:** independent Flutter Web application on Vercel  
 **Current branch:** `main`  
 **Release state:** engineering candidate; participant release gate remains closed
 
@@ -13,9 +13,9 @@ PadLab has one Flutter application codebase. Android and Web are separate build 
 | Target | Intended role | Data boundary |
 |---|---|---|
 | Android APK | Assessor-operated field application | Encrypted SQLite in private device storage |
-| Flutter Web | Interface and bundled-content review on Vercel | Read-only; no participant identifiers or records |
+| Flutter Web | Independent browser application on Vercel | Browser-local storage; no connection to Android records |
 
-The browser build is not a participant data-collection target. Vercel serves the Flutter Web output; GitHub Actions builds the Android package. No cloud database, remote participant API, analytics or telemetry service is part of the current architecture.
+The Web and Android applications share Flutter UI/domain code but use independent local data stores. Web persistence is browser-local; Android field persistence uses SQLCipher and Android Keystore. There is no cloud participant database, remote participant API, automatic upload, analytics, telemetry or cross-device synchronization. Participant collection remains disabled on Web pending separate institutional approval.
 
 ## Supplied study content
 
@@ -103,15 +103,15 @@ bash scripts/deploy/configure_flutter_web.sh build/web
 - Output directory: `build/web`
 - Flutter SDK: pinned in `.flutter-version`
 
-The Flutter application and production-readiness fixes are merged into `main`. Latest main commit: `594c84ca535cf3c25277bf1dc0d5ecb9ea2b59cf` (PR #11 merged 9 November 2026). PR #11 hardens trial persistence, item-bank validation, release authorization and the signed Android release workflow. The earlier main CI run #42473020877 passed formatting, static analysis, all 65 unit/widget tests, ARM64 Android debug build, Flutter Web build, metadata checks and artifact verification. The merged PR #11 adds further validation and fail-closed database authorization. The Vercel production deployment from this exact commit reached `READY`; canonical review URL: https://kannada-word-reading-platform.vercel.app/. The deployed `app-release.json` is labelled `engineering-preview`, with `participantReady: false` and `participantDataSync: false`. The Vercel browser build is a no-index, read-only review surface and must not be used for participant data entry. The stable GitHub prerelease [padalab-preview](https://github.com/MuhammadMinhaj229/kannada-word-reading-platform/releases/tag/padalab-preview) publishes a debug-signed ARM64 APK and SHA-256 checksum for engineering review only, not field use. Feature-branch previews may still be generated for controlled review. The service-worker cache identity is derived from both asset paths and file contents.
+The Flutter application and production-readiness fixes are merged into `main`. Latest main commit: `594c84ca535cf3c25277bf1dc0d5ecb9ea2b59cf` (PR #11 merged 9 November 2026). PR #11 hardens trial persistence, item-bank validation, release authorization and the signed Android release workflow. The earlier main CI run #42473020877 passed formatting, static analysis, all 65 unit/widget tests, ARM64 Android debug build, Flutter Web build, metadata checks and artifact verification. The merged PR #11 adds further validation and fail-closed database authorization. The Vercel production deployment from this exact commit reached `READY`; canonical review URL: https://kannada-word-reading-platform.vercel.app/. The deployed `app-release.json` is labelled `engineering-preview`, with `participantReady: false` and `participantDataSync: false`. The Vercel browser build is a no-index independent Web application. Its browser-local storage is separate from Android; participant data entry remains disabled pending institutional approval. The stable GitHub prerelease [padalab-preview](https://github.com/MuhammadMinhaj229/kannada-word-reading-platform/releases/tag/padalab-preview) publishes a debug-signed ARM64 APK and SHA-256 checksum for engineering review only, not field use. Feature-branch previews may still be generated for controlled review. The service-worker cache identity is derived from both asset paths and file contents.
 
 ## Web offline mode and Android APK download
 
-The Flutter Web review build is installable as a PWA and precaches the Flutter shell and bundled assets after its first successful online load. Its **Refresh app** control checks for a new deployment only when clicked; it does not use a timer or repeatedly reload the page. The **Download Android APK** control opens the stable engineering-preview release below.
+The Flutter Web application is installable as a PWA and precaches the Flutter shell and bundled assets after its first successful online load. Browser-local storage is scoped to the browser profile and may be cleared or evicted; it is not equivalent to SQLCipher/Android Keystore. Its **Refresh app** control checks for a new deployment only when clicked; it does not use a timer or repeatedly reload the page. The **Download Android APK** control opens the stable engineering-preview release below.
 
 [Download the latest ARM64 Android preview APK](https://github.com/MuhammadMinhaj229/kannada-word-reading-platform/releases/download/padalab-preview/padalab-android-arm64-debug.apk)
 
-The APK is debug-signed and for engineering review only, not participant field use. Android and Web are built from the same Flutter source commit and contain the same UI and bundled content. Android storage and device services are native; participant data remains local and is not synchronised to Vercel or GitHub. Web refresh updates Web assets only. Android in-app updates use Google Play and require a Play-installed build.
+The APK is debug-signed and for engineering review only, not participant field use. Android and Web are built from the same Flutter source commit and contain the same UI and bundled content, but their data stores are independent. Android uses SQLCipher; Web uses browser-local storage. No records move between them. Web refresh updates Web assets only. Android in-app updates use Google Play and require a Play-installed build.
 
 ## Android APK distribution
 
