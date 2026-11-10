@@ -2,7 +2,7 @@
 
 ## Platform responsibilities
 
-The Android tablet application is the field target. The Flutter Web output on Vercel is a read-only interface and bundled-content review. It must not collect participant identifiers or store participant sessions.
+Vercel is the interactive online workspace for item-bank review, Settings, release-readiness information and non-participant Task QA. Its PWA caches the app shell and bundled static assets after the first online load, but it must not collect participant identifiers or research responses. The Android APK is the downloadable offline tablet build and the intended field platform after all research and device approvals.
 
 The two platforms share the Flutter presentation and assessment domain, while persistence and update behavior remain platform-specific.
 
@@ -38,13 +38,13 @@ Run these on the exact Android tablet model and Android version intended for the
 | Privacy | No participant identifiers or records leave the device; no analytics, crash upload or remote logging. |
 | Power loss | A forced shutdown during a trial does not lose or duplicate committed responses. |
 
-## Browser review checks
+## Vercel online workspace and PWA checks
 
 - First online load precaches the Flutter Web shell and local resources.
 - Cold offline browser/PWA launch loads the shell and required static resources from cache.
 - A changed asset byte produces a new service-worker cache identity, even when the URL remains unchanged.
 - The assessor-triggered refresh activates the new worker only when the user requests it.
-- Browser entry fields remain read-only; no participant data is accepted or persisted.
+- Participant identifiers and research responses remain disabled in the browser; no participant data is accepted or persisted.
 
 ## Release gate
 
