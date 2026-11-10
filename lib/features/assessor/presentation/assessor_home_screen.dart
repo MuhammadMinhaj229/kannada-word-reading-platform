@@ -175,7 +175,7 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
         ),
         _StatusPill(
           icon: kIsWeb ? Icons.visibility_outlined : Icons.lock_outline_rounded,
-          label: kIsWeb ? 'BROWSER REVIEW · READ ONLY' : 'FIELD RELEASE GATED',
+          label: kIsWeb ? 'ONLINE WORKSPACE · QA' : 'FIELD RELEASE GATED',
           color: AppTheme.coral,
         ),
         if (kIsWeb) ...<Widget>[
@@ -238,9 +238,10 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
         ),
         const SizedBox(height: 12),
         const Text(
-          'An offline-first assessor application for recording structured '
-          'word-reading sessions on approved Android tablets. Participant '
-          'records remain on the device; this browser build is read-only.',
+          'Use the Vercel workspace to inspect the Kannada item catalogue, review '
+          'release readiness, manage settings and run the interactive QA task. '
+          'Download the Android APK for the offline tablet build. Participant '
+          'sessions remain locked until the study approvals are complete.',
           style: TextStyle(
             color: AppTheme.muted,
             fontSize: 14,
@@ -323,9 +324,10 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
             const SizedBox(height: 18),
             if (readOnlyWeb)
               const _InlineNotice(
-                text: 'The Vercel browser build is for interface review. '
-                    'Do not enter participant identifiers here. Use the '
-                    'installed Android tablet application for field work.',
+                text: 'This online workspace supports catalogue review, settings and '
+                    'the interactive Task preview. Participant identifiers '
+                    'and research responses cannot be entered or stored here. '
+                    'Download the offline Android APK for approved field work.',
               )
             else if (!ready)
               const _InlineNotice(
@@ -816,11 +818,11 @@ class _ApkDownloadButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Tooltip(
       message:
-          'Downloads the ARM64 debug-signed engineering preview. Not approved for participant data collection.',
+          'Downloads the ARM64 offline Android engineering build. It is debug-signed and is not approved for participant field use.',
       child: OutlinedButton.icon(
         onPressed: ApkDownloadService.openLatestAndroidPreview,
         icon: const Icon(Icons.android_rounded, size: 15),
-        label: const Text('Download Android APK'),
+        label: const Text('Download offline APK'),
       ),
     );
   }
