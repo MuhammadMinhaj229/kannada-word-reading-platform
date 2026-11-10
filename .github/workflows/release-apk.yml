@@ -73,7 +73,7 @@ jobs:
           chmod 600 android/key.properties android/app/upload-keystore.jks
 
       - name: Resolve dependencies
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
 
       - name: Require verified field-release authorization
         run: dart scripts/deploy/verify_field_release_gate.dart
