@@ -246,7 +246,7 @@ jobs:
           test -s "$APK.sha256"
 
       - name: Move preview tag to this validated main commit
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const { owner, repo } = context.repo;
