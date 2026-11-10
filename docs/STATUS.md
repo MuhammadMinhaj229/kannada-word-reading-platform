@@ -1,9 +1,9 @@
-# Repository and field-readiness status — 9 November 2026
+# Repository and field-readiness status — 10 November 2026
 
 ## Source, CI and deployments
 
 - `main` is the production source branch.
-- Latest main commit: `594c84ca535cf3c25277bf1dc0d5ecb9ea2b59cf`.
+- Main branch was subsequently advanced by reviewed Dependabot merges; the 10 November base commit for the Option C architecture branch is `68415f9aa1bb2d0a7231d5fed72403f7086fc53a`.
 - PR #9 merged on 8 November 2026: [Fix engineering preview publication and protocol readiness UX](https://github.com/MuhammadMinhaj229/kannada-word-reading-platform/pull/9).\n- PR #11 merged on 9 November 2026: [Harden trial persistence, item-bank validation and signed release gate](https://github.com/MuhammadMinhaj229/kannada-word-reading-platform/pull/11). The database authorization boundary is now bound to the private, fail-closed release gate; item-bank/trial validation and Gradle checksum pinning were added.
 - Main-branch workflow run #42473020877 completed successfully. Formatting, static analysis, all 65 unit/widget tests, ARM64 Android debug build, Flutter Web build, Web metadata checks, APK verification and both validation artifact uploads passed.
 - The workflow published/updated the stable prerelease tag `padalab-preview` at the same commit as `main`.
@@ -11,9 +11,9 @@
 - The release APK is debug-signed and is not a production/field APK. It is for controlled engineering review only.
 - Vercel production deployment `dpl_9S6PVz3GW214tpvmJqHLfp6trNsC` reached `READY` from the same main commit. Canonical review URL: https://kannada-word-reading-platform.vercel.app/.
 - The deployed `app-release.json` identifies the channel as `engineering-preview`, with `participantReady: false` and `participantDataSync: false`.
-- Vercel Web is a no-index review surface, not a participant data-collection target. The Android build is the intended field platform once all approvals and acceptance gates are satisfied.
+- Vercel Web is an independent Flutter application with a browser-local storage target. Android uses its own SQLCipher/Keystore-backed storage. There is no synchronization or shared participant backend. Participant data entry remains disabled on Web pending separate institutional approval.
 
-## Implemented engineering foundations
+## Accepted platform architecture — Option C (10 November 2026)\n\n- One Flutter/Dart source codebase builds the Vercel Web application and Android APK.\n- Web and Android have independent local data stores: browser-local storage for Web and SQLCipher in Android private storage for Android.\n- No cross-device synchronization, cloud participant database, remote participant API, background upload or data bridge is permitted.\n- Vercel deployment updates Web assets only; Android APK distribution remains a separate release process.\n- The decision and acceptance criteria are recorded in [platform storage architecture](platform-storage-architecture.md).\n- **Implementation gap:** the current Web target remains a review/QA surface and does not yet have a structured IndexedDB persistence adapter. This architecture decision is accepted but does not claim that browser persistence has been implemented.\n\n## Implemented engineering foundations
 
 - Flutter application shell and responsive assessor workspace.
 - 270 supplied real Kannada words parsed and validated with source metadata.
