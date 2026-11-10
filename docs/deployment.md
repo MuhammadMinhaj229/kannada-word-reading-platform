@@ -13,9 +13,9 @@ The repository contains one application codebase: Flutter/Dart under `lib/`. Bot
 | Target | Role | Delivery |
 |---|---|---|
 | Android | Canonical offline field application | Android debug APK from GitHub Actions now; signed release build after device, protocol and signing gates |
-| Flutter Web | Browser UI review using the same Flutter screens | Vercel Git preview for branches; Vercel production deployment from `main` |
+| Flutter Web | Independent browser application with browser-local storage | Vercel Git preview for branches; Vercel production deployment from `main` |
 
-The outputs differ because Android requires an installable native package while Web requires browser assets. They are not separately maintained applications. GitHub Actions validates the shared source and builds both targets. Vercel's Git integration publishes the Web target from that same repository/commit.
+The outputs differ because Android requires an installable native package while Web requires browser assets. They are not separately maintained applications. GitHub Actions validates the shared source and builds both targets. Vercel's Git integration publishes the Web target from that same repository/commit. The platform data stores remain independent: Web uses browser-local storage; Android uses SQLCipher. No synchronization or shared participant backend is permitted.
 
 ## Vercel project
 
@@ -46,7 +46,17 @@ The Vercel build downloads the pinned Flutter SDK and builds `build/web`. `scrip
 
 Do not enable immutable caching for all Web files unless the build is configured to use Flutter's content-hashed asset output. Entry points and the current un-hashed bundle must revalidate so a reopened browser app can receive the latest release. An already-running browser tab will not hot-swap its executing code; never force-refresh during an assessment.
 
-Flutter Web is a review target. Do not assume that a hosted build provides the native Android app's SQLite, durable offline storage, power-loss recovery, audio timing or field behavior.
+Flutter Web is an independent browser application, not a mirror of Android data. Browser-local persistence is scoped to the browser profile and can be cleared or evicted. It is not equivalent to SQLCipher/Android Keystore and must not be used for participant data until separately approved by the institution. The existing participant workflow remains disabled on Web. Do not assume that a hosted build provides the native Android app's SQLCipher, durable offline storage, power-loss recovery, audio timing or field behavior.
+
+## Accepted Option C: independent platform storage
+
+- **Web:** Vercel serves the Flutter Web application. Browser-local storage is the Web target's independent persistence boundary. Use IndexedDB for structured local records when implemented; reserve localStorage for small, non-sensitive preferences.
+- **Android:** the downloadable APK uses SQLCipher in app-private storage and an Android Keystore-backed key.
+- **No synchronization:** neither platform reads or writes the other's store. No participant API, cloud database, automatic upload, background sync or cross-device merge is planned.
+- **Separate lifecycle:** Vercel deployments update Web assets only. APK releases are built and distributed separately. The website's APK link is a download link, not a bridge to Android data.
+- **Current restriction:** participant identifiers, child names, trial responses and study sessions remain disabled on Web pending explicit institutional approval of browser-based collection. Browser storage alone is not a security or governance approval.
+
+See [platform storage architecture](platform-storage-architecture.md) and [privacy and data handling](privacy-and-data.md).
 
 ## Android updates after installation
 
