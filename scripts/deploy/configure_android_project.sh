@@ -209,7 +209,8 @@ if not has_tts_query:
     action = ET.SubElement(intent, "action")
     action.set(attr("name"), "android.intent.action.TTS_SERVICE")
 
-main_activity.set(attr("screenOrientation"), "landscape")
+# Leave screenOrientation unset so phones can use portrait and landscape.
+main_activity.attrib.pop(attr("screenOrientation"), None)
 main_activity.set(attr("exported"), "true")
 tree.write(manifest_path, encoding="utf-8", xml_declaration=True)
 PY
@@ -269,7 +270,10 @@ grep -q 'lib/armeabi-v7a/\*\*' "${APP_GRADLE}"
 grep -q 'lib/x86_64/\*\*' "${APP_GRADLE}"
 grep -q 'signingConfig = if (padalabReleaseSigningReady)' "${APP_GRADLE}"
 ! grep -q 'signingConfig = signingConfigs.getByName("debug")' "${APP_GRADLE}"
-grep -q 'screenOrientation="landscape"' "${MANIFEST}"
+if grep -q 'screenOrientation=' "${MANIFEST}"; then
+  echo "Android MainActivity must not be locked to one orientation." >&2
+  exit 1
+fi
 grep -q 'allowBackup="false"' "${MANIFEST}"
 test -s android/app/proguard-rules.pro
 grep -q 'android.permission.INTERNET' "${MANIFEST}"

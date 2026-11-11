@@ -51,8 +51,13 @@ test("desktop and mobile viewports mount the same Flutter application", async ({
   page,
 }) => {
   const sizes = [
-    { width: 1365, height: 900 },
+    { width: 320, height: 740 },
+    { width: 360, height: 800 },
     { width: 390, height: 844 },
+    { width: 768, height: 1024 },
+    { width: 1024, height: 768 },
+    { width: 1365, height: 900 },
+    { width: 1920, height: 1080 },
   ];
 
   for (const size of sizes) {
@@ -134,5 +139,76 @@ test("offline app-shell navigation works after first-install precache", async ({
     await expectFlutterMounted(page);
   } finally {
     await context.setOffline(false);
+  }
+});
+
+
+test("Android Chrome renders at real phone viewport widths without horizontal overflow", async ({
+  browser,
+}) => {
+  const phoneSizes = [
+    { width: 320, height: 740 },
+    { width: 360, height: 800 },
+    { width: 375, height: 812 },
+    { width: 390, height: 844 },
+    { width: 412, height: 915 },
+    { width: 430, height: 932 },
+    { width: 844, height: 390 },
+  ];
+
+  for (const size of phoneSizes) {
+    const context = await browser.newContext({
+      viewport: size,
+      screen: size,
+      deviceScaleFactor: 2,
+      isMobile: true,
+      hasTouch: true,
+      userAgent:
+        "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36",
+    });
+
+    try {
+      const page = await context.newPage();
+      const pageErrors = [];
+      const consoleErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(error.message));
+      page.on("console", (message) => {
+        if (message.type() === "error") consoleErrors.push(message.text());
+      });
+
+      const response = await page.goto("/", { waitUntil: "domcontentloaded" });
+      expect(response).not.toBeNull();
+      expect(response.status()).toBe(200);
+      await expectFlutterMounted(page);
+
+      const metrics = await page.evaluate(() => ({
+        innerWidth: Math.round(window.innerWidth),
+        visualViewportWidth: Math.round(window.visualViewport?.width ?? 0),
+        documentWidth: Math.max(
+          document.documentElement.scrollWidth,
+          document.body.scrollWidth,
+        ),
+        viewport: document.querySelector('meta[name="viewport"]')?.getAttribute("content") ?? "",
+      }));
+
+      expect(metrics.innerWidth).toBe(size.width);
+      expect(metrics.visualViewportWidth).toBe(size.width);
+      expect(metrics.documentWidth).toBeLessThanOrEqual(size.width + 1);
+      expect(metrics.viewport).toMatch(/width\s*=\s*device-width/i);
+      expect(metrics.viewport).toMatch(/viewport-fit\s*=\s*cover/i);
+      expect(metrics.viewport).not.toMatch(
+        /user-scalable\s*=\s*no|maximum-scale\s*=\s*1(?:\.0+)?/i,
+      );
+
+      const flutterView = await page.locator("flutter-view").first().boundingBox();
+      expect(flutterView).not.toBeNull();
+      expect(Math.round(flutterView.width)).toBe(size.width);
+
+      await page.waitForTimeout(500);
+      expect(pageErrors).toEqual([]);
+      expect(consoleErrors).toEqual([]);
+    } finally {
+      await context.close();
+    }
   }
 });

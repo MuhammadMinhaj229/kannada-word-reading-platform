@@ -12,6 +12,7 @@ fi
 
 python3 - "${INDEX_FILE}" "${MANIFEST_FILE}" <<'PY'
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -28,6 +29,19 @@ background_color = "#F7F8F2"
 
 html = index_path.read_text(encoding="utf-8")
 html = html.replace("<html>", '<html lang="en">', 1)
+
+# Keep mobile browsers at the device's CSS viewport width. Do not cap zoom:
+# users must retain pinch-to-zoom and platform accessibility zoom.
+viewport_tag = '<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">'
+viewport_pattern = re.compile(r'<meta\s+name=["\']viewport["\'][^>]*>', re.IGNORECASE)
+if viewport_pattern.search(html):
+    html = viewport_pattern.sub(lambda _: viewport_tag, html, count=1)
+else:
+    html = html.replace(
+        "</head>",
+        "  " + viewport_tag + chr(10) + "</head>",
+        1,
+    )
 html = html.replace(
     '<meta name="description" content="A new Flutter project.">',
     f'<meta name="description" content="{description}">',

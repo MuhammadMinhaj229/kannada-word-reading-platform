@@ -15,6 +15,7 @@ module.exports = defineConfig({
   use: {
     baseURL: process.env.PADLAB_WEB_BASE_URL || "http://127.0.0.1:4173",
     headless: true,
+    channel: "chrome",
     viewport: { width: 1365, height: 900 },
     trace: "retain-on-failure",
     screenshot: "only-on-failure",

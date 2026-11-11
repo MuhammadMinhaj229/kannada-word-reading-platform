@@ -196,7 +196,7 @@ jobs:
       - name: Install Playwright and Chromium
         run: |
           npm install --no-package-lock --no-audit --no-fund
-          npx playwright install --with-deps chromium
+          npx playwright install --with-deps chromium chrome
 
       - name: Run Flutter Web browser and offline smoke tests
         shell: bash

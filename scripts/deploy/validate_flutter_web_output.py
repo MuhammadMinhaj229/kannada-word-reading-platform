@@ -31,6 +31,23 @@ def main() -> int:
     manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
     release = json.loads((output / "app-release.json").read_text(encoding="utf-8"))
 
+    viewport_match = re.search(
+        r'<meta\s+name=["\']viewport["\']\s+content=["\']([^"\']+)["\']',
+        index,
+        re.IGNORECASE,
+    )
+    if not viewport_match:
+        fail("index.html is missing a mobile viewport declaration")
+    viewport = viewport_match.group(1).lower()
+    if "width=device-width" not in viewport or "viewport-fit=cover" not in viewport:
+        fail("mobile viewport must use device width and safe-area coverage")
+    if re.search(
+        r"user-scalable\s*=\s*no|maximum-scale\s*=\s*1(?:\.0+)?",
+        viewport,
+    ):
+        fail("mobile viewport must preserve user zoom and pinch-to-zoom")
+
+
     if 'navigator.serviceWorker.register("/service-worker.js"' not in index:
         fail("index.html does not register the PadLab service worker")
     if "controllerchange" in index or "location.reload()" in index:

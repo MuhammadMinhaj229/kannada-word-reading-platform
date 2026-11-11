@@ -58,3 +58,55 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 }
+
+
+testWidgets(
+    'phone portrait and landscape layouts remain usable without overflow',
+    (tester) async {
+  const phoneSizes = <Size>[
+    Size(320, 740),
+    Size(360, 800),
+    Size(375, 812),
+    Size(390, 844),
+    Size(412, 915),
+    Size(430, 932),
+    Size(844, 390),
+  ];
+
+  tester.view.devicePixelRatio = 1;
+  tester.view.physicalSize = phoneSizes.first;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+
+  await _pumpWorkspace(tester);
+  for (final size in phoneSizes) {
+    tester.view.physicalSize = size;
+    await tester.pump(const Duration(milliseconds: 120));
+    expect(find.byType(NavigationBar), findsOneWidget,
+        reason: 'A ' + size.width.toInt().toString() + 'x' +
+            size.height.toInt().toString() +
+            ' phone layout must keep bottom navigation available.');
+    expect(tester.takeException(), isNull,
+        reason: 'Assessment home must not overflow at ' + size.toString() + '.');
+  }
+
+  await tester.tap(find.text('Task preview'));
+  await tester.pump(const Duration(milliseconds: 350));
+  for (final size in phoneSizes) {
+    tester.view.physicalSize = size;
+    await tester.pump(const Duration(milliseconds: 120));
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(tester.takeException(), isNull,
+        reason: 'Task preview must not overflow at ' + size.toString() + '.');
+  }
+
+  await tester.tap(find.text('Settings'));
+  await tester.pump(const Duration(milliseconds: 350));
+  for (final size in phoneSizes) {
+    tester.view.physicalSize = size;
+    await tester.pump(const Duration(milliseconds: 120));
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(tester.takeException(), isNull,
+        reason: 'Settings must not overflow at ' + size.toString() + '.');
+  }
+});
