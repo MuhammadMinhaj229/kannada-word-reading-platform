@@ -8,6 +8,8 @@ import 'package:uuid/uuid.dart';
 
 import '../../core/config/assessment_release_gate.dart';
 import '../../core/time/local_timestamp.dart';
+import '../../features/assessment/domain/services/session_recovery_policy.dart';
+import '../../features/assessment/domain/services/trial_response_validation.dart';
 import '../../features/assessment/domain/models/session_allocation.dart';
 import '../../features/assessment/domain/models/study_item.dart';
 import '../../features/assessment/domain/models/study_item_bank.dart';
@@ -551,6 +553,21 @@ class AssessmentDatabase {
         throw StateError('The session is not available for a new trial.');
       }
 
+      final pendingPresentedTrials = await txn.query(
+        'trials',
+        columns: <String>['trial_uuid'],
+        where: 'session_uuid = ? AND status = ?',
+        whereArgs: <Object?>[sessionUuid, 'presented'],
+        limit: 1,
+      );
+      if (pendingPresentedTrials.isNotEmpty) {
+        throw StateError(
+          'A previously presented trial has no committed response. The app '
+          'will not present a second stimulus until the study-approved '
+          'recovery procedure resolves the original presentation.',
+        );
+      }
+
       final expectedOrdinal = sessionRows.single['next_ordinal'] as int;
       if (plannedTrial.ordinal != expectedOrdinal) {
         throw StateError('The trial is not the next frozen manifest item.');
@@ -651,6 +668,21 @@ class AssessmentDatabase {
         throw StateError('This trial response has already been committed.');
       }
 
+      final shownAtRaw = trial['shown_at'];
+      if (shownAtRaw is! String) {
+        throw StateError('The presented trial has no valid presentation timestamp.');
+      }
+      final shownAt = DateTime.tryParse(shownAtRaw);
+      if (shownAt == null) {
+        throw StateError('The presented trial timestamp could not be parsed.');
+      }
+      TrialResponseValidation.validate(
+        response: response,
+        reactionTimeMs: reactionTimeMs,
+        shownAt: shownAt,
+        answeredAt: answeredAt,
+      );
+
       final sessionUuid = trial['session_uuid'] as String;
       final ordinal = trial['ordinal'] as int;
       final sessionRows = await txn.query(
@@ -747,6 +779,41 @@ class AssessmentDatabase {
       );
     }
     final db = await database;
+    final sessionRows = await db.query(
+      'sessions',
+      columns: <String>['status'],
+      where: 'session_uuid = ?',
+      whereArgs: <Object?>[sessionUuid],
+      limit: 1,
+    );
+    if (sessionRows.isEmpty) {
+      throw StateError('The interrupted session could not be found.');
+    }
+
+    final pendingPresentedTrials = await db.query(
+      'trials',
+      columns: <String>['trial_uuid'],
+      where: 'session_uuid = ? AND status = ?',
+      whereArgs: <Object?>[sessionUuid, 'presented'],
+      limit: 1,
+    );
+    final disposition = SessionRecoveryPolicy.evaluate(
+      sessionStatus: sessionRows.single['status'] as String,
+      hasUnansweredPresentedTrial: pendingPresentedTrials.isNotEmpty,
+    );
+    switch (disposition) {
+      case SessionRecoveryDisposition.notInterrupted:
+        throw StateError('Only an interrupted session can be resumed.');
+      case SessionRecoveryDisposition.requiresSupervisorReview:
+        throw StateError(
+          'This session contains a presented trial without a committed '
+          'response. Resume is blocked until the study team approves and '
+          'implements its handling; the original trial record is preserved.',
+        );
+      case SessionRecoveryDisposition.readyToResume:
+        break;
+    }
+
     final updated = await db.update(
       'sessions',
       <String, Object?>{'status': 'in_progress'},
