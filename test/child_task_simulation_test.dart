@@ -10,14 +10,20 @@ Future<void> _pumpPreview(WidgetTester tester, {bool isActive = true}) async {
   await tester.pumpWidget(
     MaterialApp(home: ChildTaskSimulationScreen(isActive: isActive)),
   );
-  await tester.pumpAndSettle();
+  for (var attempt = 0; attempt < 20; attempt += 1) {
+    await tester.pump(const Duration(milliseconds: 100));
+    if (find.text('ಬನ್ನಿ, ಪದಗಳ ಆಟ ಆಡೋಣ!').evaluate().isNotEmpty ||
+        find.textContaining('could not be loaded').evaluate().isNotEmpty) {
+      break;
+    }
+  }
 }
 
 Future<void> _answer(WidgetTester tester, String label) async {
   final button = find.widgetWithText(FilledButton, label);
   await tester.ensureVisible(button);
   await tester.tap(button);
-  await tester.pumpAndSettle();
+  await tester.pump(const Duration(milliseconds: 250));
 }
 
 void main() {
@@ -28,7 +34,7 @@ void main() {
     expect(find.textContaining('TASK PREVIEW'), findsOneWidget);
     expect(find.text('ಬನ್ನಿ, ಪದಗಳ ಆಟ ಆಡೋಣ!'), findsOneWidget);
     await tester.tap(find.text('ಪ್ರಾರಂಭಿಸೋಣ'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 250));
 
     expect(find.text('ಹೂ'), findsOneWidget);
     expect(find.text('ಕುನಮೆ'), findsNothing);
@@ -41,7 +47,7 @@ void main() {
       (tester) async {
     await _pumpPreview(tester);
     await tester.tap(find.text('ಪ್ರಾರಂಭಿಸೋಣ'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 250));
 
     for (var index = 0; index < 5; index += 1) {
       await _answer(tester, 'ಪದ');
@@ -49,7 +55,7 @@ void main() {
 
     expect(find.text('ಚೆನ್ನಾಗಿದೆ!'), findsOneWidget);
     await tester.tap(find.text('ಮುಂದುವರಿಸು'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 250));
 
     // The scored preview sequence uses actual supplied catalogue entries.
     expect(find.text('ಇಳಿ'), findsOneWidget); // source word W006
@@ -65,19 +71,19 @@ void main() {
       (tester) async {
     await _pumpPreview(tester);
     await tester.tap(find.text('ಪ್ರಾರಂಭಿಸೋಣ'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 250));
 
     for (var index = 0; index < 5; index += 1) {
       await _answer(tester, 'ಪದವಲ್ಲ');
     }
     await tester.tap(find.text('ಮುಂದುವರಿಸು'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 250));
 
     for (var index = 0; index < 10; index += 1) {
       await _answer(tester, index.isEven ? 'ಪದ' : 'ಪದವಲ್ಲ');
       if (find.text('ಚೆನ್ನಾಗಿದೆ!').evaluate().isNotEmpty) {
         await tester.tap(find.text('ಮುಂದುವರಿಸು'));
-        await tester.pumpAndSettle();
+        await tester.pump(const Duration(milliseconds: 250));
       }
     }
 
@@ -103,14 +109,14 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 250));
 
     await tester.tap(find.text('ಪ್ರಾರಂಭಿಸೋಣ'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 250));
     expect(find.text('ಹೂ'), findsOneWidget);
 
     updateParent(() => active = false);
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 250));
 
     expect(find.text('ಪೂರ್ವವೀಕ್ಷಣೆ ನಿಲ್ಲಿಸಲಾಗಿದೆ'), findsOneWidget);
     expect(find.text('ಮತ್ತೆ ಪ್ರಾರಂಭಿಸಿ'), findsOneWidget);
