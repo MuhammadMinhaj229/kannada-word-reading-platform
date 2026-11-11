@@ -4,8 +4,9 @@ import 'dart:html' as html;
 /// Checks for a new Web worker only when the user presses Refresh app.
 ///
 /// A waiting worker is activated only by this call. The page reload is issued
-/// once after the worker reaches the activated state; a first install does not
-/// claim clients or force a reload.
+/// once after the worker reaches the activated state. First-install activation
+/// claims pages only after all app-shell assets are precached; it never forces
+/// a reload.
 Future<bool> checkAndActivateWebUpdate() async {
   final serviceWorkers = html.window.navigator.serviceWorker;
   if (serviceWorkers == null) return false;
