@@ -43,6 +43,8 @@ on:
       - "docs/offline-validation.md"
       - "docs/deployment.md"
       - "web/**"
+      - "e2e/**"
+      - "package.json"
 
   workflow_dispatch:
 
