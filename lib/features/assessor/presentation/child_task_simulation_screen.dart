@@ -10,9 +10,17 @@ import '../../assessment/data/bundled_item_catalog.dart';
 /// measures research reaction times. Participant sessions remain behind the
 /// independent release gate.
 class ChildTaskSimulationScreen extends StatefulWidget {
-  const ChildTaskSimulationScreen({super.key, this.isActive = true});
+  const ChildTaskSimulationScreen({
+    super.key,
+    this.isActive = true,
+    this.catalogFuture,
+  });
 
   final bool isActive;
+
+  /// Allows deterministic tests to inject a catalogue already loaded from the
+  /// real bundled assets. Production callers omit this and load the bundle.
+  final Future<BundledItemCatalog>? catalogFuture;
 
   @override
   State<ChildTaskSimulationScreen> createState() =>
@@ -42,7 +50,7 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _catalogFuture = BundledItemCatalog.load();
+    _catalogFuture = widget.catalogFuture ?? BundledItemCatalog.load();
   }
 
   List<_PreviewStimulus> _buildPreviewStimuli(
