@@ -324,6 +324,7 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
       ),
     );
   }
+}
 
 class _SectionHeading extends StatelessWidget {
   const _SectionHeading({
