@@ -18,7 +18,7 @@ void main() {
   Map<String, Object?> manifest(
     int ordinal, {
     String phase = 'test',
-    int phaseTrialNo = 1,
+    int phaseTrialNo = ordinal,
     String itemId = 'W001',
     String text = 'ಮನೆ',
     String type = 'word',
@@ -45,7 +45,7 @@ void main() {
     String text = 'ಮನೆ',
     String type = 'word',
     String phase = 'test',
-    int phaseTrialNo = 1,
+    int phaseTrialNo = ordinal,
   }) =>
       <String, Object?>{
         'trial_uuid': 'trial-$ordinal',
@@ -124,6 +124,7 @@ void main() {
           2,
           itemId: 'W002',
           text: 'ಮರ',
+          phaseTrialNo: 1,
           status: 'no_response',
           response: 'none',
         ),
