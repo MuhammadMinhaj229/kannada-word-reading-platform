@@ -9,6 +9,7 @@ import 'package:uuid/uuid.dart';
 import '../../core/config/assessment_release_gate.dart';
 import '../../core/time/local_timestamp.dart';
 import '../../features/assessment/domain/services/session_recovery_policy.dart';
+import '../../features/assessment/domain/services/session_integrity_audit.dart';
 import '../../features/assessment/domain/services/trial_response_validation.dart';
 import '../../features/assessment/domain/models/session_allocation.dart';
 import '../../features/assessment/domain/models/study_item.dart';
@@ -510,6 +511,47 @@ class AssessmentDatabase {
       presentedAt:
           presentedRows.isEmpty ? null : presentedRows.single['shown_at'] as String,
     );
+  }
+
+  /// Performs a read-only consistency audit against the immutable session
+  /// manifest. All three reads share one SQLite transaction snapshot so a
+  /// concurrent response commit cannot produce a mixed-state report.
+  ///
+  /// Returns null when the session UUID does not exist.
+  Future<SessionIntegrityReport?> auditSession(String sessionUuid) async {
+    if (sessionUuid.trim().isEmpty) {
+      throw ArgumentError.value(sessionUuid, 'sessionUuid');
+    }
+
+    final db = await database;
+    return db.transaction((txn) async {
+      final sessions = await txn.query(
+        'sessions',
+        where: 'session_uuid = ?',
+        whereArgs: <Object?>[sessionUuid],
+        limit: 1,
+      );
+      if (sessions.isEmpty) return null;
+
+      final manifestItems = await txn.query(
+        'session_manifest_items',
+        where: 'session_uuid = ?',
+        whereArgs: <Object?>[sessionUuid],
+        orderBy: 'ordinal ASC',
+      );
+      final trials = await txn.query(
+        'trials',
+        where: 'session_uuid = ?',
+        whereArgs: <Object?>[sessionUuid],
+        orderBy: 'ordinal ASC',
+      );
+
+      return SessionIntegrityAudit.inspect(
+        session: sessions.single,
+        manifestItems: manifestItems,
+        trials: trials,
+      );
+    });
   }
 
   Future<List<Map<String, Object?>>> getChildSessionHistory(
