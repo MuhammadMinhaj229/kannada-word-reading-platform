@@ -1,22 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:padalab_android/features/assessment/data/bundled_item_catalog.dart';
 import 'package:padalab_android/features/assessor/presentation/child_task_simulation_screen.dart';
 
-Future<void> _pumpPreview(WidgetTester tester, {bool isActive = true}) async {
+Future<BundledItemCatalog> _loadRealCatalogue(WidgetTester tester) async {
+  final catalogue = await tester.runAsync(BundledItemCatalog.load);
+  if (catalogue == null) {
+    throw TestFailure('The real bundled Kannada catalogue did not load.');
+  }
+  expect(catalogue.realWords, hasLength(270));
+  expect(catalogue.suppliedNonWordCandidates, hasLength(193));
+  return catalogue;
+}
+
+Future<void> _pumpPreview(
+  WidgetTester tester, {
+  bool isActive = true,
+  BundledItemCatalog? catalogue,
+}) async {
   tester.view.physicalSize = const Size(900, 900);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
+
+  final loadedCatalogue = catalogue ?? await _loadRealCatalogue(tester);
   await tester.pumpWidget(
-    MaterialApp(home: ChildTaskSimulationScreen(isActive: isActive)),
+    MaterialApp(
+      home: ChildTaskSimulationScreen(
+        isActive: isActive,
+        catalogFuture: Future<BundledItemCatalog>.value(loadedCatalogue),
+      ),
+    ),
   );
-  for (var attempt = 0; attempt < 20; attempt += 1) {
-    await tester.pump(const Duration(milliseconds: 100));
-    if (find.text('ಬನ್ನಿ, ಪದಗಳ ಆಟ ಆಡೋಣ!').evaluate().isNotEmpty ||
-        find.textContaining('could not be loaded').evaluate().isNotEmpty) {
-      break;
-    }
-  }
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 50));
 }
 
 Future<void> _answer(WidgetTester tester, String label) async {
@@ -98,18 +115,24 @@ void main() {
   testWidgets('leaving task preview interrupts the preview run', (tester) async {
     var active = true;
     late StateSetter updateParent;
+    final catalogue = await _loadRealCatalogue(tester);
 
     await tester.pumpWidget(
       MaterialApp(
         home: StatefulBuilder(
           builder: (context, setState) {
             updateParent = setState;
-            return ChildTaskSimulationScreen(isActive: active);
+            return ChildTaskSimulationScreen(
+              isActive: active,
+              catalogFuture:
+                  Future<BundledItemCatalog>.value(catalogue),
+            );
           },
         ),
       ),
     );
-    await tester.pump(const Duration(milliseconds: 250));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
 
     await tester.tap(find.text('ಪ್ರಾರಂಭಿಸೋಣ'));
     await tester.pump(const Duration(milliseconds: 250));
