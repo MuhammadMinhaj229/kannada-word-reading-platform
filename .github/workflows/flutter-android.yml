@@ -21,6 +21,8 @@ on:
       - "docs/offline-validation.md"
       - "docs/deployment.md"
       - "web/**"
+      - "e2e/**"
+      - "package.json"
   push:
     branches: [main]
     paths:
@@ -187,7 +189,7 @@ jobs:
 
       - name: Install Playwright and Chromium
         run: |
-          npm install --no-save --package-lock=false @playwright/test@1.65.0
+          npm install --no-package-lock --no-audit --no-fund
           npx playwright install --with-deps chromium
 
       - name: Run Flutter Web browser and offline smoke tests
@@ -208,7 +210,9 @@ jobs:
             sleep 1
           done
           curl --fail --silent http://127.0.0.1:4173/ >/dev/null
-          CI=1 npx playwright test --config=e2e/playwright.config.cjs
+          CI=1 npm run test:e2e
+          mkdir -p artifacts
+          cp /tmp/padalab-web-server.log artifacts/ 2>/dev/null || true
 
       - name: Upload Playwright diagnostics
         if: always()
@@ -217,7 +221,7 @@ jobs:
           name: padalab-playwright-diagnostics
           path: |
             test-results/
-            /tmp/padalab-web-server.log
+            artifacts/
           if-no-files-found: ignore
           retention-days: 7
 
