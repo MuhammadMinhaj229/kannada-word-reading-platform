@@ -85,6 +85,7 @@ class KannadaInstructionAudioService {
 
   bool _hasApproval(Map<String, Object?> manifest) =>
       manifest['approval_status'] == 'approved' &&
+      manifest['word_audio_status'] == 'approved' &&
       (manifest['approved_by']?.toString().trim().isNotEmpty ?? false) &&
       (manifest['approval_reference']?.toString().trim().isNotEmpty ?? false);
 
