@@ -65,7 +65,10 @@ class _AssessorWorkspaceState extends State<AssessorWorkspace> {
         final pages = IndexedStack(
           index: _selectedIndex,
           children: <Widget>[
-            const AssessorHomeScreen(),
+            AssessorHomeScreen(
+              onOpenTaskPreview: () => _selectDestination(1),
+              onOpenSettings: () => _selectDestination(2),
+            ),
             ChildTaskSimulationScreen(isActive: _selectedIndex == 1),
             const AssessorSettingsScreen(),
           ],

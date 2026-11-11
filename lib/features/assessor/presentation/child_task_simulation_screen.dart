@@ -38,6 +38,7 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
 
   int _currentIndex = 0;
   int _answeredCount = 0;
+  final List<_PreviewResponse> _responses = <_PreviewResponse>[];
   bool _started = false;
   bool _showMilestone = false;
   bool _complete = false;
@@ -120,22 +121,23 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
     setState(() => _started = true);
   }
 
-  void _answer() {
+  void _answer({required bool selectedWord}) {
     if (!widget.isActive || !_started || _interrupted || _complete ||
         _showMilestone || _current == null) {
       return;
     }
-    if (_currentIndex == _stimuli.length - 1) {
-      setState(() {
-        _answeredCount += 1;
-        _complete = true;
-      });
-      return;
-    }
     setState(() {
+      _responses.add(_PreviewResponse(
+        isPractice: _current!.isPractice,
+        selectedWord: selectedWord,
+      ));
       _answeredCount += 1;
-      _currentIndex += 1;
-      _showMilestone = _answeredCount % _rewardEvery == 0;
+      if (_currentIndex == _stimuli.length - 1) {
+        _complete = true;
+      } else {
+        _currentIndex += 1;
+        _showMilestone = _answeredCount % _rewardEvery == 0;
+      }
     });
   }
 
@@ -147,6 +149,7 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
     setState(() {
       _currentIndex = 0;
       _answeredCount = 0;
+      _responses.clear();
       _started = false;
       _showMilestone = false;
       _complete = false;
@@ -434,7 +437,7 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
                 SizedBox(
                   width: width,
                   child: FilledButton(
-                    onPressed: _answer,
+                    onPressed: () => _answer(selectedWord: true),
                     style: _choiceStyle(),
                     child: const Text('ಪದ'),
                   ),
@@ -442,7 +445,7 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
                 SizedBox(
                   width: width,
                   child: FilledButton(
-                    onPressed: _answer,
+                    onPressed: () => _answer(selectedWord: false),
                     style: _choiceStyle(),
                     child: const Text('ಪದವಲ್ಲ'),
                   ),
@@ -493,13 +496,79 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
   }
 
   Widget _completionStage() {
-    return _MessagePanel(
-      icon: Icons.celebration_rounded,
-      title: 'ಅದ್ಭುತ! ಪೂರ್ವವೀಕ್ಷಣೆ ಮುಗಿದಿದೆ.',
-      message: 'ನೀವು ನಿಜವಾದ ಪದಪಟ್ಟಿಯೊಂದಿಗೆ ಆಟದ ಅನುಭವವನ್ನು ನೋಡಿದ್ದೀರಿ.',
-      actionLabel: 'ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ',
-      onAction: _resetPreview,
-      secondary: 'No participant record or assessment score was created.',
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        _MessagePanel(
+          icon: Icons.celebration_rounded,
+          title: 'ಅದ್ಭುತ! ಪೂರ್ವವೀಕ್ಷಣೆ ಮುಗಿದಿದೆ.',
+          message: 'ನೀವು ನಿಜವಾದ ಪದಪಟ್ಟಿಯೊಂದಿಗೆ ಆಟದ ಅನುಭವವನ್ನು ನೋಡಿದ್ದೀರಿ.',
+          actionLabel: 'ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ',
+          onAction: _resetPreview,
+          secondary: 'No participant record or assessment score was created.',
+        ),
+        const SizedBox(height: 14),
+        _responseSummaryCard(),
+      ],
+    );
+  }
+
+  Widget _responseSummaryCard() {
+    final wordSelections =
+        _responses.where((response) => response.selectedWord).length;
+    final nonWordSelections = _responses.length - wordSelections;
+    final practiceSelections =
+        _responses.where((response) => response.isPractice).length;
+    final taskSelections = _responses.length - practiceSelections;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            const Text(
+              'PREVIEW RESPONSE SUMMARY',
+              style: TextStyle(
+                color: AppTheme.tealDark,
+                fontWeight: FontWeight.w900,
+                fontSize: 11,
+                letterSpacing: 0.8,
+              ),
+            ),
+            const SizedBox(height: 12),
+            _SummaryLine(
+              label: 'Word selected',
+              value: wordSelections.toString(),
+            ),
+            const SizedBox(height: 8),
+            _SummaryLine(
+              label: 'Not word selected',
+              value: nonWordSelections.toString(),
+            ),
+            const SizedBox(height: 8),
+            _SummaryLine(
+              label: 'Practice responses',
+              value: practiceSelections.toString(),
+            ),
+            const SizedBox(height: 8),
+            _SummaryLine(
+              label: 'Task-preview responses',
+              value: taskSelections.toString(),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'These selections are held only in this open preview. They are '
+              'not persisted, exported or treated as participant research data.',
+              style: TextStyle(
+                color: AppTheme.muted,
+                fontSize: 11,
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -523,6 +592,48 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
           textAlign: TextAlign.center,
         ),
       ),
+    );
+  }
+}
+
+class _PreviewResponse {
+  const _PreviewResponse({
+    required this.isPractice,
+    required this.selectedWord,
+  });
+
+  final bool isPractice;
+  final bool selectedWord;
+}
+
+class _SummaryLine extends StatelessWidget {
+  const _SummaryLine({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: <Widget>[
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: AppTheme.muted,
+              fontSize: 12,
+            ),
+          ),
+        ),
+        Text(
+          value,
+          style: const TextStyle(
+            color: AppTheme.deepInk,
+            fontWeight: FontWeight.w900,
+            fontSize: 14,
+          ),
+        ),
+      ],
     );
   }
 }

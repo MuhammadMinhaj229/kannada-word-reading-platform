@@ -17,8 +17,9 @@ Future<void> _pumpPreview(
   WidgetTester tester, {
   bool isActive = true,
   BundledItemCatalog? catalogue,
+  Size viewSize = const Size(900, 900),
 }) async {
-  tester.view.physicalSize = const Size(900, 900);
+  tester.view.physicalSize = viewSize;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
@@ -104,10 +105,44 @@ void main() {
     }
 
     expect(find.text('ಅದ್ಭುತ! ಪೂರ್ವವೀಕ್ಷಣೆ ಮುಗಿದಿದೆ.'), findsOneWidget);
+    expect(find.text('Word selected'), findsOneWidget);
+    expect(find.text('5'), findsWidgets);
+    expect(find.text('Not word selected'), findsOneWidget);
+    expect(find.text('10'), findsWidgets);
+    expect(find.textContaining('These selections are held only in this open preview.'), findsOneWidget);
     expect(find.textContaining('Correct'), findsNothing);
     expect(find.textContaining('Incorrect'), findsNothing);
     expect(find.textContaining('ಸರಿಯಾಗಿದೆ'), findsNothing);
     expect(find.textContaining('ತಪ್ಪಾಗಿದೆ'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('phone preview keeps both answer choices reachable by touch',
+      (tester) async {
+    await _pumpPreview(
+      tester,
+      viewSize: const Size(360, 800),
+    );
+
+    await tester.tap(find.text('ಪ್ರಾರಂಭಿಸೋಣ'));
+    await tester.pump(const Duration(milliseconds: 250));
+
+    for (var index = 0; index < 5; index += 1) {
+      await _answer(tester, 'ಪದ');
+    }
+
+    final wordButton = find.widgetWithText(FilledButton, 'ಪದ');
+    final notWordButton = find.widgetWithText(FilledButton, 'ಪದವಲ್ಲ');
+    await tester.ensureVisible(wordButton);
+    await tester.tap(wordButton);
+    await tester.pump(const Duration(milliseconds: 250));
+
+    expect(find.text('ಊಡು'), findsOneWidget);
+    await tester.ensureVisible(notWordButton);
+    await tester.tap(notWordButton);
+    await tester.pump(const Duration(milliseconds: 250));
+
+    expect(find.textContaining('ಆಟ 3 / 10'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
