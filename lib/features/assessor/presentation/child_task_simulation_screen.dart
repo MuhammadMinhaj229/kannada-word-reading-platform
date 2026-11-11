@@ -65,7 +65,6 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
         items.add(_PreviewStimulus(
           id: realWord.id,
           text: realWord.text,
-          isWord: true,
           isPractice: false,
         ));
         items.add(_PreviewStimulus(
