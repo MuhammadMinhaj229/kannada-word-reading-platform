@@ -4,7 +4,7 @@ import 'package:padalab_android/features/assessment/data/bundled_item_catalog.da
 import 'package:padalab_android/features/assessor/presentation/child_task_simulation_screen.dart';
 
 Future<BundledItemCatalog> _loadRealCatalogue(WidgetTester tester) async {
-  final catalogue = await tester.runAsync(BundledItemCatalog.load);
+  final catalogue = await tester.runAsync(() => BundledItemCatalog.load());
   if (catalogue == null) {
     throw TestFailure('The real bundled Kannada catalogue did not load.');
   }
