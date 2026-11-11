@@ -1,0 +1,139 @@
+name: Keep main as the only development branch
+
+on:
+  workflow_run:
+    workflows:
+      - Flutter quality and platform build validation
+    types:
+      - completed
+
+permissions:
+  contents: write
+
+concurrency:
+  group: keep-main-only
+  cancel-in-progress: false
+
+jobs:
+  archive-and-delete-obsolete-branches:
+    if: >-
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Archive audited branch tips and remove obsolete refs
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const expectedMainSha = context.payload.workflow_run.head_sha;
+            const expectedBranches = [
+              { name: "architecture/independent-web-local-storage", sha: "652e6045db003afc1b34b5c91248d893ac59b630" },
+              { name: "architecture/option-c-mainline", sha: "9419a0445f31340f6975c3d99d24f98b0ea425c0" },
+              { name: "archive/nextjs-prototype-before-flutter-root", sha: "c1fc0a1f6593a65d5f848a84cf2529cea10622e6" },
+              { name: "archive/nextjs-pwa-before-flutter-migration", sha: "be5389d48acfdda6d75e4f20e931166d41dfee96" },
+              { name: "docs/current-release-status", sha: "46a6f315a74de8023ae5a7ff459e1ba69a60efe6" },
+              { name: "feat/flutter-android-foundation", sha: "72c334a28fba7321d3c3b291f663a57ca4254e49" },
+              { name: "feat/production-readiness", sha: "1567c2d8fb95162c6a253b52962a36c166ef5eff" },
+              { name: "feat/two-tab-game-audio-settings", sha: "93d73fc905db407b8481924fe3ceb6d6c6b11a1a" },
+              { name: "feature/assessor-only-qa-results", sha: "a707bb92a9ba62b7ebfd477a4bce5bf9a08db92e" },
+              { name: "feature/child-task-qa-simulation", sha: "7fd249b14e12103bdf5d4af499d5a2a8bfca8516" },
+              { name: "fix/database-and-release-gate-hardening", sha: "731f3143b90eaec2b95a2d675c8601f63722aec9" },
+              { name: "fix/field-release-hardening-v2", sha: "679dae683add601fd7fce1ae9b1c763110b88fa5" },
+              { name: "fix/production-release-pipeline", sha: "53c56a84be5eadaec61cedba174c3fc4903f4a4b" },
+              { name: "mobile-ux-review", sha: "a9b5f6b2136ef275fbfd43b26a2516fea6d416db" },
+              { name: "release/vercel-online-workspace-offline-android", sha: "b119572fdc686b0a6b1eb16d2803062430a2f1cd" },
+            ];
+
+            const branchesBefore = await github.paginate(
+              github.rest.repos.listBranches,
+              { owner, repo, per_page: 100 }
+            );
+            const main = branchesBefore.find((branch) => branch.name === 'main');
+            if (!main || main.commit.sha !== expectedMainSha) {
+              throw new Error(
+                'Refusing cleanup: main no longer points to the commit that passed CI.'
+              );
+            }
+
+            const snapshots = [];
+            for (const expected of expectedBranches) {
+              const branch = branchesBefore.find(
+                (candidate) => candidate.name === expected.name
+              );
+              if (!branch) {
+                core.info('Branch already absent: ' + expected.name);
+                continue;
+              }
+              if (branch.protected) {
+                throw new Error('Refusing to delete protected branch: ' + expected.name);
+              }
+              if (branch.commit.sha !== expected.sha) {
+                throw new Error(
+                  'Refusing to delete moved branch ' + expected.name +
+                  ': expected ' + expected.sha + ', found ' + branch.commit.sha
+                );
+              }
+              const tagName =
+                'archive/branch-snapshots/' + expected.name.replaceAll('/', '--');
+              const matchingRefs = await github.rest.git.listMatchingRefs({
+                owner,
+                repo,
+                ref: 'tags/' + tagName
+              });
+              const existingTag = matchingRefs.data.find(
+                (item) => item.ref === 'refs/tags/' + tagName
+              );
+              if (existingTag && existingTag.object.sha !== expected.sha) {
+                throw new Error('Archive tag already points elsewhere: ' + tagName);
+              }
+              snapshots.push({ ...expected, tagName, tagExists: Boolean(existingTag) });
+            }
+
+            // Snapshot every old branch before deleting any branch ref.
+            for (const snapshot of snapshots) {
+              if (!snapshot.tagExists) {
+                await github.rest.git.createRef({
+                  owner,
+                  repo,
+                  ref: 'refs/tags/' + snapshot.tagName,
+                  sha: snapshot.sha
+                });
+              }
+              core.info(
+                'Snapshot ready: ' + snapshot.tagName + ' -> ' + snapshot.sha
+              );
+            }
+
+            // Delete only refs that passed the full preflight above.
+            for (const snapshot of snapshots) {
+              await github.rest.git.deleteRef({
+                owner,
+                repo,
+                ref: 'heads/' + snapshot.name
+              });
+              core.info('Deleted obsolete branch: ' + snapshot.name);
+            }
+
+            const branchesAfter = await github.paginate(
+              github.rest.repos.listBranches,
+              { owner, repo, per_page: 100 }
+            );
+            const remaining = branchesAfter.map((branch) => branch.name);
+            if (remaining.length !== 1 || remaining[0] !== 'main') {
+              throw new Error(
+                'Branch consolidation incomplete. Remaining branches: ' +
+                remaining.join(', ')
+              );
+            }
+
+            await core.summary
+              .addHeading('Repository branch consolidation complete')
+              .addBulletList([
+                'main is the only remaining development branch.',
+                snapshots.length + ' former branch tips retained as archive tags.',
+                'All other refs were checked against the audited commit allowlist.'
+              ])
+              .write();

@@ -31,19 +31,16 @@ The supplied `assets/item_bank/selected_words_list_v1.csv` is bundled unchanged.
 
 The application assigns stable internal IDs `W001` through `W270` in the supplied source order. The asset parser rejects missing columns, duplicate words or a row count other than 270.
 
-### Non-word candidates
+### Non-word source summary and bundled review subset
 
-The supplied workbook contains 270 candidates with the requested construction proportions:
+The repository contains two distinct non-word artifacts; they must not be treated as the same complete file:
 
-| Method | Count |
-|---|---:|
-| A — Vowel replacement | 68 |
-| B — Consonant replacement | 68 |
-| C — Suffix + prefix blend | 67 |
-| D — Prefix + suffix blend | 67 |
-| **Total** | **270** |
+- `assets/item_bank/nonword_candidate_summary_v1.json` records an original workbook summary of **270 candidates**, with a construction-method split of A 68, B 68, C 67 and D 67. Its approved count is zero.
+- `assets/item_bank/nonword_candidates_supplied_v1.csv` contains **193 rows** actually bundled for reviewer inspection. Its method split is A 34, B 46, C 65 and D 48. All 193 rows are marked pending native Kannada review.
+- The 270-row summary and 193-row CSV do not reconcile: 77 rows in the summary total are not represented in the bundled CSV. The app displays these counts separately rather than claiming the CSV is complete.
+- The last row of the bundled CSV is candidate `N270`. Allocation proposal v2 retains it as one unallocated reserve candidate.
 
-The source workbook marks all 270 candidates as Pending. The app stores the method counts and review state in `assets/item_bank/nonword_candidate_summary_v1.json`; pending candidates are not loaded as usable assessment stimuli. Written native Kannada review and study-team approval are required before these items enter a signed item bank.
+These are structural/source-file facts, not linguistic approval. No supplied non-word candidate is approved for use in participant sessions. The 270-item approved non-word pool required by the requirements baseline has not been assembled or signed off.
 
 ## Repository layout
 
@@ -140,12 +137,12 @@ See [Android installation and compatibility](docs/android-installation.md).
 
 ## Research protocol status — awaiting written sign-off
 
-The current `StudyProtocol` constants mirror one interpretation of the 2 Nov 2026 requirements: six sessions, 90 total presentations per session (five practice + 85 test), a 10-second stimulus display and a reward interval every ten answers. These constants are a requirements transcription, **not evidence of PI/statistician approval**.
+The repository's requirements transcription `KWR-REQ-2026-11-02` specifies six sessions of 90 presentations each (five practice plus 85 test), a 270-real-word plus 270-non-word pool, a 10-second stimulus display and a reward interval every ten answers. These are transcribed requirements, not evidence of PI/statistician approval.
 
-The repository also records a conflicting 90-scored-trial interpretation (45 real words + 45 non-words per block) and an older 77-scored-trial proposal (45 real + 32 non-words, plus five provisional practice items). The reward interval also appears as every five completed scored trials in an earlier decision note. No interpretation has been selected as final.
+A separate, later engineering allocation proposal v2 records the user-confirmed target of **45 real words + 32 non-words = 77 scored items per session** across six sessions: 270 real words plus 192 non-words = 462 scored items. It uses the first 192 rows in the supplied 193-row review CSV and retains `N270` as one reserve. Practice count/placement, ordering, randomisation and the relationship to the 90-presentation baseline remain unresolved. Proposal v2 is not an approved study protocol or participant manifest.
 
-Do not change the trial engine, generate frozen session allocations or administer the task until the PI/statistician resolves the conflicts in writing. The decision register and sign-off checklist are in [protocol decisions](docs/protocol-decisions.md). The participant workflow remains disabled.
- 
+The repository therefore preserves both records and keeps participant session creation closed. The PI/statistician must reconcile the counts, session/block/visit definitions, practice treatment, timing, reward behavior, no-response rules and allocation method in writing. See [protocol decisions](docs/protocol-decisions.md) and [working allocation proposal v2](docs/protocol/working-allocation-v2.md).
+
 ## Kannada instruction audio
 
 The application uses bundled, offline recordings only. Device text-to-speech is not used as a participant fallback. The supplied 12-minute source recording has not yet been transcribed, segmented into the required instruction clips and linked to a written PHFI/CDLR approval reference. The app's audio manifest therefore remains closed until approved clips are added and validated on the target tablet.
@@ -154,15 +151,20 @@ See [audio asset requirements](assets/audio/README.md).
 
 ## Current engineering status
 
-Implemented on this branch: Flutter application shell, responsive navigation, supplied real-word asset and parser, non-word method/review summary, offline audio player service and approval manifest, SQLCipher/database foundations, responsive layout tests, Web service-worker content fingerprinting, and protected signed-APK workflow.
+Implemented: a shared Flutter Web/Android codebase; responsive assessor workspace; 270 real-word catalogue parser; 193-row pending non-word review CSV with source references; 270-row original-workbook summary; the 45+32 engineering allocation proposal; catalogue-backed non-participant Task preview; Android SQLCipher schema and transactional session/trial persistence primitives; secure-key provider; manual Web PWA updates; and a protected signed-APK workflow.
 
-Not yet complete: production assessor/session UI wiring to SQLCipher, the participant child-trial workflow and recovery, session history and repeat authorization, the PI-approved item bank/allocation manifest, approved Kannada audio clips, protected export/REDCap mapping, tablet integration/acceptance and institution signing-key provisioning. The separate Task preview is a synthetic QA simulation only; it now invalidates timing on app lifecycle or tab interruption and starts the timer after the stimulus has rendered.
+Not yet field-ready: the Android participant/session UI is not wired to the SQLCipher repository; the current approved item-bank model requires 270 approved non-words but none are approved; the study protocol and allocation conflict; practice/scoring/timing/reward/recovery decisions are unresolved; no approved Kannada instruction/word recordings are installed; exports and supervisor authorization are incomplete; target-tablet acceptance is not recorded; and institutional signing/ethics/data-governance evidence is absent.
 
-**The participant release gate intentionally remains closed.** Passing CI or building an APK does not establish ethics approval, linguistic validity, audio approval, data-integrity acceptance or field readiness.
+The browser remains a review/QA surface and stores only its non-sensitive workspace preference. It does not accept participant identifiers or research responses. No cloud participant database, API or synchronization exists under the accepted Option C architecture.
 
+**The participant release gate intentionally remains closed.** A green CI run, ready Vercel deployment or debug-signed APK does not replace research approval, local persistence integration, approved content, field validation or institution-owned signing.
 
-## Child task QA simulation
+## Child task QA preview
 
-The assessor workspace includes a **Task preview** screen for testing the child-facing Word / Non-word interaction. It runs five practice cards and ten scored QA cards using synthetic placeholder strings, records responses and reaction times only in memory, and exposes the QA key only in the separate assessor results view. It does not use the approved item bank or write participant records. This is an interface/engineering simulation, not a validated study task. See [QA simulation instructions](docs/qa-simulation.md).
+The assessor workspace provides a child-friendly, catalogue-backed Task preview. It uses five supplied real words as practice cards, then ten preview cards alternating supplied real words and pending non-word candidates. It does not record participant identifiers, research responses, reaction times or scores, and it does not reveal correctness. Pending non-words are shown only to exercise the reviewer/QA interface; they are not approved assessment stimuli.
 
-The simulation does not change the participant release gate or resolve the outstanding PI/statistician protocol decisions.
+This screen is a non-participant usability preview, not the approved research assessment. See [QA simulation instructions](docs/qa-simulation.md).
+
+## Production readiness
+
+The current deployment is production-ready as a protected online review workspace. The Android build remains a debug-signed engineering preview. Participant/field release is blocked pending the items in [the production-readiness matrix](docs/production-readiness-matrix.md).

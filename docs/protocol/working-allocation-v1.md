@@ -1,6 +1,6 @@
-# Working allocation proposal v1 — not approved
+# Working allocation proposal v1 — superseded, retained for history
 
-**Status: planning-only proposal. Do not administer it or treat it as the current study protocol.** This proposal was retained for engineering exploration but conflicts with the formal requirements DOCX. It must be replaced or explicitly approved by the study team before protocol freeze.
+**Status: superseded planning draft.** Proposal v2 is the latest engineering record; neither version is approved for participant use. Do not administer v1. This proposal was retained for engineering exploration but conflicts with the formal requirements DOCX. It must be replaced or explicitly approved by the study team before protocol freeze.
 
 ## Proposal discussed earlier
 

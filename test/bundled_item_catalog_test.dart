@@ -44,6 +44,13 @@ void main() {
     expect(catalog.suppliedNonWordCandidates.last.sourceRow, 193);
     expect(catalog.suppliedNonWordCandidates.last.id, 'N270');
     expect(catalog.suppliedNonWordCandidates.last.isApproved, isFalse);
+    expect(catalog.nonWordCandidateCountDifference, 77);
+    expect(catalog.suppliedNonWordMethodCounts, <String, int>{
+      'A_vowel': 34,
+      'B_consonant': 46,
+      'C_suffix_prefix': 65,
+      'D_prefix_suffix': 48,
+    });
   });
 
   test('validates non-word source references and keeps them distinct from real words',

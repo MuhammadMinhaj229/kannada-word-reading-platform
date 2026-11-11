@@ -11,11 +11,14 @@ This document records unresolved contradictions so the research team can approve
 
 | Source / interpretation | Per block/session | Six-block total | Status |
 |---|---|---:|---|
-| Requirements transcription in `StudyProtocol` and README baseline | 90 presentations = 5 practice + 85 test | 540 presentations = 30 practice + 510 test | Transcribed; not approved |
-| 90-scored-item study baseline recorded in project discussions | 90 scored = 45 real + 45 non-word; practice appears additional | 540 scored, plus practice if approved as additional | Requires confirmation against signed source protocol |
-| Earlier `working-allocation-v1.md` | 77 scored = 45 real + 32 non-word, with 5 provisional practice items additional | 462 scored + 30 provisional practice | Explicitly planning-only; not approved |
+| Requirements transcription in `StudyProtocol` | 90 presentations = 5 practice + 85 test | 540 presentations = 30 practice + 510 test | Transcribed; not approved |
+| 90-scored-item interpretation recorded in project discussions | 90 scored = 45 real + 45 non-word; practice may be additional | 540 scored, plus practice if additional | Requires confirmation against signed source protocol |
+| Earlier `working-allocation-v1.md` | 77 scored = 45 real + 32 non-word, 5 provisional practice additional; 194 candidates in that draft | 462 scored + 30 provisional practice | Superseded planning draft; not approved |
+| Latest engineering proposal v2 | 77 scored = 45 real + 32 non-word; practice treatment unspecified | 462 scored = 270 real + 192 non-word; one supplied candidate reserved | User-confirmed engineering target only; not PI/statistician approval |
 
 The item-bank source contains 270 real words and 270 non-word candidates. The arithmetic differs materially across the interpretations above. The research team must state whether every candidate is intended to be administered, whether the practice stimuli are drawn from or additional to the 540-item bank, and whether “session”, “block” and “visit” refer to the same or different units.
+
+The latest supplied assets add a separate reconciliation issue: the original workbook summary records 270 non-word candidates (A/B/C/D = 68/68/67/67), while the review CSV currently bundled in the app contains 193 rows (A/B/C/D = 34/46/65/48), all pending. A previously stated total of 464 is also not reproducible from the current file counts: 270 real-word rows + 193 supplied non-word candidate rows = 463 source entries; proposal v2 allocates 270 + 192 = 462 and reserves one candidate.
 
 ## 2. Decisions required
 
@@ -85,4 +88,4 @@ Do not change these constants merely to make the app appear internally consisten
 
 The protocol gate stays closed until the approved record is complete. Engineering may prepare test harnesses and non-participant simulations, but must not enable participant identifiers, real assessment trials, official allocations or field deployment while any required decision remains unresolved.
 
-Related planning-only proposal: [working allocation v1](protocol/working-allocation-v1.md).
+Related planning records: [working allocation v1 (superseded)](protocol/working-allocation-v1.md) and [working allocation v2](protocol/working-allocation-v2.md).

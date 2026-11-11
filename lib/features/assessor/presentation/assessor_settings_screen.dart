@@ -180,9 +180,24 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
           ),
           const SizedBox(height: 9),
           _statusLine(
-            label: 'Non-word candidates',
-            value: catalog.nonWordCandidateCount.toString() + ' / 270',
+            label: 'Original workbook candidate summary',
+            value: catalog.nonWordCandidateCount.toString() + ' candidates',
             good: catalog.nonWordCandidateCount == 270,
+          ),
+          const SizedBox(height: 9),
+          _statusLine(
+            label: 'Candidate rows bundled for review',
+            value: catalog.suppliedNonWordCount.toString() + ' / ' +
+                catalog.nonWordCandidateCount.toString() + ' summary rows',
+            good: catalog.suppliedNonWordCount ==
+                catalog.nonWordCandidateCount,
+          ),
+          const SizedBox(height: 9),
+          _statusLine(
+            label: 'Difference between summary and bundled CSV',
+            value: catalog.nonWordCandidateCountDifference.toString() +
+                ' rows not represented in the CSV',
+            good: catalog.nonWordCandidateCountDifference == 0,
           ),
           const SizedBox(height: 9),
           _statusLine(
@@ -364,15 +379,21 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
     return _sectionCard(
       icon: Icons.rule_folder_outlined,
       title: 'Non-word construction proportions',
-      subtitle: 'The supplied candidate workbook: 270 rows in four methods',
+      subtitle: 'Original workbook summary (270) compared with bundled review CSV (193)',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           for (final entry in methodLabels.entries) ...<Widget>[
             _statusLine(
               label: entry.value,
-              value: catalog.nonWordMethodCounts[entry.key].toString(),
-              good: true,
+              value: (catalog.nonWordMethodCounts[entry.key] ?? 0)
+                      .toString() +
+                  ' summary · ' +
+                  (catalog.suppliedNonWordMethodCounts[entry.key] ?? 0)
+                      .toString() +
+                  ' in CSV',
+              good: (catalog.nonWordMethodCounts[entry.key] ?? 0) ==
+                  (catalog.suppliedNonWordMethodCounts[entry.key] ?? 0),
             ),
             const SizedBox(height: 10),
           ],
@@ -400,7 +421,7 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
     return _sectionCard(
       icon: Icons.fact_check_outlined,
       title: 'Supplied non-word candidates',
-      subtitle: '193 supplied rows · all pending linguistic review',
+      subtitle: '193 bundled rows · all pending native Kannada review',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[

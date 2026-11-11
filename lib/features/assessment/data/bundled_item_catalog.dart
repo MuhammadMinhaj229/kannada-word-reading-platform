@@ -92,6 +92,28 @@ class BundledItemCatalog {
   int get suppliedNonWordCount => suppliedNonWordCandidates.length;
   int get pendingSuppliedNonWordCount =>
       suppliedNonWordCandidates.where((item) => !item.isApproved).length;
+
+  /// Construction mix in the 193-row review CSV actually bundled with the app.
+  /// This differs from [nonWordMethodCounts], which describes the source
+  /// workbook summary asset.
+  Map<String, int> get suppliedNonWordMethodCounts {
+    const methods = <String>[
+      'A_vowel',
+      'B_consonant',
+      'C_suffix_prefix',
+      'D_prefix_suffix',
+    ];
+    return Map<String, int>.unmodifiable(<String, int>{
+      for (final method in methods)
+        method: suppliedNonWordCandidates
+            .where((item) => item.method == method)
+            .length,
+    });
+  }
+
+  /// Count difference between the source-workbook summary and the bundled CSV.
+  int get nonWordCandidateCountDifference =>
+      nonWordCandidateCount - suppliedNonWordCount;
   bool get canBuildApprovedBank =>
       hasCompleteRealWordPool && hasApprovedNonWordPool;
 
