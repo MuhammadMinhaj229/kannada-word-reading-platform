@@ -275,6 +275,7 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
                 final item = words[index];
                 return ListTile(
                   dense: true,
+                  onTap: () => _playWord(item.id),
                   title: Text(
                     item.text,
                     style: const TextStyle(
@@ -289,13 +290,19 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  trailing: Text(
-                    item.partOfSpeech,
-                    style: const TextStyle(
-                      color: AppTheme.tealDark,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 10,
-                    ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Text(
+                        item.partOfSpeech,
+                        style: const TextStyle(
+                          color: AppTheme.tealDark,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 10,
+                        ),
+                      ),
+                      _wordAudioButton(item.id),
+                    ],
                   ),
                 );
               },
@@ -304,6 +311,44 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
         ],
       ),
     );
+  }
+
+
+  Widget _wordAudioButton(String itemId) {
+    return FutureBuilder<bool>(
+      future: _audioService.hasWordRecording(itemId),
+      builder: (context, snapshot) {
+        final available = snapshot.data == true;
+        return IconButton(
+          tooltip: available
+              ? 'Play approved Kannada recording'
+              : 'Approved recording not installed',
+          icon: Icon(
+            available ? Icons.volume_up_rounded : Icons.volume_off_outlined,
+            color: available ? AppTheme.tealDark : AppTheme.muted,
+            size: 19,
+          ),
+          onPressed: available ? () => _playWord(itemId) : null,
+          visualDensity: VisualDensity.compact,
+        );
+      },
+    );
+  }
+
+  Future<void> _playWord(String itemId) async {
+    try {
+      await _audioService.playWord(itemId);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Approved word recordings are not installed yet. '
+            'The supplied source recording still needs review and segmentation.',
+          ),
+        ),
+      );
+    }
   }
 
   Widget _nonWordProportions(BundledItemCatalog catalog) {
@@ -401,6 +446,7 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
                         item.sourceWord2! + ' (' + item.sourceId2! + ')';
                 return ListTile(
                   dense: true,
+                  onTap: () => _playWord(item.id),
                   title: Text(
                     item.text,
                     style: const TextStyle(
@@ -416,13 +462,19 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   isThreeLine: true,
-                  trailing: const Text(
-                    'PENDING',
-                    style: TextStyle(
-                      color: AppTheme.coral,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w900,
-                    ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      const Text(
+                        'PENDING',
+                        style: TextStyle(
+                          color: AppTheme.coral,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      _wordAudioButton(item.id),
+                    ],
                   ),
                 );
               },
