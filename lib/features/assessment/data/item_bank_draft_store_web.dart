@@ -33,7 +33,7 @@ class _IndexedDbItemBankDraftStore implements ItemBankDraftStore {
   @override
   Future<List<ItemBankDraft>> loadAll() async {
     final database = await _db;
-    final transaction = database.transaction(_storeName, 'readonly');
+    final transaction = database.transaction(_jsString(_storeName), _jsString('readonly'));
     final completed = _waitTransaction(transaction);
     try {
       final raw = (await _waitRequest(
@@ -77,12 +77,12 @@ class _IndexedDbItemBankDraftStore implements ItemBankDraftStore {
   Future<ItemBankDraft> save(ItemBankDraft draft) async {
     draft.validate();
     final database = await _db;
-    final transaction = database.transaction(_storeName, 'readwrite');
+    final transaction = database.transaction(_jsString(_storeName), _jsString('readwrite'));
     final completed = _waitTransaction(transaction);
     try {
       final store = transaction.objectStore(_storeName);
       final existingValue = (await _waitRequest(
-        store.get(draft.id.toJS),
+        store.get(_jsString(draft.id)),
       )).dartify();
       Map<String, Object?>? existing;
       if (existingValue is String) {
@@ -122,7 +122,7 @@ class _IndexedDbItemBankDraftStore implements ItemBankDraftStore {
           'draft': saved.toJson(),
           'history': history,
         }).toJS,
-        draft.id.toJS,
+        _jsString(draft.id),
       ));
       await completed;
       return saved;
@@ -143,7 +143,7 @@ class _IndexedDbItemBankDraftStore implements ItemBankDraftStore {
     final completed = _waitTransaction(transaction);
     try {
       final value = (await _waitRequest(
-        transaction.objectStore(_storeName).get(itemId.toJS),
+        transaction.objectStore(_storeName).get(_jsString(itemId)),
       )).dartify();
       await completed;
       if (value is! String) return const <ItemBankDraft>[];
@@ -221,3 +221,5 @@ Future<void> _waitTransaction(web.IDBTransaction transaction) {
   );
   return completer.future;
 }
+
+JSAny _jsString(String value) => value.toJS as JSAny;
