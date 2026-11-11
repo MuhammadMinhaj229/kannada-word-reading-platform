@@ -38,9 +38,10 @@ Future<void> _pumpPreview(
 }
 
 Future<void> _answer(WidgetTester tester, String label) async {
-  final button = find.widgetWithText(FilledButton, label);
-  await tester.ensureVisible(button);
-  await tester.tap(button);
+  final choice = find.text(label);
+  expect(choice, findsOneWidget);
+  await tester.ensureVisible(choice);
+  await tester.tap(choice);
   await tester.pump(const Duration(milliseconds: 250));
 }
 
