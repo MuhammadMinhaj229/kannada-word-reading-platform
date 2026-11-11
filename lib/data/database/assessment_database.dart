@@ -542,15 +542,29 @@ class AssessmentDatabase {
     final trialUuid = _uuid.v4();
 
     await db.transaction((txn) async {
+      if (appVersion.trim().isEmpty || itemBankVersion.trim().isEmpty) {
+        throw ArgumentError('App and item-bank versions are required.');
+      }
+
       final sessionRows = await txn.query(
         'sessions',
-        columns: <String>['status', 'next_ordinal', 'coins_so_far'],
+        columns: <String>[
+          'status',
+          'next_ordinal',
+          'coins_so_far',
+          'items_file_version',
+        ],
         where: 'session_uuid = ?',
         whereArgs: <Object?>[sessionUuid],
         limit: 1,
       );
       if (sessionRows.isEmpty || sessionRows.single['status'] != 'in_progress') {
         throw StateError('The session is not available for a new trial.');
+      }
+      if (sessionRows.single['items_file_version'] != itemBankVersion) {
+        throw StateError(
+          'The trial item-bank version does not match the frozen session manifest.',
+        );
       }
 
       final pendingPresentedTrials = await txn.query(
@@ -779,52 +793,54 @@ class AssessmentDatabase {
       );
     }
     final db = await database;
-    final sessionRows = await db.query(
-      'sessions',
-      columns: <String>['status'],
-      where: 'session_uuid = ?',
-      whereArgs: <Object?>[sessionUuid],
-      limit: 1,
-    );
-    if (sessionRows.isEmpty) {
-      throw StateError('The interrupted session could not be found.');
-    }
-
-    final pendingPresentedTrials = await db.query(
-      'trials',
-      columns: <String>['trial_uuid'],
-      where: 'session_uuid = ? AND status = ?',
-      whereArgs: <Object?>[sessionUuid, 'presented'],
-      limit: 1,
-    );
-    final disposition = SessionRecoveryPolicy.evaluate(
-      sessionStatus: sessionRows.single['status'] as String,
-      hasUnansweredPresentedTrial: pendingPresentedTrials.isNotEmpty,
-    );
-    switch (disposition) {
-      case SessionRecoveryDisposition.notInterrupted:
-        throw StateError('Only an interrupted session can be resumed.');
-      case SessionRecoveryDisposition.requiresSupervisorReview:
-        throw StateError(
-          'This session contains a presented trial without a committed '
-          'response. Resume is blocked until the study team approves and '
-          'implements its handling; the original trial record is preserved.',
-        );
-      case SessionRecoveryDisposition.readyToResume:
-        break;
-    }
-
-    final updated = await db.update(
-      'sessions',
-      <String, Object?>{'status': 'in_progress'},
-      where: 'session_uuid = ? AND status = ?',
-      whereArgs: <Object?>[sessionUuid, 'interrupted'],
-    );
-    if (updated != 1) {
-      throw StateError(
-        'The session was not interrupted and could not be resumed.',
+    await db.transaction((txn) async {
+      final sessionRows = await txn.query(
+        'sessions',
+        columns: <String>['status'],
+        where: 'session_uuid = ?',
+        whereArgs: <Object?>[sessionUuid],
+        limit: 1,
       );
-    }
+      if (sessionRows.isEmpty) {
+        throw StateError('The interrupted session could not be found.');
+      }
+
+      final pendingPresentedTrials = await txn.query(
+        'trials',
+        columns: <String>['trial_uuid'],
+        where: 'session_uuid = ? AND status = ?',
+        whereArgs: <Object?>[sessionUuid, 'presented'],
+        limit: 1,
+      );
+      final disposition = SessionRecoveryPolicy.evaluate(
+        sessionStatus: sessionRows.single['status'] as String,
+        hasUnansweredPresentedTrial: pendingPresentedTrials.isNotEmpty,
+      );
+      switch (disposition) {
+        case SessionRecoveryDisposition.notInterrupted:
+          throw StateError('Only an interrupted session can be resumed.');
+        case SessionRecoveryDisposition.requiresSupervisorReview:
+          throw StateError(
+            'This session contains a presented trial without a committed '
+            'response. Resume is blocked until the study team approves and '
+            'implements its handling; the original trial record is preserved.',
+          );
+        case SessionRecoveryDisposition.readyToResume:
+          break;
+      }
+
+      final updated = await txn.update(
+        'sessions',
+        <String, Object?>{'status': 'in_progress'},
+        where: 'session_uuid = ? AND status = ?',
+        whereArgs: <Object?>[sessionUuid, 'interrupted'],
+      );
+      if (updated != 1) {
+        throw StateError(
+          'The session was not interrupted and could not be resumed.',
+        );
+      }
+    });
   }
 
   Future<void> close() {
