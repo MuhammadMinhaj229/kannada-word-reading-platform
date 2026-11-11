@@ -64,7 +64,9 @@ void main() {
   testWidgets('practice transitions to supplied real-word and candidate preview',
       (tester) async {
     await _pumpPreview(tester);
-    await tester.tap(find.text('ಪ್ರಾರಂಭಿಸೋಣ'));
+    final startButton = find.text('ಪ್ರಾರಂಭಿಸೋಣ');
+    await tester.ensureVisible(startButton);
+    await tester.tap(startButton);
     await tester.pump(const Duration(milliseconds: 250));
 
     for (var index = 0; index < 5; index += 1) {
