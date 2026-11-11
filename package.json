@@ -1,0 +1,12 @@
+{
+  "name": "padalab-web-browser-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Playwright smoke and offline-browser tests for the PadLab Flutter Web build",
+  "scripts": {
+    "test:e2e": "playwright test --config=e2e/playwright.config.cjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.0"
+  }
+}
