@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:padalab_android/features/assessment/domain/models/allocation_proposal.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   test('loads the six-session 45 real + 32 non-word proposal', () async {
     final proposal = await AllocationProposal.load();
 
