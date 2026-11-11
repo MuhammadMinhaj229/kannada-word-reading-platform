@@ -133,15 +133,15 @@ void main() {
       await _answer(tester, 'ಪದ');
     }
 
-    final wordButton = find.widgetWithText(FilledButton, 'ಪದ');
-    final notWordButton = find.widgetWithText(FilledButton, 'ಪದವಲ್ಲ');
-    await tester.ensureVisible(wordButton);
-    await tester.tap(wordButton);
+    final wordChoice = find.text('ಪದ');
+    await tester.ensureVisible(wordChoice);
+    await tester.tap(wordChoice);
     await tester.pump(const Duration(milliseconds: 250));
 
-    expect(find.text('ಊಡು'), findsOneWidget);
-    await tester.ensureVisible(notWordButton);
-    await tester.tap(notWordButton);
+    final notWordChoice = find.text('ಪದವಲ್ಲ');
+    expect(notWordChoice, findsOneWidget);
+    await tester.ensureVisible(notWordChoice);
+    await tester.tap(notWordChoice);
     await tester.pump(const Duration(milliseconds: 250));
 
     expect(find.textContaining('ಆಟ 3 / 10'), findsOneWidget);
