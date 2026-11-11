@@ -28,6 +28,8 @@ void main() {
 
     expect(find.text('Application settings'), findsOneWidget);
     expect(find.text('Supplied Kannada item bank'), findsOneWidget);
+    expect(find.text('Supplied non-word candidates'), findsOneWidget);
+    expect(find.text('Six-session allocation proposal'), findsOneWidget);
     expect(find.text('Kannada instruction recordings'), findsOneWidget);
     expect(find.textContaining('not approved for field use'), findsOneWidget);
     expect(find.textContaining('These values are transcribed requirements only.'), findsOneWidget);

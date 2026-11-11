@@ -30,15 +30,52 @@ void main() {
   });
 
 
+
+  test('loads all 193 supplied candidates and keeps them pending', () async {
+    final catalog = await BundledItemCatalog.load();
+
+    expect(catalog.suppliedNonWordCandidates, hasLength(193));
+    expect(catalog.suppliedNonWordCount, 193);
+    expect(catalog.pendingSuppliedNonWordCount, 193);
+    expect(
+      catalog.suppliedNonWordCandidates.map((item) => item.id).toSet(),
+      hasLength(193),
+    );
+    expect(catalog.suppliedNonWordCandidates.last.sourceRow, 193);
+    expect(catalog.suppliedNonWordCandidates.last.id, 'N270');
+    expect(catalog.suppliedNonWordCandidates.last.isApproved, isFalse);
+  });
+
+  test('validates non-word source references and keeps them distinct from real words',
+      () async {
+    final catalog = await BundledItemCatalog.load();
+    final realWords = catalog.realWords.map((item) => item.text).toSet();
+
+    expect(
+      catalog.suppliedNonWordCandidates
+          .where((item) => realWords.contains(item.text)),
+      isEmpty,
+    );
+    expect(
+      catalog.suppliedNonWordCandidates
+          .where((item) => item.method == 'C_suffix_prefix' ||
+              item.method == 'D_prefix_suffix')
+          .every((item) => item.sourceWord2 != null && item.sourceId2 != null),
+      isTrue,
+    );
+  });
+
   test('rejects duplicate source-word column names', () async {
     final source = await rootBundle.loadString(BundledItemCatalog.realWordsAsset);
     final summary = await rootBundle.loadString(BundledItemCatalog.nonWordSummaryAsset);
+    final candidates = await rootBundle.loadString(BundledItemCatalog.suppliedNonWordCandidatesAsset);
     final duplicateHeader = source.replaceFirst('"transcription"', '"word"');
 
     expect(
       () => BundledItemCatalog.parse(
         csvText: duplicateHeader,
         nonWordSummaryJson: summary,
+        nonWordCandidatesCsv: candidates,
       ),
       throwsFormatException,
     );
@@ -47,6 +84,7 @@ void main() {
   test('rejects missing required metadata in an otherwise valid row', () async {
     final source = await rootBundle.loadString(BundledItemCatalog.realWordsAsset);
     final summary = await rootBundle.loadString(BundledItemCatalog.nonWordSummaryAsset);
+    final candidates = await rootBundle.loadString(BundledItemCatalog.suppliedNonWordCandidatesAsset);
     final missingTranscription = source.replaceFirst(
       '"ಹೂ","huu","flower","noun"',
       '"ಹೂ","","flower","noun"',
@@ -56,6 +94,7 @@ void main() {
       () => BundledItemCatalog.parse(
         csvText: missingTranscription,
         nonWordSummaryJson: summary,
+        nonWordCandidatesCsv: candidates,
       ),
       throwsFormatException,
     );
@@ -64,12 +103,14 @@ void main() {
   test('rejects malformed numeric source metadata instead of dropping it', () async {
     final source = await rootBundle.loadString(BundledItemCatalog.realWordsAsset);
     final summary = await rootBundle.loadString(BundledItemCatalog.nonWordSummaryAsset);
+    final candidates = await rootBundle.loadString(BundledItemCatalog.suppliedNonWordCandidatesAsset);
     final malformedAoA = source.replaceFirst(',2.12,1,2,1', ',not-a-number,1,2,1');
 
     expect(
       () => BundledItemCatalog.parse(
         csvText: malformedAoA,
         nonWordSummaryJson: summary,
+        nonWordCandidatesCsv: candidates,
       ),
       throwsFormatException,
     );

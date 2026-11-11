@@ -9,7 +9,6 @@ import '../../../core/config/study_protocol.dart';
 import '../../../core/update/play_update_service.dart';
 import '../../../core/update/web_update_service.dart';
 import '../../../core/update/apk_download_service.dart';
-import '../../assessment/data/bundled_item_catalog.dart';
 
 class AssessorHomeScreen extends StatefulWidget {
   const AssessorHomeScreen({super.key});
@@ -19,8 +18,6 @@ class AssessorHomeScreen extends StatefulWidget {
 }
 
 class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
-  late final Future<BundledItemCatalog> _catalogFuture;
-
   final _childIdController = TextEditingController();
   final _confirmChildIdController = TextEditingController();
   final _childNameController = TextEditingController();
@@ -28,12 +25,6 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
 
   bool get _canCollectIdentifiers =>
       !kIsWeb && AssessmentReleaseGate.current.isOpen;
-
-  @override
-  void initState() {
-    super.initState();
-    _catalogFuture = BundledItemCatalog.load();
-  }
 
   @override
   void dispose() {
@@ -53,64 +44,28 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
           builder: (context, constraints) {
             final compact = constraints.maxWidth < 860;
             final horizontalPadding = compact ? 16.0 : 30.0;
-            return FutureBuilder<BundledItemCatalog>(
-              future: _catalogFuture,
-              builder: (context, snapshot) {
-                final catalog = snapshot.data;
-                return SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(
-                    horizontalPadding,
-                    compact ? 18 : 28,
-                    horizontalPadding,
-                    32,
+            return SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                horizontalPadding,
+                compact ? 18 : 28,
+                horizontalPadding,
+                32,
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 980),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      _header(context),
+                      const SizedBox(height: 26),
+                      _intro(context),
+                      const SizedBox(height: 22),
+                      _sessionEntryCard(),
+                    ],
                   ),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 1320),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: <Widget>[
-                          _header(context),
-                          const SizedBox(height: 26),
-                          _intro(context),
-                          const SizedBox(height: 22),
-                          if (snapshot.connectionState == ConnectionState.waiting)
-                            const LinearProgressIndicator(minHeight: 3),
-                          if (snapshot.hasError)
-                            _errorCard(snapshot.error.toString()),
-                          if (catalog != null) ...<Widget>[
-                            _metrics(context, catalog),
-                            const SizedBox(height: 20),
-                          ],
-                          if (compact)
-                            _sessionEntryCard()
-                          else
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: <Widget>[
-                                Expanded(
-                                  flex: 11,
-                                  child: _sessionEntryCard(),
-                                ),
-                                const SizedBox(width: 18),
-                                Expanded(
-                                  flex: 9,
-                                  child: _readinessCard(catalog),
-                                ),
-                              ],
-                            ),
-                          if (compact) ...<Widget>[
-                            const SizedBox(height: 18),
-                            _readinessCard(catalog),
-                          ],
-                          const SizedBox(height: 20),
-                          _releaseNotice(),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              },
+                ),
+              ),
             );
           },
         ),
@@ -238,10 +193,7 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
         ),
         const SizedBox(height: 12),
         const Text(
-          'Use the Vercel workspace to inspect the Kannada item catalogue, review '
-          'release readiness, manage settings and run the interactive QA task. '
-          'Download the Android APK for the offline tablet build. Participant '
-          'sessions remain locked until the study approvals are complete.',
+          'Manage participant entry, review the supplied Kannada catalogue, preview the child-facing task and configure the application. The same Flutter source powers the Web workspace and offline Android build. Participant sessions remain locked until the approved study protocol and item bank are installed.',
           style: TextStyle(
             color: AppTheme.muted,
             fontSize: 14,
@@ -249,58 +201,6 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _metrics(BuildContext context, BundledItemCatalog catalog) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final available = constraints.maxWidth;
-        final columns = available < 520 ? 2 : available < 900 ? 2 : 4;
-        const gap = 10.0;
-        final cardWidth = (available - gap * (columns - 1)) / columns;
-        final metrics = <_MetricData>[
-          _MetricData(
-            value: catalog.realWords.length.toString(),
-            label: 'Supplied real words',
-            detail: 'Source list validated',
-            color: AppTheme.tealDark,
-          ),
-          _MetricData(
-            value: catalog.nonWordCandidateCount.toString(),
-            label: 'Non-word candidates',
-            detail: catalog.approvedNonWordCount == 270
-                ? 'Native review approved'
-                : 'Awaiting written review',
-            color: catalog.approvedNonWordCount == 270
-                ? AppTheme.tealDark
-                : AppTheme.coral,
-          ),
-          const _MetricData(
-            value: '6',
-            label: 'Baseline sessions',
-            detail: 'Not approved by study team',
-            color: AppTheme.coral,
-          ),
-          const _MetricData(
-            value: '10 s',
-            label: 'Baseline stimulus time',
-            detail: 'Not approved by study team',
-            color: AppTheme.coral,
-          ),
-        ];
-
-        return Wrap(
-          spacing: gap,
-          runSpacing: gap,
-          children: metrics
-              .map((metric) => SizedBox(
-                    width: cardWidth,
-                    child: _MetricCard(metric: metric),
-                  ))
-              .toList(growable: false),
-        );
-      },
     );
   }
 
@@ -425,164 +325,6 @@ class _AssessorHomeScreenState extends State<AssessorHomeScreen> {
       ),
     );
   }
-
-  Widget _readinessCard(BundledItemCatalog? catalog) {
-    final blockers = AssessmentReleaseGate.current.blockers;
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(22),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            const _SectionHeading(
-              icon: Icons.fact_check_outlined,
-              title: 'Field-release status',
-              subtitle: 'Release readiness checks',
-            ),
-            const SizedBox(height: 18),
-            _ReadinessLine(
-              label: 'Real Kannada word source',
-              value: catalog?.hasCompleteRealWordPool == true
-                  ? '270 loaded'
-                  : 'Not verified',
-              complete: catalog?.hasCompleteRealWordPool == true,
-            ),
-            const SizedBox(height: 12),
-            _ReadinessLine(
-              label: 'Non-word bank',
-              value: catalog?.approvedNonWordCount == 270
-                  ? '270 approved'
-                  : (catalog == null
-                      ? 'Loading'
-                      : catalog.approvedNonWordCount.toString() +
-                          ' / 270 approved'),
-              complete: catalog?.approvedNonWordCount == 270,
-            ),
-            const SizedBox(height: 12),
-            const _ReadinessLine(
-              label: 'Written protocol and allocation',
-              value: 'Pending study-team sign-off',
-              complete: false,
-            ),
-            const SizedBox(height: 12),
-            const _ReadinessLine(
-              label: 'Recorded Kannada instructions',
-              value: 'Approval and clip packaging pending',
-              complete: false,
-            ),
-            const SizedBox(height: 12),
-            const _ReadinessLine(
-              label: 'Android tablet acceptance',
-              value: 'Pending target-device testing',
-              complete: false,
-            ),
-            const Divider(height: 28),
-            Text(
-              blockers.length.toString() + ' release requirements remain open.',
-              style: const TextStyle(
-                color: AppTheme.coral,
-                fontWeight: FontWeight.w800,
-                fontSize: 13,
-              ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'The application will not create or run a participant session '
-              'until its required approvals and assets are present.',
-              style: TextStyle(
-                color: AppTheme.muted,
-                fontSize: 12,
-                height: 1.5,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _releaseNotice() {
-    return const _InlineNotice(
-      text: 'Research safeguard: the supplied non-word workbook contains '
-          '270 candidates, but the current source marks them Pending. The '
-          'application must not present them to children until the native '
-          'Kannada reviewer and study team provide written approval.',
-    );
-  }
-
-  Widget _errorCard(String message) {
-    return Card(
-      color: const Color(0xFFFFF0EF),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Text(
-          'The bundled item catalogue could not be validated: ' + message,
-          style: const TextStyle(color: AppTheme.coral),
-        ),
-      ),
-    );
-  }
-}
-
-class _MetricData {
-  const _MetricData({
-    required this.value,
-    required this.label,
-    required this.detail,
-    required this.color,
-  });
-
-  final String value;
-  final String label;
-  final String detail;
-  final Color color;
-}
-
-class _MetricCard extends StatelessWidget {
-  const _MetricCard({required this.metric});
-
-  final _MetricData metric;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(minHeight: 118),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: AppTheme.line),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            metric.value,
-            style: TextStyle(
-              color: metric.color,
-              fontSize: 28,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 5),
-          Text(
-            metric.label,
-            style: const TextStyle(
-              color: AppTheme.deepInk,
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            metric.detail,
-            style: const TextStyle(color: AppTheme.muted, fontSize: 10),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _SectionHeading extends StatelessWidget {
@@ -625,53 +367,6 @@ class _SectionHeading extends StatelessWidget {
               const SizedBox(height: 3),
               Text(
                 subtitle,
-                style: const TextStyle(color: AppTheme.muted, fontSize: 11),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ReadinessLine extends StatelessWidget {
-  const _ReadinessLine({
-    required this.label,
-    required this.value,
-    required this.complete,
-  });
-
-  final String label;
-  final String value;
-  final bool complete;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Icon(
-          complete ? Icons.check_circle_rounded : Icons.pending_outlined,
-          color: complete ? AppTheme.teal : AppTheme.coral,
-          size: 18,
-        ),
-        const SizedBox(width: 9),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(
-                label,
-                style: const TextStyle(
-                  color: AppTheme.deepInk,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                value,
                 style: const TextStyle(color: AppTheme.muted, fontSize: 11),
               ),
             ],

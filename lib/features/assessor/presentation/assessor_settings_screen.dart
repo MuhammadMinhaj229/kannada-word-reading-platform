@@ -5,6 +5,7 @@ import '../../../core/audio/kannada_instruction_audio_service.dart';
 import '../../../core/config/assessment_release_gate.dart';
 import '../../../core/config/study_protocol.dart';
 import '../../assessment/data/bundled_item_catalog.dart';
+import '../../assessment/domain/models/allocation_proposal.dart';
 
 class AssessorSettingsScreen extends StatefulWidget {
   const AssessorSettingsScreen({super.key});
@@ -15,6 +16,7 @@ class AssessorSettingsScreen extends StatefulWidget {
 
 class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
   late final Future<BundledItemCatalog> _catalogFuture;
+  late final Future<AllocationProposal> _allocationProposalFuture;
   late final KannadaInstructionAudioService _audioService;
   late final Future<bool> _audioReadyFuture;
   final _searchController = TextEditingController();
@@ -24,6 +26,7 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
   void initState() {
     super.initState();
     _catalogFuture = BundledItemCatalog.load();
+    _allocationProposalFuture = AllocationProposal.load();
     _audioService = KannadaInstructionAudioService();
     _audioReadyFuture = _audioService.isReady;
     _searchController.addListener(() {
@@ -105,6 +108,25 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
                             _sourceWordBrowser(catalog),
                             const SizedBox(height: 14),
                             _nonWordProportions(catalog),
+                            const SizedBox(height: 14),
+                            _nonWordCandidateBrowser(catalog),
+                            const SizedBox(height: 14),
+                            FutureBuilder<AllocationProposal>(
+                              future: _allocationProposalFuture,
+                              builder: (context, snapshot) {
+                                if (snapshot.hasError) {
+                                  return _statusCard(
+                                    title: 'Allocation proposal invalid',
+                                    message: snapshot.error.toString(),
+                                    color: AppTheme.coral,
+                                  );
+                                }
+                                if (!snapshot.hasData) {
+                                  return const LinearProgressIndicator(minHeight: 2);
+                                }
+                                return _allocationProposalCard(snapshot.data!);
+                              },
+                            ),
                           ],
                           const SizedBox(height: 14),
                           FutureBuilder<bool>(
@@ -251,8 +273,11 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
                   const Divider(height: 1, color: AppTheme.line),
               itemBuilder: (context, index) {
                 final item = words[index];
-                return ListTile(
+                return Material(
+                  color: Colors.white,
+                  child: ListTile(
                   dense: true,
+                  onTap: () => _playWord(item.id),
                   title: Text(
                     item.text,
                     style: const TextStyle(
@@ -267,13 +292,20 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  trailing: Text(
-                    item.partOfSpeech,
-                    style: const TextStyle(
-                      color: AppTheme.tealDark,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 10,
-                    ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Text(
+                        item.partOfSpeech,
+                        style: const TextStyle(
+                          color: AppTheme.tealDark,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 10,
+                        ),
+                      ),
+                      _wordAudioButton(item.id),
+                    ],
+                  ),
                   ),
                 );
               },
@@ -282,6 +314,44 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
         ],
       ),
     );
+  }
+
+
+  Widget _wordAudioButton(String itemId) {
+    return FutureBuilder<bool>(
+      future: _audioService.hasWordRecording(itemId),
+      builder: (context, snapshot) {
+        final available = snapshot.data == true;
+        return IconButton(
+          tooltip: available
+              ? 'Play approved Kannada recording'
+              : 'Approved recording not installed',
+          icon: Icon(
+            available ? Icons.volume_up_rounded : Icons.volume_off_outlined,
+            color: available ? AppTheme.tealDark : AppTheme.muted,
+            size: 19,
+          ),
+          onPressed: available ? () => _playWord(itemId) : null,
+          visualDensity: VisualDensity.compact,
+        );
+      },
+    );
+  }
+
+  Future<void> _playWord(String itemId) async {
+    try {
+      await _audioService.playWord(itemId);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Approved word recordings are not installed yet. '
+            'The supplied source recording still needs review and segmentation.',
+          ),
+        ),
+      );
+    }
   }
 
   Widget _nonWordProportions(BundledItemCatalog catalog) {
@@ -310,6 +380,209 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
             text: 'All 270 candidates are currently marked Pending in the '
                 'supplied workbook. This summary is for audit and review only; '
                 'the candidates are not loaded as usable stimuli.',
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  Widget _nonWordCandidateBrowser(BundledItemCatalog catalog) {
+    final candidates = catalog.suppliedNonWordCandidates.where((item) {
+      if (_search.isEmpty) return true;
+      return item.text.toLowerCase().contains(_search) ||
+          item.id.toLowerCase().contains(_search) ||
+          item.sourceWord1.toLowerCase().contains(_search) ||
+          (item.sourceWord2?.toLowerCase().contains(_search) ?? false) ||
+          item.method.toLowerCase().contains(_search);
+    }).toList(growable: false);
+
+    return _sectionCard(
+      icon: Icons.fact_check_outlined,
+      title: 'Supplied non-word candidates',
+      subtitle: '193 supplied rows · all pending linguistic review',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const _Notice(
+            text: 'These are review candidates, not approved stimuli. '
+                'They are visible for assessor/reviewer inspection only and '
+                'cannot enter a participant session.',
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _searchController,
+            decoration: const InputDecoration(
+              prefixIcon: Icon(Icons.search_rounded),
+              labelText: 'Search candidate, ID, source word or method',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            candidates.length.toString() + ' of ' +
+                catalog.suppliedNonWordCount.toString() + ' supplied candidates',
+            style: const TextStyle(
+              color: AppTheme.muted,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            constraints: const BoxConstraints(maxHeight: 460),
+            decoration: BoxDecoration(
+              border: Border.all(color: AppTheme.line),
+              borderRadius: BorderRadius.circular(12),
+              color: Colors.white,
+            ),
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemCount: candidates.length,
+              separatorBuilder: (_, __) =>
+                  const Divider(height: 1, color: AppTheme.line),
+              itemBuilder: (context, index) {
+                final item = candidates[index];
+                final sources = item.sourceWord2 == null
+                    ? item.sourceWord1 + ' (' + item.sourceId1 + ')'
+                    : item.sourceWord1 + ' (' + item.sourceId1 + ') · ' +
+                        item.sourceWord2! + ' (' + item.sourceId2! + ')';
+                return Material(
+                  color: Colors.white,
+                  child: ListTile(
+                  dense: true,
+                  onTap: () => _playWord(item.id),
+                  title: Text(
+                    item.text,
+                    style: const TextStyle(
+                      color: AppTheme.deepInk,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  subtitle: Text(
+                    item.id + ' · ' + item.method + '\\n' + sources +
+                        ' · ' + item.transformation,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  isThreeLine: true,
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      const Text(
+                        'PENDING',
+                        style: TextStyle(
+                          color: AppTheme.coral,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      _wordAudioButton(item.id),
+                    ],
+                  ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  Widget _allocationProposalCard(AllocationProposal proposal) {
+    return _sectionCard(
+      icon: Icons.calendar_view_week_outlined,
+      title: 'Six-session allocation proposal',
+      subtitle: proposal.version + ' · engineering draft only',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: _summaryMetric(
+                  value: proposal.realWordsPerSession.toString(),
+                  label: 'Real words / session',
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _summaryMetric(
+                  value: proposal.nonWordsPerSession.toString(),
+                  label: 'Non-words / session',
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _summaryMetric(
+                  value: proposal.scoredItemsPerSession.toString(),
+                  label: 'Scored / session',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          for (final session in proposal.sessionDistribution) ...<Widget>[
+            _statusLine(
+              label: 'Session ' + session.session.toString(),
+              value: session.realWords.toString() + ' real + ' +
+                  session.nonWords.toString() + ' non-word = ' +
+                  session.scoredItems.toString(),
+              good: true,
+            ),
+            const SizedBox(height: 7),
+          ],
+          const SizedBox(height: 6),
+          _statusLine(
+            label: 'Total scored presentations',
+            value: proposal.totalScoredItems.toString(),
+            good: true,
+          ),
+          const SizedBox(height: 8),
+          _statusLine(
+            label: 'Unallocated reserve candidate',
+            value: proposal.reserveNonWordId,
+            good: false,
+          ),
+          const SizedBox(height: 12),
+          _Notice(
+            text: 'Practice items are not included in the 77 scored items. ' +
+                proposal.practicePolicy + ' This proposal does not enable participant sessions.',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryMetric({required String value, required String label}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.mint,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            value,
+            style: const TextStyle(
+              color: AppTheme.tealDark,
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppTheme.muted,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),

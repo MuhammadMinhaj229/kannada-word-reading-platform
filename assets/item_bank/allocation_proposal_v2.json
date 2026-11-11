@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "protocol_id": "PADLAB-KN-WORD-READING",
+  "proposal_version": "allocation-v2-2026-11-11",
+  "status": "engineering_draft_not_approved_for_participant_use",
+  "source_real_word_count": 270,
+  "supplied_nonword_candidate_count": 193,
+  "allocated_real_word_count": 270,
+  "allocated_nonword_count": 192,
+  "reserve_nonword_count": 1,
+  "reserve_nonword_id": "N270",
+  "session_count": 6,
+  "real_words_per_session": 45,
+  "nonwords_per_session": 32,
+  "scored_items_per_session": 77,
+  "total_scored_items": 462,
+  "practice_items_per_session": null,
+  "practice_policy": "Not specified by the latest user-confirmed allocation; keep separate from the 77 scored items until study-team approval.",
+  "nonword_selection_policy": "Use the first 192 rows in source_row order from nonword_candidates_supplied_v1.csv for engineering allocation; keep source row 193 (N270) unallocated as reserve. This is provisional and must not be treated as a randomized or approved study sequence.",
+  "session_distribution": [
+    {"session": 1, "real_words": 45, "nonwords": 32, "scored_items": 77},
+    {"session": 2, "real_words": 45, "nonwords": 32, "scored_items": 77},
+    {"session": 3, "real_words": 45, "nonwords": 32, "scored_items": 77},
+    {"session": 4, "real_words": 45, "nonwords": 32, "scored_items": 77},
+    {"session": 5, "real_words": 45, "nonwords": 32, "scored_items": 77},
+    {"session": 6, "real_words": 45, "nonwords": 32, "scored_items": 77}
+  ],
+  "participant_workflow_enabled": false,
+  "activation_requirements": [
+    "Written PI/statistician approval of the 6 x (45 real + 32 nonword) scored-item allocation.",
+    "Native Kannada reviewer approval of each selected non-word candidate.",
+    "Written approval of the reserve candidate or replacement policy.",
+    "Approved practice-item count and placement.",
+    "Approved randomization/interleaving seed and ordering method.",
+    "Signed item-bank version and SHA-256 checksum."
+  ]
+}

@@ -31,6 +31,37 @@ class KannadaSourceWord {
   final int? morphemes;
 }
 
+
+class KannadaNonWordCandidate {
+  const KannadaNonWordCandidate({
+    required this.sourceRow,
+    required this.id,
+    required this.text,
+    required this.method,
+    required this.sourceWord1,
+    required this.sourceId1,
+    required this.transformation,
+    required this.reviewStatus,
+    this.sourceWord2,
+    this.sourceId2,
+    this.reviewerNotes = '',
+  });
+
+  final int sourceRow;
+  final String id;
+  final String text;
+  final String method;
+  final String sourceWord1;
+  final String sourceId1;
+  final String? sourceWord2;
+  final String? sourceId2;
+  final String transformation;
+  final String reviewStatus;
+  final String reviewerNotes;
+
+  bool get isApproved => reviewStatus == 'approved';
+}
+
 class BundledItemCatalog {
   const BundledItemCatalog({
     required this.realWords,
@@ -38,22 +69,29 @@ class BundledItemCatalog {
     required this.approvedNonWordCount,
     required this.nonWordReviewStatus,
     required this.nonWordMethodCounts,
+    required this.suppliedNonWordCandidates,
   });
 
   static const String realWordsAsset =
       'assets/item_bank/selected_words_list_v1.csv';
   static const String nonWordSummaryAsset =
       'assets/item_bank/nonword_candidate_summary_v1.json';
+  static const String suppliedNonWordCandidatesAsset =
+      'assets/item_bank/nonword_candidates_supplied_v1.csv';
 
   final List<KannadaSourceWord> realWords;
   final int nonWordCandidateCount;
   final int approvedNonWordCount;
   final String nonWordReviewStatus;
   final Map<String, int> nonWordMethodCounts;
+  final List<KannadaNonWordCandidate> suppliedNonWordCandidates;
 
   bool get hasCompleteRealWordPool => realWords.length == 270;
   bool get hasApprovedNonWordPool =>
       nonWordCandidateCount == 270 && approvedNonWordCount == 270;
+  int get suppliedNonWordCount => suppliedNonWordCandidates.length;
+  int get pendingSuppliedNonWordCount =>
+      suppliedNonWordCandidates.where((item) => !item.isApproved).length;
   bool get canBuildApprovedBank =>
       hasCompleteRealWordPool && hasApprovedNonWordPool;
 
@@ -72,12 +110,19 @@ class BundledItemCatalog {
     final assets = bundle ?? rootBundle;
     final csvText = await assets.loadString(realWordsAsset);
     final summaryText = await assets.loadString(nonWordSummaryAsset);
-    return parse(csvText: csvText, nonWordSummaryJson: summaryText);
+    final candidatesText =
+        await assets.loadString(suppliedNonWordCandidatesAsset);
+    return parse(
+      csvText: csvText,
+      nonWordSummaryJson: summaryText,
+      nonWordCandidatesCsv: candidatesText,
+    );
   }
 
   static BundledItemCatalog parse({
     required String csvText,
     required String nonWordSummaryJson,
+    required String nonWordCandidatesCsv,
   }) {
     final rows = csv.decode(csvText);
     if (rows.length < 2) {
@@ -235,12 +280,144 @@ class BundledItemCatalog {
       throw const FormatException('The non-word approval counts are invalid.');
     }
 
+
+    final candidateRows = csv.decode(nonWordCandidatesCsv);
+    if (candidateRows.length != 194) {
+      throw FormatException(
+        'Expected 193 supplied non-word candidates plus a header; found ' +
+            (candidateRows.length - 1).toString() + '.',
+      );
+    }
+    final candidateHeaders = candidateRows.first
+        .map((value) => value.toString().trim().toLowerCase())
+        .toList(growable: false);
+    final candidateIndexes = <String, int>{};
+    for (var i = 0; i < candidateHeaders.length; i += 1) {
+      final header = candidateHeaders[i];
+      if (header.isEmpty || candidateIndexes.containsKey(header)) {
+        throw const FormatException(
+          'The non-word candidate file has an empty or duplicate column name.',
+        );
+      }
+      candidateIndexes[header] = i;
+    }
+    const candidateRequired = <String>[
+      'source_row',
+      'nonword_id',
+      'nonword',
+      'method',
+      'source_word_1',
+      'source_id_1',
+      'transformation',
+      'review_status',
+    ];
+    final missingCandidateColumns = candidateRequired
+        .where((name) => !candidateIndexes.containsKey(name))
+        .toList(growable: false);
+    if (missingCandidateColumns.isNotEmpty) {
+      throw FormatException(
+        'The supplied non-word file is missing columns: ' +
+            missingCandidateColumns.join(', ') + '.',
+      );
+    }
+
+    String candidateValue(List<dynamic> row, String column) {
+      final index = candidateIndexes[column];
+      if (index == null || index >= row.length) return '';
+      return row[index]?.toString().trim() ?? '';
+    }
+
+    final sourceById = <String, KannadaSourceWord>{
+      for (final word in words) word.id: word,
+    };
+    final candidates = <KannadaNonWordCandidate>[];
+    final candidateIds = <String>{};
+    final candidateTexts = <String>{};
+    final realWordTexts = words.map((word) => word.text).toSet();
+    const validMethods = <String>{
+      'A_vowel',
+      'B_consonant',
+      'C_suffix_prefix',
+      'D_prefix_suffix',
+    };
+    for (var rowIndex = 1; rowIndex < candidateRows.length; rowIndex += 1) {
+      final row = candidateRows[rowIndex];
+      final sourceRowRaw = candidateValue(row, 'source_row');
+      final sourceRow = int.tryParse(sourceRowRaw);
+      final id = candidateValue(row, 'nonword_id');
+      final text = candidateValue(row, 'nonword');
+      final method = candidateValue(row, 'method');
+      final sourceWord1 = candidateValue(row, 'source_word_1');
+      final sourceId1 = candidateValue(row, 'source_id_1');
+      final sourceWord2 = candidateValue(row, 'source_word_2');
+      final sourceId2 = candidateValue(row, 'source_id_2');
+      final transformation = candidateValue(row, 'transformation');
+      final reviewStatus = candidateValue(row, 'review_status');
+      if (sourceRow == null || sourceRow != rowIndex ||
+          id.isEmpty || text.isEmpty || sourceWord1.isEmpty ||
+          sourceId1.isEmpty || transformation.isEmpty ||
+          !validMethods.contains(method) || reviewStatus.isEmpty) {
+        throw FormatException(
+          'Invalid non-word candidate metadata on source row ' +
+              (rowIndex + 1).toString() + '.',
+        );
+      }
+      if (!candidateIds.add(id) || !candidateTexts.add(text)) {
+        throw FormatException('Duplicate non-word candidate ID or text: ' + id);
+      }
+      if (realWordTexts.contains(text)) {
+        throw FormatException(
+          'Non-word candidate overlaps the real-word list: ' + id,
+        );
+      }
+      final firstSource = sourceById[sourceId1];
+      if (firstSource == null || firstSource.text != sourceWord1) {
+        throw FormatException(
+          'Non-word candidate ' + id + ' has an invalid first source reference.',
+        );
+      }
+      if (method == 'C_suffix_prefix' || method == 'D_prefix_suffix') {
+        final secondSource = sourceById[sourceId2];
+        if (sourceWord2.isEmpty || secondSource == null ||
+            secondSource.text != sourceWord2) {
+          throw FormatException(
+            'Non-word candidate ' + id + ' has an invalid second source reference.',
+          );
+        }
+      } else if (sourceWord2.isNotEmpty || sourceId2.isNotEmpty) {
+        throw FormatException(
+          'Single-source candidate ' + id + ' must not include a second source.',
+        );
+      }
+      candidates.add(KannadaNonWordCandidate(
+        sourceRow: sourceRow,
+        id: id,
+        text: text,
+        method: method,
+        sourceWord1: sourceWord1,
+        sourceId1: sourceId1,
+        sourceWord2: sourceWord2.isEmpty ? null : sourceWord2,
+        sourceId2: sourceId2.isEmpty ? null : sourceId2,
+        transformation: transformation,
+        reviewStatus: reviewStatus,
+        reviewerNotes: candidateValue(row, 'reviewer_notes'),
+      ));
+    }
+    if (candidates.length != 193 ||
+        candidates.where((item) => item.isApproved).isNotEmpty) {
+      throw const FormatException(
+        'The supplied non-word set must contain 193 pending candidates only.',
+      );
+    }
+
     return BundledItemCatalog(
       realWords: List<KannadaSourceWord>.unmodifiable(words),
       nonWordCandidateCount: candidateCount,
       approvedNonWordCount: approvedCount,
       nonWordReviewStatus: summary['review_status']?.toString() ?? 'unknown',
       nonWordMethodCounts: Map<String, int>.unmodifiable(counts),
+      suppliedNonWordCandidates:
+          List<KannadaNonWordCandidate>.unmodifiable(candidates),
     );
   }
 }

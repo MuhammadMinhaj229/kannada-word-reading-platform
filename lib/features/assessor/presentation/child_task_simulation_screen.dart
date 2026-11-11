@@ -1,17 +1,26 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/app_theme.dart';
+import '../../assessment/data/bundled_item_catalog.dart';
 
-/// A non-participant simulation for exercising the child-facing interaction.
+/// Child-facing task preview built from the supplied Kannada catalogue.
 ///
-/// This screen uses synthetic placeholder strings and keeps responses in
-/// widget memory. It never reads the approved item bank, opens the release
-/// gate, creates a participant, or writes to SQLCipher.
+/// This screen is deliberately a preview: it uses real source words and
+/// pending non-word candidates, but never creates participant records or
+/// measures research reaction times. Participant sessions remain behind the
+/// independent release gate.
 class ChildTaskSimulationScreen extends StatefulWidget {
-  const ChildTaskSimulationScreen({super.key, this.isActive = true});
+  const ChildTaskSimulationScreen({
+    super.key,
+    this.isActive = true,
+    this.catalogFuture,
+  });
 
-  /// False while another assessor workspace tab is visible.
   final bool isActive;
+
+  /// Allows deterministic tests to inject a catalogue already loaded from the
+  /// real bundled assets. Production callers omit this and load the bundle.
+  final Future<BundledItemCatalog>? catalogFuture;
 
   @override
   State<ChildTaskSimulationScreen> createState() =>
@@ -21,52 +30,63 @@ class ChildTaskSimulationScreen extends StatefulWidget {
 class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
     with WidgetsBindingObserver {
   static const int _practiceCount = 5;
-  static const int _scoredCount = 10;
-  static const int _milestoneEveryAnswers = 10;
+  static const int _previewTestCount = 10;
+  static const int _rewardEvery = 10;
 
-  // These fixtures only exercise layout and scoring display. They are not
-  // validated Kannada words/non-words and must never enter a study session.
-  static const List<_QaStimulus> _stimuli = <_QaStimulus>[
-    _QaStimulus('ಕುನಮೆ', isWord: true, isPractice: true),
-    _QaStimulus('ತೊಪಲಿ', isWord: false, isPractice: true),
-    _QaStimulus('ಜವೊಕು', isWord: true, isPractice: true),
-    _QaStimulus('ಮಿರಗಾ', isWord: false, isPractice: true),
-    _QaStimulus('ನುತಕೆ', isWord: true, isPractice: true),
-    _QaStimulus('ಪೆಲುಮಿ', isWord: true),
-    _QaStimulus('ದೊಕವಿ', isWord: false),
-    _QaStimulus('ಮರಿತೋ', isWord: false),
-    _QaStimulus('ಗುನಕಾ', isWord: true),
-    _QaStimulus('ವೊನತಿ', isWord: true),
-    _QaStimulus('ತಕಿಮು', isWord: false),
-    _QaStimulus('ನೊಗುಪ', isWord: true),
-    _QaStimulus('ಲಿಮೊಗ', isWord: false),
-    _QaStimulus('ಕವತು', isWord: false),
-    _QaStimulus('ಸುನಾರಿ', isWord: true),
-  ];
-
-  final Stopwatch _trialClock = Stopwatch();
-  final List<_QaResponse> _responses = <_QaResponse>[];
+  late final Future<BundledItemCatalog> _catalogFuture;
+  List<_PreviewStimulus> _stimuli = const <_PreviewStimulus>[];
 
   int _currentIndex = 0;
+  int _answeredCount = 0;
   bool _started = false;
   bool _showMilestone = false;
-  bool _isComplete = false;
-  bool _showResults = false;
-  bool _wasInterrupted = false;
+  bool _complete = false;
+  bool _interrupted = false;
 
-  _QaStimulus get _currentStimulus => _stimuli[_currentIndex];
+  _PreviewStimulus? get _current =>
+      _stimuli.isEmpty ? null : _stimuli[_currentIndex];
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _catalogFuture = widget.catalogFuture ?? BundledItemCatalog.load();
+  }
+
+  List<_PreviewStimulus> _buildPreviewStimuli(
+    BundledItemCatalog catalog,
+  ) {
+    final items = <_PreviewStimulus>[];
+    for (var index = 0; index < _practiceCount; index += 1) {
+      final word = catalog.realWords[index];
+      items.add(_PreviewStimulus(
+        id: word.id,
+        text: word.text,
+        isPractice: true,
+      ));
+    }
+    for (var index = 0; index < _previewTestCount ~/ 2; index += 1) {
+      final realWord = catalog.realWords[_practiceCount + index];
+      final nonWord = catalog.suppliedNonWordCandidates[index];
+      items.add(_PreviewStimulus(
+        id: realWord.id,
+        text: realWord.text,
+        isPractice: false,
+      ));
+      items.add(_PreviewStimulus(
+        id: nonWord.id,
+        text: nonWord.text,
+        isPractice: false,
+      ));
+    }
+    return List<_PreviewStimulus>.unmodifiable(items);
   }
 
   @override
   void didUpdateWidget(covariant ChildTaskSimulationScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.isActive && !widget.isActive) {
-      _interruptSimulation();
+      _interruptPreview();
     }
   }
 
@@ -76,99 +96,61 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
         state == AppLifecycleState.hidden ||
         state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
-      _interruptSimulation();
+      _interruptPreview();
     }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _trialClock.stop();
     super.dispose();
   }
 
-  void _interruptSimulation() {
-    if (!_started || _isComplete || _showResults || _wasInterrupted) return;
-    _trialClock.stop();
+  void _interruptPreview() {
+    if (!_started || _complete || _interrupted) return;
     if (!mounted) return;
-    setState(() {
-      _wasInterrupted = true;
-    });
+    setState(() => _interrupted = true);
   }
 
-  void _startSimulation() {
-    if (!widget.isActive || _wasInterrupted) return;
+  void _startPreview() {
+    if (!widget.isActive || _interrupted || _stimuli.length !=
+        _practiceCount + _previewTestCount) {
+      return;
+    }
     setState(() => _started = true);
-    _startTrialClockAfterRender();
   }
 
-  /// Start RT only after the new stimulus has completed its first frame.
-  void _startTrialClockAfterRender() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted ||
-          !widget.isActive ||
-          !_started ||
-          _wasInterrupted ||
-          _showMilestone ||
-          _isComplete ||
-          _showResults) {
-        return;
-      }
-      // The response controls are already painted with the stimulus. The
-      // handler rejects an early event until this post-frame start occurs,
-      // avoiding an extra frame of latency between stimulus and active input.
-      _trialClock
-        ..stop()
-        ..reset()
-        ..start();
-    });
-  }
-
-  void _recordAnswer(bool selectedWord) {
-    if (!widget.isActive ||
-        !_started ||
-        !_trialClock.isRunning ||
-        _wasInterrupted ||
-        _showMilestone ||
-        _isComplete ||
-        _showResults) {
+  void _answer() {
+    if (!widget.isActive || !_started || _interrupted || _complete ||
+        _showMilestone || _current == null) {
       return;
     }
-
-    _trialClock.stop();
-    _responses.add(
-      _QaResponse(
-        selectedWord: selectedWord,
-        reactionTimeMs: _trialClock.elapsedMilliseconds,
-      ),
-    );
-
     if (_currentIndex == _stimuli.length - 1) {
-      setState(() => _isComplete = true);
+      setState(() {
+        _answeredCount += 1;
+        _complete = true;
+      });
       return;
     }
-
     setState(() {
+      _answeredCount += 1;
       _currentIndex += 1;
-      _showMilestone = _responses.length % _milestoneEveryAnswers == 0;
+      _showMilestone = _answeredCount % _rewardEvery == 0;
     });
-    if (!_showMilestone) {
-      _startTrialClockAfterRender();
-    }
   }
 
-  void _resetSimulation() {
-    _trialClock
-      ..stop()
-      ..reset();
+  void _continueAfterMilestone() {
+    setState(() => _showMilestone = false);
+  }
+
+  void _resetPreview() {
     setState(() {
-      _responses.clear();
       _currentIndex = 0;
+      _answeredCount = 0;
       _started = false;
       _showMilestone = false;
-      _isComplete = false;
-      _showResults = false;
-      _wasInterrupted = false;
+      _complete = false;
+      _interrupted = false;
     });
   }
 
@@ -177,137 +159,75 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
     return Scaffold(
       backgroundColor: AppTheme.canvas,
       body: SafeArea(
-        child: Column(
-          children: <Widget>[
-            _simulationNotice(),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(18, 20, 18, 28),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 980),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: <Widget>[
-                        _brandHeader(context),
-                        const SizedBox(height: 22),
-                        _buildStage(context),
-                      ],
+        child: FutureBuilder<BundledItemCatalog>(
+          future: _catalogFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError || snapshot.data == null) {
+              return _errorState(snapshot.error?.toString() ??
+                  'The supplied Kannada catalogue could not be loaded.');
+            }
+            if (_stimuli.isEmpty) {
+              try {
+                _stimuli = _buildPreviewStimuli(snapshot.data!);
+              } catch (error) {
+                return _errorState(error.toString());
+              }
+            }
+            if (_stimuli.length != _practiceCount + _previewTestCount) {
+              return _errorState('The supplied catalogue does not contain enough preview items.');
+            }
+            return Column(
+              children: <Widget>[
+                _previewNotice(),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(18, 20, 18, 28),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 900),
+                        child: _buildStage(context),
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _simulationNotice() {
+  Widget _previewNotice() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-      color: const Color(0xFFFFE9E2),
-      child: const Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          Icon(Icons.science_outlined, color: Color(0xFF9F4938), size: 17),
-          SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              'SIMULATION ONLY  •  SYNTHETIC DATA  •  NOT A PARTICIPANT SESSION',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Color(0xFF8E3D30),
-                fontSize: 10,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0.7,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _brandHeader(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: AppTheme.teal,
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: const Icon(
-            Icons.auto_stories_rounded,
-            color: Colors.white,
-            size: 27,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(
-                'ಪದLab',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
-              ),
-              const Text(
-                'KANNADA WORD TASK',
-                style: TextStyle(
-                  color: AppTheme.muted,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.1,
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (_started && !_isComplete && !_showResults) _progressPill(),
-      ],
-    );
-  }
-
-  Widget _progressPill() {
-    final practice = _currentStimulus.isPractice;
-    final phaseCount =
-        practice ? _currentIndex + 1 : _currentIndex - _practiceCount + 1;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppTheme.mint,
-        borderRadius: BorderRadius.circular(30),
-      ),
-      child: Text(
-        practice
-            ? 'ಅಭ್ಯಾಸ  $phaseCount / $_practiceCount'
-            : 'ಮುಖ್ಯ ಹಂತ  $phaseCount / $_scoredCount',
-        style: const TextStyle(
+      color: const Color(0xFFEAF4F1),
+      child: const Text(
+        'TASK PREVIEW · REAL SUPPLIED WORDS + PENDING CANDIDATES · NO PARTICIPANT DATA',
+        textAlign: TextAlign.center,
+        style: TextStyle(
           color: AppTheme.tealDark,
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.5,
         ),
       ),
     );
   }
 
   Widget _buildStage(BuildContext context) {
-    if (_wasInterrupted) return _buildInterrupted(context);
-    if (_showResults) return _buildResults(context);
-    if (_isComplete) return _buildCompletion(context);
-    if (_showMilestone) return _buildMilestone(context);
-    if (!_started) return _buildWelcome(context);
-    return _buildTrial(context);
+    if (_interrupted) return _interruptedStage();
+    if (_complete) return _completionStage();
+    if (_showMilestone) return _milestoneStage();
+    if (!_started) return _welcomeStage(context);
+    return _trialStage(context);
   }
 
-  Widget _buildWelcome(BuildContext context) {
+  Widget _welcomeStage(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
@@ -320,21 +240,21 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
           child: Column(
             children: <Widget>[
               Container(
-                width: 86,
-                height: 86,
+                width: 88,
+                height: 88,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(28),
                 ),
-                child: const Icon(
-                  Icons.menu_book_rounded,
-                  color: AppTheme.teal,
-                  size: 46,
+                child: const Center(
+                  child: Text('🐘', style: TextStyle(
+                    fontSize: 48,
+                  )),
                 ),
               ),
-              const SizedBox(height: 22),
+              const SizedBox(height: 18),
               Text(
-                'ಬನ್ನಿ, ಪದಗಳನ್ನು ನೋಡೋಣ!',
+                'ಬನ್ನಿ, ಪದಗಳ ಆಟ ಆಡೋಣ!',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.w900,
@@ -342,8 +262,7 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
               ),
               const SizedBox(height: 10),
               const Text(
-                'ಒಂದು ಅಕ್ಷರಗಳ ಗುಂಪನ್ನು ನೋಡಿ. ಅದು ನಿಜವಾದ ಕನ್ನಡ ಪದವೇ ಎಂದು '
-                'ಯೋಚಿಸಿ, “ಪದ” ಅಥವಾ “ಪದವಲ್ಲ” ಆಯ್ಕೆಮಾಡಿ.',
+                'ಒಂದು ಕನ್ನಡ ಅಕ್ಷರಗಳ ಗುಂಪನ್ನು ನೋಡಿ. ಅದು ನಿಜವಾದ ಪದವೇ ಅಥವಾ ಪದವಲ್ಲವೇ ಎಂದು ಆಯ್ಕೆಮಾಡಿ.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: AppTheme.ink,
@@ -360,39 +279,27 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
             padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                const Text(
-                  'ಈ ಪರೀಕ್ಷಾ ಓಟದಲ್ಲಿ',
-                  style: TextStyle(
-                    color: AppTheme.deepInk,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
-                  ),
+              children: const <Widget>[
+                Text('ಈ ಪೂರ್ವವೀಕ್ಷಣೆಯಲ್ಲಿ',
+                    style: TextStyle(
+                      color: AppTheme.deepInk,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                    )),
+                SizedBox(height: 10),
+                _InfoLine(
+                  icon: Icons.school_outlined,
+                  text: 'ನಿಮ್ಮ ನಿಜವಾದ ಪದಪಟ್ಟಿಯಿಂದ 5 ಅಭ್ಯಾಸ ಪದಗಳು',
                 ),
-                const SizedBox(height: 12),
-                const _InfoLine(
-                  icon: Icons.lightbulb_outline_rounded,
-                  text: '5 ಅಭ್ಯಾಸ ಕಾರ್ಡ್‌ಗಳು',
-                ),
-                const SizedBox(height: 8),
-                const _InfoLine(
+                SizedBox(height: 8),
+                _InfoLine(
                   icon: Icons.style_outlined,
-                  text: '10 ಮಾದರಿ ಕಾರ್ಡ್‌ಗಳು',
+                  text: 'ನಿಜವಾದ ಪದಗಳು ಮತ್ತು ಪರಿಶೀಲನೆ ಬಾಕಿಯಿರುವ ಅಭ್ಯರ್ಥಿಗಳ ಮಿಶ್ರಣ',
                 ),
-                const SizedBox(height: 8),
-                const _InfoLine(
+                SizedBox(height: 8),
+                _InfoLine(
                   icon: Icons.lock_outline_rounded,
-                  text: 'ಉತ್ತರಿಸಿದ ತಕ್ಷಣ ಸರಿಯೇ/ತಪ್ಪೇ ಎಂಬ ಸೂಚನೆ ಇರುವುದಿಲ್ಲ.',
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'This QA run uses synthetic interface fixtures only. '
-                  'It is not the approved study item set.',
-                  style: TextStyle(
-                    color: AppTheme.muted,
-                    fontSize: 11,
-                    height: 1.45,
-                  ),
+                  text: 'ಉತ್ತರಗಳು ದಾಖಲಾಗುವುದಿಲ್ಲ; ಸರಿಯೇ/ತಪ್ಪೇ ಎಂದು ತೋರಿಸುವುದಿಲ್ಲ.',
                 ),
               ],
             ),
@@ -400,7 +307,7 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
         ),
         const SizedBox(height: 18),
         FilledButton.icon(
-          onPressed: _startSimulation,
+          onPressed: _startPreview,
           icon: const Icon(Icons.play_arrow_rounded),
           label: const Text('ಪ್ರಾರಂಭಿಸೋಣ'),
           style: FilledButton.styleFrom(
@@ -415,45 +322,54 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
     );
   }
 
-  Widget _buildTrial(BuildContext context) {
-    final stimulus = _currentStimulus;
+  Widget _trialStage(BuildContext context) {
+    final stimulus = _current!;
     final practice = stimulus.isPractice;
+    final phaseNumber = practice
+        ? _currentIndex + 1
+        : _currentIndex - _practiceCount + 1;
+    final phaseTotal = practice ? _practiceCount : _previewTestCount;
+    final progress = _currentIndex + 1;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         Row(
           children: <Widget>[
-            Icon(
-              practice ? Icons.school_outlined : Icons.auto_awesome_outlined,
-              color: AppTheme.tealDark,
+            const CircleAvatar(
+              radius: 22,
+              backgroundColor: AppTheme.mint,
+              child: Text('🐘', style: TextStyle(fontSize: 24)),
             ),
-            const SizedBox(width: 8),
-            Text(
-              practice ? 'ಅಭ್ಯಾಸ' : 'ಪದಗಳ ಆಯ್ಕೆ',
-              style: const TextStyle(
-                color: AppTheme.tealDark,
-                fontSize: 13,
-                fontWeight: FontWeight.w900,
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                practice ? 'ಅಭ್ಯಾಸ ಮಾಡೋಣ!' : 'ಪದವನ್ನು ಗಮನಿಸಿ!',
+                style: const TextStyle(
+                  color: AppTheme.tealDark,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ),
-            const Spacer(),
             Text(
-              '${_responses.length} / ${_stimuli.length}',
+              practice
+                  ? 'ಅಭ್ಯಾಸ $phaseNumber / $phaseTotal'
+                  : 'ಆಟ $phaseNumber / $phaseTotal',
               style: const TextStyle(
                 color: AppTheme.muted,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         ClipRRect(
           borderRadius: BorderRadius.circular(10),
           child: LinearProgressIndicator(
-            value: (_responses.length + 1) / _stimuli.length,
-            minHeight: 7,
+            value: progress / _stimuli.length,
+            minHeight: 8,
             backgroundColor: AppTheme.line,
             color: AppTheme.teal,
           ),
@@ -482,11 +398,10 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
               ),
             ],
           ),
-          // Do not animate scored stimulus onset: the response clock starts
-          // after this stable text has completed its first rendered frame.
           child: Center(
             child: Text(
               stimulus.text,
+              key: ValueKey<String>(stimulus.id),
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                     fontSize: 44,
@@ -519,7 +434,7 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
                 SizedBox(
                   width: width,
                   child: FilledButton(
-                    onPressed: () => _recordAnswer(true),
+                    onPressed: _answer,
                     style: _choiceStyle(),
                     child: const Text('ಪದ'),
                   ),
@@ -527,7 +442,7 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
                 SizedBox(
                   width: width,
                   child: FilledButton(
-                    onPressed: () => _recordAnswer(false),
+                    onPressed: _answer,
                     style: _choiceStyle(),
                     child: const Text('ಪದವಲ್ಲ'),
                   ),
@@ -537,12 +452,10 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
           },
         ),
         const SizedBox(height: 12),
-        Text(
-          practice
-              ? 'ಅಭ್ಯಾಸ ಹಂತ: ಉತ್ತರಿಸಿದ ನಂತರ ಮುಂದಿನ ಕಾರ್ಡ್ ಕಾಣಿಸುತ್ತದೆ.'
-              : 'ಕಾರ್ಡ್‌ಗಳನ್ನು ಒಂದೊಂದಾಗಿ ನೋಡಿ ನಿಮ್ಮ ಆಯ್ಕೆಯನ್ನು ಮಾಡಿ.',
+        const Text(
+          'ಇದು ಪೂರ್ವವೀಕ್ಷಣೆ ಮಾತ್ರ. ಸಂಶೋಧನಾ ಉತ್ತರಗಳು ಅಥವಾ ಸಮಯವನ್ನು ದಾಖಲಿಸುವುದಿಲ್ಲ.',
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
             color: AppTheme.muted,
             fontSize: 11,
             height: 1.45,
@@ -568,188 +481,62 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
     );
   }
 
-  Widget _buildMilestone(BuildContext context) {
+  Widget _milestoneStage() {
     return _MessagePanel(
       icon: Icons.stars_rounded,
-      title: '10 ಉತ್ತರಗಳು ಪೂರ್ಣಗೊಂಡಿವೆ!',
-      message: 'ಮುಂದಿನ ಕಾರ್ಡ್‌ಗೆ ಹೋಗೋಣ.',
+      title: 'ಚೆನ್ನಾಗಿದೆ!',
+      message: 'ನೀವು ಇನ್ನೂ ಐದು ಕಾರ್ಡ್‌ಗಳನ್ನು ನೋಡಿದ್ದೀರಿ.',
       actionLabel: 'ಮುಂದುವರಿಸು',
-      onAction: () {
-        setState(() {
-          _showMilestone = false;
-        });
-        _startTrialClockAfterRender();
-      },
-      secondary: 'Neutral progress milestone — QA simulation only.',
+      onAction: _continueAfterMilestone,
+      secondary: 'Preview milestone only — no study response is stored.',
     );
   }
 
-  Widget _buildInterrupted(BuildContext context) {
+  Widget _completionStage() {
+    return _MessagePanel(
+      icon: Icons.celebration_rounded,
+      title: 'ಅದ್ಭುತ! ಪೂರ್ವವೀಕ್ಷಣೆ ಮುಗಿದಿದೆ.',
+      message: 'ನೀವು ನಿಜವಾದ ಪದಪಟ್ಟಿಯೊಂದಿಗೆ ಆಟದ ಅನುಭವವನ್ನು ನೋಡಿದ್ದೀರಿ.',
+      actionLabel: 'ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ',
+      onAction: _resetPreview,
+      secondary: 'No participant record or assessment score was created.',
+    );
+  }
+
+  Widget _interruptedStage() {
     return _MessagePanel(
       icon: Icons.pause_circle_outline_rounded,
-      title: 'QA run interrupted',
-      message:
-          'This run was stopped because the task lost focus. '
-          'To keep response-time measurements valid, start a fresh QA run.',
-      actionLabel: 'Restart QA run',
-      onAction: _resetSimulation,
-      secondary: 'Previous responses remain visible only in this temporary '
-          'screen until you restart. Nothing was saved.',
+      title: 'ಪೂರ್ವವೀಕ್ಷಣೆ ನಿಲ್ಲಿಸಲಾಗಿದೆ',
+      message: 'ನೀವು ಬೇರೆ ಪರದೆಗೆ ಹೋದಾಗ ಈ ಪೂರ್ವವೀಕ್ಷಣೆಯನ್ನು ನಿಲ್ಲಿಸಲಾಗಿದೆ.',
+      actionLabel: 'ಮತ್ತೆ ಪ್ರಾರಂಭಿಸಿ',
+      onAction: _resetPreview,
+      secondary: 'Preview only — nothing was saved.',
     );
   }
 
-  Widget _buildCompletion(BuildContext context) {
-    return _MessagePanel(
-      icon: Icons.auto_awesome_rounded,
-      title: 'ಈ ಸಣ್ಣ ಕಾರ್ಯ ಮುಗಿದಿದೆ.',
-      message: 'ಧನ್ಯವಾದಗಳು! ನಿಮ್ಮ ಉತ್ತರಗಳನ್ನು ಈಗ ಉಳಿಸಲಾಗುವುದಿಲ್ಲ.',
-      actionLabel: 'Assessor results ನೋಡಿ',
-      onAction: () => setState(() => _showResults = true),
-      secondary: 'The child-facing flow does not display correctness or scores.',
-      extraAction: OutlinedButton(
-        onPressed: _resetSimulation,
-        child: const Text('ಮತ್ತೊಮ್ಮೆ ಪರೀಕ್ಷಿಸಿ'),
+  Widget _errorState(String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Text(
+          'Kannada catalogue could not be loaded.\n$message',
+          textAlign: TextAlign.center,
+        ),
       ),
     );
   }
-
-  Widget _buildResults(BuildContext context) {
-    final scored = _responses.asMap().entries.where(
-          (entry) => !_stimuli[entry.key].isPractice,
-        ).toList(growable: false);
-    final correct = scored
-        .where((entry) => entry.value.selectedWord == _stimuli[entry.key].isWord)
-        .length;
-    final meanRt = scored.isEmpty
-        ? 0
-        : (scored.fold<int>(
-                  0,
-                  (sum, entry) => sum + entry.value.reactionTimeMs,
-                ) /
-                scored.length)
-            .round();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        Text(
-          'Assessor QA results',
-          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
-        ),
-        const SizedBox(height: 6),
-        const Text(
-          'Simulation only. These are not participant records or validated '
-          'research scores.',
-          style: TextStyle(color: AppTheme.muted, fontSize: 12, height: 1.5),
-        ),
-        const SizedBox(height: 16),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final width = (constraints.maxWidth - 20) / 3;
-            return Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: <Widget>[
-                SizedBox(
-                  width: width,
-                  child: _ResultMetric(
-                    label: 'Scored answers',
-                    value: '${scored.length} / $_scoredCount',
-                  ),
-                ),
-                SizedBox(
-                  width: width,
-                  child: _ResultMetric(
-                    label: 'Correct (QA key)',
-                    value: '$correct / ${scored.length}',
-                  ),
-                ),
-                SizedBox(
-                  width: width,
-                  child: _ResultMetric(
-                    label: 'Mean response time',
-                    value: '$meanRt ms',
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-        const SizedBox(height: 18),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                const Text(
-                  'Trial-by-trial inspection',
-                  style: TextStyle(
-                    color: AppTheme.deepInk,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 15,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                ..._responses.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final response = entry.value;
-                  final stimulus = _stimuli[index];
-                  return _ResultRow(
-                    number: index + 1,
-                    stimulus: stimulus,
-                    response: response,
-                    isCorrect: response.selectedWord == stimulus.isWord,
-                  );
-                }),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        Wrap(
-          spacing: 12,
-          runSpacing: 10,
-          children: <Widget>[
-            OutlinedButton.icon(
-              onPressed: () => setState(() => _showResults = false),
-              icon: const Icon(Icons.arrow_back_rounded),
-              label: const Text('Completion screen'),
-            ),
-            FilledButton.icon(
-              onPressed: _resetSimulation,
-              icon: const Icon(Icons.replay_rounded),
-              label: const Text('Run again'),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
 }
 
-class _QaStimulus {
-  const _QaStimulus(
-    this.text, {
-    required this.isWord,
-    this.isPractice = false,
+class _PreviewStimulus {
+  const _PreviewStimulus({
+    required this.id,
+    required this.text,
+    required this.isPractice,
   });
 
+  final String id;
   final String text;
-  final bool isWord;
   final bool isPractice;
-}
-
-class _QaResponse {
-  const _QaResponse({
-    required this.selectedWord,
-    required this.reactionTimeMs,
-  });
-
-  final bool selectedWord;
-  final int reactionTimeMs;
 }
 
 class _InfoLine extends StatelessWidget {
@@ -762,7 +549,7 @@ class _InfoLine extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: <Widget>[
-        Icon(icon, color: AppTheme.tealDark, size: 19),
+        Icon(icon, color: AppTheme.teal, size: 19),
         const SizedBox(width: 10),
         Expanded(
           child: Text(
@@ -770,7 +557,7 @@ class _InfoLine extends StatelessWidget {
             style: const TextStyle(
               color: AppTheme.ink,
               fontSize: 13,
-              fontWeight: FontWeight.w600,
+              height: 1.45,
             ),
           ),
         ),
@@ -787,7 +574,6 @@ class _MessagePanel extends StatelessWidget {
     required this.actionLabel,
     required this.onAction,
     required this.secondary,
-    this.extraAction,
   });
 
   final IconData icon;
@@ -796,182 +582,50 @@ class _MessagePanel extends StatelessWidget {
   final String actionLabel;
   final VoidCallback onAction;
   final String secondary;
-  final Widget? extraAction;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          children: <Widget>[
-            Container(
-              width: 78,
-              height: 78,
-              decoration: BoxDecoration(
-                color: AppTheme.mint,
-                borderRadius: BorderRadius.circular(25),
-              ),
-              child: Icon(icon, color: AppTheme.tealDark, size: 42),
-            ),
-            const SizedBox(height: 18),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AppTheme.ink,
-                fontSize: 15,
-                height: 1.55,
-              ),
-            ),
-            const SizedBox(height: 18),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: onAction,
-                child: Text(actionLabel),
-              ),
-            ),
-            if (extraAction != null) ...<Widget>[
-              const SizedBox(height: 10),
-              SizedBox(width: double.infinity, child: extraAction!),
-            ],
-            const SizedBox(height: 12),
-            Text(
-              secondary,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AppTheme.muted,
-                fontSize: 11,
-                height: 1.45,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ResultMetric extends StatelessWidget {
-  const _ResultMetric({required this.label, required this.value});
-
-  final String label;
-  final String value;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(minHeight: 88),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: AppTheme.line),
-        borderRadius: BorderRadius.circular(16),
+        color: AppTheme.mint,
+        borderRadius: BorderRadius.circular(26),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
+          Icon(icon, color: AppTheme.tealDark, size: 64),
+          const SizedBox(height: 18),
           Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: AppTheme.tealDark,
-              fontSize: 19,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 5),
-          Text(
-            label,
-            style: const TextStyle(
-              color: AppTheme.muted,
-              fontSize: 10,
-              height: 1.3,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ResultRow extends StatelessWidget {
-  const _ResultRow({
-    required this.number,
-    required this.stimulus,
-    required this.response,
-    required this.isCorrect,
-  });
-
-  final int number;
-  final _QaStimulus stimulus;
-  final _QaResponse response;
-  final bool isCorrect;
-
-  @override
-  Widget build(BuildContext context) {
-    final selected = response.selectedWord ? 'ಪದ' : 'ಪದವಲ್ಲ';
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 11),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Text(
-                '#$number  ${stimulus.isPractice ? 'Practice' : 'Scored'}',
-                style: const TextStyle(
-                  color: AppTheme.tealDark,
-                  fontSize: 11,
+            title,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.w900,
                 ),
-              ),
-              const Spacer(),
-              Text(
-                stimulus.isPractice
-                    ? 'Not scored'
-                    : isCorrect
-                        ? 'Correct (QA key)'
-                        : 'Incorrect (QA key)',
-                style: const TextStyle(
-                  color: AppTheme.muted,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 10),
           Text(
-            stimulus.text,
+            message,
+            textAlign: TextAlign.center,
             style: const TextStyle(
-              color: AppTheme.deepInk,
-              fontSize: 19,
-              fontWeight: FontWeight.w900,
+              color: AppTheme.ink,
+              fontSize: 15,
+              height: 1.55,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 22),
+          FilledButton(
+            onPressed: onAction,
+            child: Text(actionLabel),
+          ),
+          const SizedBox(height: 12),
           Text(
-            'Selected: $selected  •  QA key: ${stimulus.isWord ? 'Word' : 'Non-word'}  •  '
-            'RT: ${response.reactionTimeMs} ms',
+            secondary,
+            textAlign: TextAlign.center,
             style: const TextStyle(
               color: AppTheme.muted,
               fontSize: 11,
-              height: 1.4,
             ),
           ),
-          const SizedBox(height: 10),
-          const Divider(height: 1),
         ],
       ),
     );
