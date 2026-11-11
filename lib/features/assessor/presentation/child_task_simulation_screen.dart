@@ -56,7 +56,6 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
         items.add(_PreviewStimulus(
           id: word.id,
           text: word.text,
-          isWord: true,
           isPractice: true,
         ));
       }
@@ -72,7 +71,6 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
         items.add(_PreviewStimulus(
           id: nonWord.id,
           text: nonWord.text,
-          isWord: false,
           isPractice: false,
         ));
       }
@@ -400,6 +398,7 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
           child: Center(
             child: Text(
               stimulus.text,
+              key: ValueKey<String>(stimulus.id),
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                     fontSize: 44,
@@ -517,7 +516,7 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Text(
-          'Kannada catalogue could not be loaded.\\n$message',
+          'Kannada catalogue could not be loaded.\n$message',
           textAlign: TextAlign.center,
         ),
       ),
@@ -529,13 +528,11 @@ class _PreviewStimulus {
   const _PreviewStimulus({
     required this.id,
     required this.text,
-    required this.isWord,
     required this.isPractice,
   });
 
   final String id;
   final String text;
-  final bool isWord;
   final bool isPractice;
 }
 
