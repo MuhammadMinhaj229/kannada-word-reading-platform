@@ -16,6 +16,9 @@
   "notes": [
     "No synthesized speech fallback is permitted for participant sessions.",
     "Each clip must be a PHFI/CDLR-approved native Kannada recording, segmented, named and bundled with the app.",
-    "The scored stimulus remains silent unless the PI approves a protocol amendment."
-  ]
+    "The scored stimulus remains silent unless the PI approves a protocol amendment.",
+    "Individual word recordings must be segmented, named by W001-W270/Nxxx item ID, approved and bundled before the catalogue speaker controls become active."
+  ],
+  "word_audio_status": "pending_study_team_audio_approval",
+  "word_clips": {}
 }
