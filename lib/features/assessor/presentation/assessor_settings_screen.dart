@@ -105,6 +105,8 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
                             _sourceWordBrowser(catalog),
                             const SizedBox(height: 14),
                             _nonWordProportions(catalog),
+                            const SizedBox(height: 14),
+                            _nonWordCandidateBrowser(catalog),
                           ],
                           const SizedBox(height: 14),
                           FutureBuilder<bool>(
@@ -310,6 +312,101 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
             text: 'All 270 candidates are currently marked Pending in the '
                 'supplied workbook. This summary is for audit and review only; '
                 'the candidates are not loaded as usable stimuli.',
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  Widget _nonWordCandidateBrowser(BundledItemCatalog catalog) {
+    final candidates = catalog.suppliedNonWordCandidates.where((item) {
+      if (_search.isEmpty) return true;
+      return item.text.toLowerCase().contains(_search) ||
+          item.id.toLowerCase().contains(_search) ||
+          item.sourceWord1.toLowerCase().contains(_search) ||
+          (item.sourceWord2?.toLowerCase().contains(_search) ?? false) ||
+          item.method.toLowerCase().contains(_search);
+    }).toList(growable: false);
+
+    return _sectionCard(
+      icon: Icons.fact_check_outlined,
+      title: 'Supplied non-word candidates',
+      subtitle: '193 supplied rows · all pending linguistic review',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const _Notice(
+            text: 'These are review candidates, not approved stimuli. '
+                'They are visible for assessor/reviewer inspection only and '
+                'cannot enter a participant session.',
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _searchController,
+            decoration: const InputDecoration(
+              prefixIcon: Icon(Icons.search_rounded),
+              labelText: 'Search candidate, ID, source word or method',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            candidates.length.toString() + ' of ' +
+                catalog.suppliedNonWordCount.toString() + ' supplied candidates',
+            style: const TextStyle(
+              color: AppTheme.muted,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            constraints: const BoxConstraints(maxHeight: 460),
+            decoration: BoxDecoration(
+              border: Border.all(color: AppTheme.line),
+              borderRadius: BorderRadius.circular(12),
+              color: Colors.white,
+            ),
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemCount: candidates.length,
+              separatorBuilder: (_, __) =>
+                  const Divider(height: 1, color: AppTheme.line),
+              itemBuilder: (context, index) {
+                final item = candidates[index];
+                final sources = item.sourceWord2 == null
+                    ? item.sourceWord1 + ' (' + item.sourceId1 + ')'
+                    : item.sourceWord1 + ' (' + item.sourceId1 + ') · ' +
+                        item.sourceWord2! + ' (' + item.sourceId2! + ')';
+                return ListTile(
+                  dense: true,
+                  title: Text(
+                    item.text,
+                    style: const TextStyle(
+                      color: AppTheme.deepInk,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  subtitle: Text(
+                    item.id + ' · ' + item.method + '\\n' + sources +
+                        ' · ' + item.transformation,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  isThreeLine: true,
+                  trailing: const Text(
+                    'PENDING',
+                    style: TextStyle(
+                      color: AppTheme.coral,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
         ],
       ),
