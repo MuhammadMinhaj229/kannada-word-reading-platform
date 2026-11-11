@@ -52,7 +52,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // The scored preview sequence uses actual supplied catalogue entries.
-    expect(find.text('ಆಳು'), findsOneWidget); // source word W006
+    expect(find.text('ಇಳಿ'), findsOneWidget); // source word W006
     await _answer(tester, 'ಪದ');
     expect(find.text('ಊಡು'), findsOneWidget); // supplied candidate N002
     expect(find.textContaining('ಆಟ 2 / 10'), findsOneWidget);
