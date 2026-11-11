@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:html' as html;
+import 'dart:js_interop';
+
+import 'package:web/web.dart' as web;
 
 import '../domain/models/item_bank_draft.dart';
 import 'item_bank_draft_store_contract.dart';
@@ -11,22 +13,21 @@ const _storeName = 'drafts';
 ItemBankDraftStore createStore() => _IndexedDbItemBankDraftStore();
 
 class _IndexedDbItemBankDraftStore implements ItemBankDraftStore {
-  Future<html.IdbDatabase>? _database;
+  Future<web.IDBDatabase>? _database;
 
-  Future<html.IdbDatabase> get _db => _database ??= _openDatabase();
+  Future<web.IDBDatabase> get _db => _database ??= _openDatabase();
 
-  Future<html.IdbDatabase> _openDatabase() async {
-    final factory = html.window.indexedDB;
-    if (factory == null) {
-      throw UnsupportedError('This browser does not support IndexedDB.');
-    }
-    final request = factory.open(_databaseName, version: 1);
-    request.onUpgradeNeeded.listen((_) {
-      final database = request.result as html.IdbDatabase;
-      database.createObjectStore(_storeName);
-    });
+  Future<web.IDBDatabase> _openDatabase() async {
+    final request = web.window.indexedDB.open(_databaseName, 1);
+    request.addEventListener(
+      'upgradeneeded',
+      ((web.Event event) {
+        final database = request.result as web.IDBDatabase;
+        database.createObjectStore(_storeName);
+      }).toJS,
+    );
     final result = await _waitRequest(request);
-    return result as html.IdbDatabase;
+    return result as web.IDBDatabase;
   }
 
   @override
@@ -35,28 +36,27 @@ class _IndexedDbItemBankDraftStore implements ItemBankDraftStore {
     final transaction = database.transaction(_storeName, 'readonly');
     final completed = _waitTransaction(transaction);
     try {
-      final raw = await _waitRequest(
+      final raw = (await _waitRequest(
         transaction.objectStore(_storeName).getAll(),
-      );
+      )).dartify();
       await completed;
       if (raw is! List) {
         throw const FormatException(
           'The browser draft store returned invalid data.',
         );
       }
-      final drafts = <ItemBankDraft>[];
-      for (final entry in raw) {
-        if (entry is! String) {
+      final drafts = raw.map((value) {
+        if (value is! String) {
           throw const FormatException('A browser draft record is invalid.');
         }
-        final decoded = jsonDecode(entry);
+        final decoded = jsonDecode(value);
         if (decoded is! Map || decoded['draft'] is! Map) {
           throw const FormatException('A browser draft snapshot is missing.');
         }
-        drafts.add(ItemBankDraft.fromJson(
+        return ItemBankDraft.fromJson(
           Map<String, Object?>.from(decoded['draft'] as Map),
-        ));
-      }
+        );
+      }).toList(growable: false);
       drafts.sort((a, b) {
         final type = a.typeValue.compareTo(b.typeValue);
         if (type != 0) return type;
@@ -67,7 +67,7 @@ class _IndexedDbItemBankDraftStore implements ItemBankDraftStore {
       try {
         await completed;
       } catch (_) {
-        // Preserve the request/validation failure; the transaction also failed.
+        // Preserve the original request or validation failure.
       }
       rethrow;
     }
@@ -81,11 +81,15 @@ class _IndexedDbItemBankDraftStore implements ItemBankDraftStore {
     final completed = _waitTransaction(transaction);
     try {
       final store = transaction.objectStore(_storeName);
-      final existingValue = await _waitRequest(store.get(draft.id));
+      final existingValue = (await _waitRequest(
+        store.get(draft.id.toJS),
+      )).dartify();
       Map<String, Object?>? existing;
       if (existingValue is String) {
         final decoded = jsonDecode(existingValue);
-        if (decoded is Map) existing = Map<String, Object?>.from(decoded);
+        if (decoded is Map) {
+          existing = Map<String, Object?>.from(decoded);
+        }
       }
       final previousDraft = existing?['draft'];
       final previous = previousDraft is Map
@@ -103,11 +107,10 @@ class _IndexedDbItemBankDraftStore implements ItemBankDraftStore {
         );
       }
 
-      final now = DateTime.now().toUtc();
       final saved = draft.copyWith(
         revision: currentRevision + 1,
         createdAt: previous?.createdAt ?? draft.createdAt,
-        updatedAt: now,
+        updatedAt: DateTime.now().toUtc(),
       );
       final history = <Object?>[
         if (existing?['history'] is List)
@@ -116,11 +119,10 @@ class _IndexedDbItemBankDraftStore implements ItemBankDraftStore {
       ];
       await _waitRequest(store.put(
         jsonEncode(<String, Object?>{
-          'id': saved.id,
           'draft': saved.toJson(),
           'history': history,
-        }),
-        draft.id,
+        }).toJS,
+        draft.id.toJS,
       ));
       await completed;
       return saved;
@@ -140,9 +142,9 @@ class _IndexedDbItemBankDraftStore implements ItemBankDraftStore {
     final transaction = database.transaction(_storeName, 'readonly');
     final completed = _waitTransaction(transaction);
     try {
-      final value = await _waitRequest(
-        transaction.objectStore(_storeName).get(itemId),
-      );
+      final value = (await _waitRequest(
+        transaction.objectStore(_storeName).get(itemId.toJS),
+      )).dartify();
       await completed;
       if (value is! String) return const <ItemBankDraft>[];
       final decoded = jsonDecode(value);
@@ -171,46 +173,51 @@ class _IndexedDbItemBankDraftStore implements ItemBankDraftStore {
       try {
         await completed;
       } catch (_) {
-        // Preserve the request/decoding failure.
+        // Preserve the original request or decoding failure.
       }
       rethrow;
     }
   }
 }
 
-Future<dynamic> _waitRequest(html.IdbRequest request) {
-  final completer = Completer<dynamic>();
-  request.onSuccess.listen((_) {
-    if (!completer.isCompleted) completer.complete(request.result);
-  });
-  request.onError.listen((_) {
-    if (!completer.isCompleted) {
-      completer.completeError(
-        request.error ?? StateError('IndexedDB request failed.'),
-      );
-    }
-  });
+Future<JSAny?> _waitRequest(web.IDBRequest request) {
+  final completer = Completer<JSAny?>();
+  request.addEventListener(
+    'success',
+    ((web.Event event) {
+      if (!completer.isCompleted) completer.complete(request.result);
+    }).toJS,
+  );
+  request.addEventListener(
+    'error',
+    ((web.Event event) {
+      if (!completer.isCompleted) {
+        completer.completeError(
+          request.error ?? StateError('IndexedDB request failed.'),
+        );
+      }
+    }).toJS,
+  );
   return completer.future;
 }
 
-Future<void> _waitTransaction(html.IdbTransaction transaction) {
+Future<void> _waitTransaction(web.IDBTransaction transaction) {
   final completer = Completer<void>();
-  transaction.onComplete.listen((_) {
-    if (!completer.isCompleted) completer.complete();
-  });
-  transaction.onAbort.listen((_) {
-    if (!completer.isCompleted) {
-      completer.completeError(
-        transaction.error ?? StateError('IndexedDB transaction was aborted.'),
-      );
-    }
-  });
-  transaction.onError.listen((_) {
-    if (!completer.isCompleted) {
-      completer.completeError(
-        transaction.error ?? StateError('IndexedDB transaction failed.'),
-      );
-    }
-  });
+  transaction.addEventListener(
+    'complete',
+    ((web.Event event) {
+      if (!completer.isCompleted) completer.complete();
+    }).toJS,
+  );
+  transaction.addEventListener(
+    'abort',
+    ((web.Event event) {
+      if (!completer.isCompleted) {
+        completer.completeError(
+          transaction.error ?? StateError('IndexedDB transaction was aborted.'),
+        );
+      }
+    }).toJS,
+  );
   return completer.future;
 }

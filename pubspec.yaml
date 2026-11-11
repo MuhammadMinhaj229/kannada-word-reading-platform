@@ -20,6 +20,7 @@ dependencies:
   path: ^1.9.1
   sqflite_sqlcipher: ^3.4.1
   uuid: ^4.6.0
+  web: ^1.1.2
   wakelock_plus: ^1.8.2
 
 # sqflite_common_ffi is used only by host-side database tests. On Linux CI,
