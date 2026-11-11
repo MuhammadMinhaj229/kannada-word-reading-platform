@@ -5,6 +5,7 @@ import '../../../core/audio/kannada_instruction_audio_service.dart';
 import '../../../core/config/assessment_release_gate.dart';
 import '../../../core/config/study_protocol.dart';
 import '../../assessment/data/bundled_item_catalog.dart';
+import '../../assessment/domain/models/allocation_proposal.dart';
 
 class AssessorSettingsScreen extends StatefulWidget {
   const AssessorSettingsScreen({super.key});
@@ -15,6 +16,7 @@ class AssessorSettingsScreen extends StatefulWidget {
 
 class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
   late final Future<BundledItemCatalog> _catalogFuture;
+  late final Future<AllocationProposal> _allocationProposalFuture;
   late final KannadaInstructionAudioService _audioService;
   late final Future<bool> _audioReadyFuture;
   final _searchController = TextEditingController();
@@ -24,6 +26,7 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
   void initState() {
     super.initState();
     _catalogFuture = BundledItemCatalog.load();
+    _allocationProposalFuture = AllocationProposal.load();
     _audioService = KannadaInstructionAudioService();
     _audioReadyFuture = _audioService.isReady;
     _searchController.addListener(() {
@@ -107,6 +110,23 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
                             _nonWordProportions(catalog),
                             const SizedBox(height: 14),
                             _nonWordCandidateBrowser(catalog),
+                            const SizedBox(height: 14),
+                            FutureBuilder<AllocationProposal>(
+                              future: _allocationProposalFuture,
+                              builder: (context, snapshot) {
+                                if (snapshot.hasError) {
+                                  return _statusCard(
+                                    title: 'Allocation proposal invalid',
+                                    message: snapshot.error.toString(),
+                                    color: AppTheme.coral,
+                                  );
+                                }
+                                if (!snapshot.hasData) {
+                                  return const LinearProgressIndicator(minHeight: 2);
+                                }
+                                return _allocationProposalCard(snapshot.data!);
+                              },
+                            ),
                           ],
                           const SizedBox(height: 14),
                           FutureBuilder<bool>(
@@ -406,6 +426,104 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
                   ),
                 );
               },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  Widget _allocationProposalCard(AllocationProposal proposal) {
+    return _sectionCard(
+      icon: Icons.calendar_view_week_outlined,
+      title: 'Six-session allocation proposal',
+      subtitle: proposal.version + ' · engineering draft only',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: _summaryMetric(
+                  value: proposal.realWordsPerSession.toString(),
+                  label: 'Real words / session',
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _summaryMetric(
+                  value: proposal.nonWordsPerSession.toString(),
+                  label: 'Non-words / session',
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _summaryMetric(
+                  value: proposal.scoredItemsPerSession.toString(),
+                  label: 'Scored / session',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          for (final session in proposal.sessionDistribution) ...<Widget>[
+            _statusLine(
+              label: 'Session ' + session.session.toString(),
+              value: session.realWords.toString() + ' real + ' +
+                  session.nonWords.toString() + ' non-word = ' +
+                  session.scoredItems.toString(),
+              good: true,
+            ),
+            const SizedBox(height: 7),
+          ],
+          const SizedBox(height: 6),
+          _statusLine(
+            label: 'Total scored presentations',
+            value: proposal.totalScoredItems.toString(),
+            good: true,
+          ),
+          const SizedBox(height: 8),
+          _statusLine(
+            label: 'Unallocated reserve candidate',
+            value: proposal.reserveNonWordId,
+            good: false,
+          ),
+          const SizedBox(height: 12),
+          _Notice(
+            text: 'Practice items are not included in the 77 scored items. ' +
+                proposal.practicePolicy + ' This proposal does not enable participant sessions.',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryMetric({required String value, required String label}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.mint,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            value,
+            style: const TextStyle(
+              color: AppTheme.tealDark,
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppTheme.muted,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
