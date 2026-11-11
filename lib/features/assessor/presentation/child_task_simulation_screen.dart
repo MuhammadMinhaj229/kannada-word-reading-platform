@@ -43,40 +43,35 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _catalogFuture = BundledItemCatalog.load();
-    _loadPreviewItems();
   }
 
-  Future<void> _loadPreviewItems() async {
-    try {
-      final catalog = await _catalogFuture;
-      if (!mounted) return;
-      final items = <_PreviewStimulus>[];
-      for (var index = 0; index < _practiceCount; index += 1) {
-        final word = catalog.realWords[index];
-        items.add(_PreviewStimulus(
-          id: word.id,
-          text: word.text,
-          isPractice: true,
-        ));
-      }
-      for (var index = 0; index < _previewTestCount ~/ 2; index += 1) {
-        final realWord = catalog.realWords[_practiceCount + index];
-        final nonWord = catalog.suppliedNonWordCandidates[index];
-        items.add(_PreviewStimulus(
-          id: realWord.id,
-          text: realWord.text,
-          isPractice: false,
-        ));
-        items.add(_PreviewStimulus(
-          id: nonWord.id,
-          text: nonWord.text,
-          isPractice: false,
-        ));
-      }
-      setState(() => _stimuli = List<_PreviewStimulus>.unmodifiable(items));
-    } catch (_) {
-      // The FutureBuilder below presents the catalogue loading error.
+  List<_PreviewStimulus> _buildPreviewStimuli(
+    BundledItemCatalog catalog,
+  ) {
+    final items = <_PreviewStimulus>[];
+    for (var index = 0; index < _practiceCount; index += 1) {
+      final word = catalog.realWords[index];
+      items.add(_PreviewStimulus(
+        id: word.id,
+        text: word.text,
+        isPractice: true,
+      ));
     }
+    for (var index = 0; index < _previewTestCount ~/ 2; index += 1) {
+      final realWord = catalog.realWords[_practiceCount + index];
+      final nonWord = catalog.suppliedNonWordCandidates[index];
+      items.add(_PreviewStimulus(
+        id: realWord.id,
+        text: realWord.text,
+        isPractice: false,
+      ));
+      items.add(_PreviewStimulus(
+        id: nonWord.id,
+        text: nonWord.text,
+        isPractice: false,
+      ));
+    }
+    return List<_PreviewStimulus>.unmodifiable(items);
   }
 
   @override
@@ -167,7 +162,14 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
                   'The supplied Kannada catalogue could not be loaded.');
             }
             if (_stimuli.isEmpty) {
-              return const Center(child: CircularProgressIndicator());
+              try {
+                _stimuli = _buildPreviewStimuli(snapshot.data!);
+              } catch (error) {
+                return _errorState(error.toString());
+              }
+            }
+            if (_stimuli.length != _practiceCount + _previewTestCount) {
+              return _errorState('The supplied catalogue does not contain enough preview items.');
             }
             return Column(
               children: <Widget>[
