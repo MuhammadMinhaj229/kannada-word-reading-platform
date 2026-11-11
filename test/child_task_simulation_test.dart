@@ -90,8 +90,13 @@ void main() {
   testWidgets('preview never reveals correctness and completes without saving',
       (tester) async {
     await _pumpPreview(tester);
-    await tester.tap(find.text('ಪ್ರಾರಂಭಿಸೋಣ'));
+    final startButton =
+        find.widgetWithText(FilledButton, 'ಪ್ರಾರಂಭಿಸೋಣ');
+    await tester.ensureVisible(startButton);
+    await tester.tap(startButton);
     await tester.pump(const Duration(milliseconds: 250));
+
+    expect(find.text('ಇದು ನಿಜವಾದ ಕನ್ನಡ ಪದವೇ?'), findsOneWidget);
 
     for (var index = 0; index < 5; index += 1) {
       await _answer(tester, 'ಪದವಲ್ಲ');

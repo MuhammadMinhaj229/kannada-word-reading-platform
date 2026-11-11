@@ -231,76 +231,81 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
   }
 
   Widget _welcomeStage(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 420;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         Container(
-          padding: const EdgeInsets.all(28),
+          padding: EdgeInsets.all(compact ? 18 : 28),
           decoration: BoxDecoration(
             color: AppTheme.mint,
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.circular(compact ? 22 : 28),
           ),
           child: Column(
             children: <Widget>[
               Container(
-                width: 88,
-                height: 88,
+                width: compact ? 68 : 88,
+                height: compact ? 68 : 88,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(28),
+                  borderRadius: BorderRadius.circular(compact ? 22 : 28),
                 ),
-                child: const Center(
-                  child: Text('🐘', style: TextStyle(
-                    fontSize: 48,
-                  )),
+                child: Center(
+                  child: Text(
+                    '🐘',
+                    style: TextStyle(fontSize: compact ? 40 : 48),
+                  ),
                 ),
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: compact ? 12 : 18),
               Text(
                 'ಬನ್ನಿ, ಪದಗಳ ಆಟ ಆಡೋಣ!',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontSize: compact ? 21 : null,
                       fontWeight: FontWeight.w900,
                     ),
               ),
-              const SizedBox(height: 10),
-              const Text(
+              SizedBox(height: compact ? 8 : 10),
+              Text(
                 'ಒಂದು ಕನ್ನಡ ಅಕ್ಷರಗಳ ಗುಂಪನ್ನು ನೋಡಿ. ಅದು ನಿಜವಾದ ಪದವೇ ಅಥವಾ ಪದವಲ್ಲವೇ ಎಂದು ಆಯ್ಕೆಮಾಡಿ.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: AppTheme.ink,
-                  fontSize: 15,
-                  height: 1.65,
+                  fontSize: compact ? 14 : 15,
+                  height: compact ? 1.45 : 1.65,
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: compact ? 12 : 16),
         Card(
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.all(compact ? 16 : 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const <Widget>[
-                Text('ಈ ಪೂರ್ವವೀಕ್ಷಣೆಯಲ್ಲಿ',
-                    style: TextStyle(
-                      color: AppTheme.deepInk,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w900,
-                    )),
-                SizedBox(height: 10),
-                _InfoLine(
+              children: <Widget>[
+                const Text(
+                  'ಈ ಪೂರ್ವವೀಕ್ಷಣೆಯಲ್ಲಿ',
+                  style: TextStyle(
+                    color: AppTheme.deepInk,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const _InfoLine(
                   icon: Icons.school_outlined,
                   text: 'ನಿಮ್ಮ ನಿಜವಾದ ಪದಪಟ್ಟಿಯಿಂದ 5 ಅಭ್ಯಾಸ ಪದಗಳು',
                 ),
-                SizedBox(height: 8),
-                _InfoLine(
+                const SizedBox(height: 6),
+                const _InfoLine(
                   icon: Icons.style_outlined,
                   text: 'ನಿಜವಾದ ಪದಗಳು ಮತ್ತು ಪರಿಶೀಲನೆ ಬಾಕಿಯಿರುವ ಅಭ್ಯರ್ಥಿಗಳ ಮಿಶ್ರಣ',
                 ),
-                SizedBox(height: 8),
-                _InfoLine(
+                const SizedBox(height: 6),
+                const _InfoLine(
                   icon: Icons.lock_outline_rounded,
                   text: 'ಉತ್ತರಗಳು ದಾಖಲಾಗುವುದಿಲ್ಲ; ಸರಿಯೇ/ತಪ್ಪೇ ಎಂದು ತೋರಿಸುವುದಿಲ್ಲ.',
                 ),
@@ -308,13 +313,13 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
             ),
           ),
         ),
-        const SizedBox(height: 18),
+        SizedBox(height: compact ? 12 : 18),
         FilledButton.icon(
           onPressed: _startPreview,
           icon: const Icon(Icons.play_arrow_rounded),
           label: const Text('ಪ್ರಾರಂಭಿಸೋಣ'),
           style: FilledButton.styleFrom(
-            minimumSize: const Size.fromHeight(60),
+            minimumSize: Size.fromHeight(compact ? 58 : 60),
             textStyle: const TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w800,
