@@ -273,7 +273,9 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
                   const Divider(height: 1, color: AppTheme.line),
               itemBuilder: (context, index) {
                 final item = words[index];
-                return ListTile(
+                return Material(
+                  color: Colors.white,
+                  child: ListTile(
                   dense: true,
                   onTap: () => _playWord(item.id),
                   title: Text(
@@ -303,6 +305,7 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
                       ),
                       _wordAudioButton(item.id),
                     ],
+                  ),
                   ),
                 );
               },
@@ -444,7 +447,9 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
                     ? item.sourceWord1 + ' (' + item.sourceId1 + ')'
                     : item.sourceWord1 + ' (' + item.sourceId1 + ') · ' +
                         item.sourceWord2! + ' (' + item.sourceId2! + ')';
-                return ListTile(
+                return Material(
+                  color: Colors.white,
+                  child: ListTile(
                   dense: true,
                   onTap: () => _playWord(item.id),
                   title: Text(
@@ -475,6 +480,7 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
                       ),
                       _wordAudioButton(item.id),
                     ],
+                  ),
                   ),
                 );
               },
