@@ -49,11 +49,8 @@ class KannadaInstructionAudioService {
   Future<bool> hasWordRecording(String itemId) async {
     try {
       final manifest = await _readManifest();
-      if (!_hasApproval(manifest)) return false;
-      final clips = manifest['word_clips'];
-      if (clips is! Map) return false;
-      final assetPath = clips[itemId];
-      if (assetPath is! String || assetPath.trim().isEmpty) return false;
+      final assetPath = _approvedWordAsset(manifest, itemId);
+      if (assetPath == null) return false;
       await _bundle.load(assetPath);
       return true;
     } catch (_) {
@@ -66,28 +63,33 @@ class KannadaInstructionAudioService {
   /// This method is intentionally not called by scored assessment trials.
   Future<void> playWord(String itemId) async {
     final manifest = await _readManifest();
-    if (!_hasApproval(manifest)) {
+    final assetPath = _approvedWordAsset(manifest, itemId);
+    if (assetPath == null) {
       throw StateError(
-        'Approved Kannada word recordings have not been installed.',
+        'This item has no recording with explicit word-audio and item-level approval.',
       );
-    }
-    final clips = manifest['word_clips'];
-    if (clips is! Map) {
-      throw const FormatException('The Kannada word recording list is invalid.');
-    }
-    final assetPath = clips[itemId];
-    if (assetPath is! String || assetPath.trim().isEmpty) {
-      throw StateError('No approved recording exists for item ' + itemId + '.');
     }
     await _bundle.load(assetPath);
     await _player.play(AssetSource(assetPath));
   }
 
-  bool _hasApproval(Map<String, Object?> manifest) =>
-      manifest['approval_status'] == 'approved' &&
-      manifest['word_audio_status'] == 'approved' &&
-      (manifest['approved_by']?.toString().trim().isNotEmpty ?? false) &&
-      (manifest['approval_reference']?.toString().trim().isNotEmpty ?? false);
+  String? _approvedWordAsset(Map<String, Object?> manifest, String itemId) {
+    if (manifest['word_audio_status'] != 'approved' ||
+        (manifest['word_audio_approved_by']?.toString().trim().isEmpty ?? true) ||
+        (manifest['word_audio_approval_reference']?.toString().trim().isEmpty ?? true)) {
+      return null;
+    }
+    final approvals = manifest['word_audio_item_approvals'];
+    if (approvals is! Map ||
+        (approvals[itemId]?.toString().trim().isEmpty ?? true)) {
+      return null;
+    }
+    final clips = manifest['word_clips'];
+    if (clips is! Map) return null;
+    final assetPath = clips[itemId];
+    if (assetPath is! String || assetPath.trim().isEmpty) return null;
+    return assetPath;
+  }
 
   Future<void> play(String clipKey) async {
     final manifest = await _readManifest();
