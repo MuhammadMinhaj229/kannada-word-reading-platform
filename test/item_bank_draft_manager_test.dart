@@ -112,7 +112,7 @@ void main() {
     await tester.enterText(fields.at(0), 'ಝಳಝಳದಾಖಲೆಪದಕ');
     await tester.enterText(fields.at(1), 'ಮನೆ');
     await tester.enterText(fields.at(2), 'W001');
-    await tester.enterText(fields.at(4), 'vowel transformation');
+    await tester.enterText(fields.at(5), 'vowel transformation');
     await tester.tap(find.text('Save draft'));
     await tester.pumpAndSettle();
 

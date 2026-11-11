@@ -33,7 +33,7 @@ class _IndexedDbItemBankDraftStore implements ItemBankDraftStore {
   @override
   Future<List<ItemBankDraft>> loadAll() async {
     final database = await _db;
-    final transaction = database.transaction(_jsString(_storeName), _jsString('readonly'));
+    final transaction = database.transaction(_jsString(_storeName), 'readonly');
     final completed = _waitTransaction(transaction);
     try {
       final raw = (await _waitRequest(
@@ -77,7 +77,7 @@ class _IndexedDbItemBankDraftStore implements ItemBankDraftStore {
   Future<ItemBankDraft> save(ItemBankDraft draft) async {
     draft.validate();
     final database = await _db;
-    final transaction = database.transaction(_jsString(_storeName), _jsString('readwrite'));
+    final transaction = database.transaction(_jsString(_storeName), 'readwrite');
     final completed = _waitTransaction(transaction);
     try {
       final store = transaction.objectStore(_storeName);
@@ -139,7 +139,7 @@ class _IndexedDbItemBankDraftStore implements ItemBankDraftStore {
   @override
   Future<List<ItemBankDraft>> loadHistory(String itemId) async {
     final database = await _db;
-    final transaction = database.transaction(_storeName, 'readonly');
+    final transaction = database.transaction(_jsString(_storeName), 'readonly');
     final completed = _waitTransaction(transaction);
     try {
       final value = (await _waitRequest(
