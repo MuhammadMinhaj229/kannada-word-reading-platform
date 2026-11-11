@@ -45,6 +45,49 @@ class KannadaInstructionAudioService {
     }
   }
 
+
+  Future<bool> hasWordRecording(String itemId) async {
+    try {
+      final manifest = await _readManifest();
+      if (!_hasApproval(manifest)) return false;
+      final clips = manifest['word_clips'];
+      if (clips is! Map) return false;
+      final assetPath = clips[itemId];
+      if (assetPath is! String || assetPath.trim().isEmpty) return false;
+      await _bundle.load(assetPath);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Plays one approved, bundled stimulus recording for catalogue preview.
+  ///
+  /// This method is intentionally not called by scored assessment trials.
+  Future<void> playWord(String itemId) async {
+    final manifest = await _readManifest();
+    if (!_hasApproval(manifest)) {
+      throw StateError(
+        'Approved Kannada word recordings have not been installed.',
+      );
+    }
+    final clips = manifest['word_clips'];
+    if (clips is! Map) {
+      throw const FormatException('The Kannada word recording list is invalid.');
+    }
+    final assetPath = clips[itemId];
+    if (assetPath is! String || assetPath.trim().isEmpty) {
+      throw StateError('No approved recording exists for item ' + itemId + '.');
+    }
+    await _bundle.load(assetPath);
+    await _player.play(AssetSource(assetPath));
+  }
+
+  bool _hasApproval(Map<String, Object?> manifest) =>
+      manifest['approval_status'] == 'approved' &&
+      (manifest['approved_by']?.toString().trim().isNotEmpty ?? false) &&
+      (manifest['approval_reference']?.toString().trim().isNotEmpty ?? false);
+
   Future<void> play(String clipKey) async {
     final manifest = await _readManifest();
     if (manifest['approval_status'] != 'approved' ||
