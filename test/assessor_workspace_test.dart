@@ -57,10 +57,8 @@ void main() {
     expect(find.text('Application settings'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
-}
 
-
-testWidgets(
+  testWidgets(
     'phone portrait and landscape layouts remain usable without overflow',
     (tester) async {
   const phoneSizes = <Size>[
@@ -110,3 +108,5 @@ testWidgets(
         reason: 'Settings must not overflow at ' + size.toString() + '.');
   }
 });
+
+}
