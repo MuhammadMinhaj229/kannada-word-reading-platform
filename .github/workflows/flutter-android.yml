@@ -193,10 +193,10 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Install Playwright and Chromium
+      - name: Install Playwright engines and Google Chrome
         run: |
           npm install --no-package-lock --no-audit --no-fund
-          npx playwright install --with-deps chromium chrome
+          npx playwright install --with-deps chromium chrome webkit firefox
 
       - name: Run Flutter Web browser and offline smoke tests
         shell: bash

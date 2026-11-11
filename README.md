@@ -168,3 +168,17 @@ This screen is a non-participant usability preview, not the approved research as
 ## Production readiness
 
 The current deployment is production-ready as a protected online review workspace. The Android build remains a debug-signed engineering preview. Participant/field release is blocked pending the items in [the production-readiness matrix](docs/production-readiness-matrix.md).
+
+
+## Browser and phone compatibility
+
+The online workspace is responsive and uses the same Flutter application source as the Android build. Automated CI exercises the production Web bundle in:
+
+- **Google Chrome Stable:** desktop browser plus Android Chrome touch/device emulation from 320 to 480 CSS pixels, including landscape.
+- **Safari-compatible WebKit:** desktop browser plus iPhone-sized touch/device emulation from 320 to 430 CSS pixels, including landscape.
+- **Firefox:** desktop browser with the same narrow-phone, tablet and wide-desktop viewport sweep.
+- **Responsive breakpoints:** 320, 360, 390, 430, 480, 600, 768, 860, 900, 1024, 1365 and 1920 CSS pixels.
+
+The checks cover application startup, viewport sizing, horizontal document overflow, JavaScript/console errors, bundled study assets and offline app-shell navigation. Pinch-to-zoom is not disabled. The Playwright WebKit run checks the Safari browser engine; it is not a substitute for testing on a physical iPhone. Browser/device emulation cannot guarantee every handset model, operating-system build, vendor browser, memory limit or network condition.
+
+Flutter's current Web browser support matrix lists Chrome, Safari, Edge and Firefox on mobile and desktop. See the [Flutter Web browser FAQ](https://docs.flutter.dev/platform-integration/web/faq). Before participant field use, complete physical-device acceptance on the institution's actual Android tablet/phones and any iOS devices that will be used. The participant release gate remains closed independently of browser compatibility.
