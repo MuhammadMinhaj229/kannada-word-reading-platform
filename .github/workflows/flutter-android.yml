@@ -21,6 +21,8 @@ on:
       - "docs/offline-validation.md"
       - "docs/deployment.md"
       - "web/**"
+      - "e2e/**"
+      - "package.json"
   push:
     branches: [main]
     paths:
@@ -41,6 +43,8 @@ on:
       - "docs/offline-validation.md"
       - "docs/deployment.md"
       - "web/**"
+      - "e2e/**"
+      - "package.json"
 
   workflow_dispatch:
 
@@ -179,6 +183,49 @@ jobs:
           grep -q 'navigator.serviceWorker.register' build/web/index.html
           ! grep -q "A new Flutter project" build/web/index.html build/web/manifest.json
           python3 scripts/deploy/validate_flutter_web_output.py build/web
+
+      - name: Set up Node.js for Playwright browser tests
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Install Playwright and Chromium
+        run: |
+          npm install --no-package-lock --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: Run Flutter Web browser and offline smoke tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --directory build/web >/tmp/padalab-web-server.log 2>&1 &
+          SERVER_PID=$!
+          cleanup() {
+            kill "$SERVER_PID" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          for attempt in $(seq 1 40); do
+            if curl --fail --silent http://127.0.0.1:4173/ >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:4173/ >/dev/null
+          CI=1 npm run test:e2e
+          mkdir -p artifacts
+          cp /tmp/padalab-web-server.log artifacts/ 2>/dev/null || true
+
+      - name: Upload Playwright diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: padalab-playwright-diagnostics
+          path: |
+            test-results/
+            artifacts/
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Verify ARM64 APK and generate checksum
         shell: bash

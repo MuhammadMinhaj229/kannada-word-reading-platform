@@ -162,14 +162,15 @@ self.addEventListener("install", (event) => {{
     caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
   );
 }});
-// First install does not immediately take control of an open page.
-// A waiting update activates only after the user presses Refresh app.
+// Claim pages only after this worker's app shell has been fully precached.
+// A waiting update still activates only after the user presses Refresh app.
 self.addEventListener("activate", (event) => {{
   event.waitUntil((async () => {{
     const names = await caches.keys();
     await Promise.all(names
       .filter((name) => name.startsWith("padalab-shell-") && name !== CACHE_NAME)
       .map((name) => caches.delete(name)));
+    await self.clients.claim();
   }})());
 }});
 self.addEventListener("message", (event) => {{

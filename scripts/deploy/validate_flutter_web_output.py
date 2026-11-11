@@ -35,10 +35,22 @@ def main() -> int:
         fail("index.html does not register the PadLab service worker")
     if "controllerchange" in index or "location.reload()" in index:
         fail("index.html contains an automatic reload handler")
-    if re.search(r"\bclients\.claim\s*\(", worker):
-        fail("service worker claims clients automatically; refresh must be manual")
-    if 'event.data.type === "SKIP_WAITING"' not in worker:
-        fail("service worker is missing the explicit SKIP_WAITING handler")
+    activate_start = worker.find('self.addEventListener("activate"')
+    message_start = worker.find('self.addEventListener("message"')
+    fetch_start = worker.find('self.addEventListener("fetch"')
+    if min(activate_start, message_start, fetch_start) < 0:
+        fail("service worker lifecycle handlers are incomplete")
+    activate_handler = worker[activate_start:message_start]
+    message_handler = worker[message_start:fetch_start]
+    if "await self.clients.claim();" not in activate_handler:
+        fail("service worker must claim clients after precache activation")
+    if (
+        'event.data.type === "SKIP_WAITING"' not in message_handler
+        or "self.skipWaiting();" not in message_handler
+    ):
+        fail("service worker must activate waiting updates only after an explicit message")
+    if "self.skipWaiting();" in worker.replace(message_handler, ""):
+        fail("service worker contains an automatic skipWaiting path")
     if 'request.mode === "navigate"' not in worker:
         fail("service worker is missing its offline navigation fallback")
 
