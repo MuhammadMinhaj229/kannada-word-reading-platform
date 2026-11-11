@@ -9,12 +9,14 @@ class KannadaInstructionAudioService {
   KannadaInstructionAudioService({
     AudioPlayer? player,
     AssetBundle? bundle,
-  })  : _player = player ?? AudioPlayer(),
+  })  : _player = player,
         _bundle = bundle ?? rootBundle;
 
   static const String manifestAsset = 'assets/audio/audio_manifest.json';
 
-  final AudioPlayer _player;
+  AudioPlayer? _player;
+
+  AudioPlayer get _audioPlayer => _player ??= AudioPlayer();
   final AssetBundle _bundle;
 
   Future<Map<String, Object?>> _readManifest() async {
@@ -70,7 +72,7 @@ class KannadaInstructionAudioService {
       );
     }
     await _bundle.load(assetPath);
-    await _player.play(AssetSource(assetPath));
+    await _audioPlayer.play(AssetSource(assetPath));
   }
 
   String? _approvedWordAsset(Map<String, Object?> manifest, String itemId) {
@@ -109,10 +111,17 @@ class KannadaInstructionAudioService {
       throw StateError('The approved Kannada audio clip "' + clipKey + '" is missing.');
     }
     await _bundle.load(assetPath);
-    await _player.play(AssetSource(assetPath));
+    await _audioPlayer.play(AssetSource(assetPath));
   }
 
-  Future<void> stop() => _player.stop();
+  Future<void> stop() async {
+    final player = _player;
+    if (player != null) await player.stop();
+  }
 
-  Future<void> dispose() => _player.dispose();
+  Future<void> dispose() async {
+    final player = _player;
+    _player = null;
+    if (player != null) await player.dispose();
+  }
 }
