@@ -70,9 +70,8 @@ void main() {
       await _answer(tester, 'ಪದ');
     }
 
-    expect(find.text('ಚೆನ್ನಾಗಿದೆ!'), findsOneWidget);
-    await tester.tap(find.text('ಮುಂದುವರಿಸು'));
-    await tester.pump(const Duration(milliseconds: 250));
+    // The ten-response reward cadence is not reached after five practice items.
+    expect(find.text('ಚೆನ್ನಾಗಿದೆ!'), findsNothing);
 
     // The scored preview sequence uses actual supplied catalogue entries.
     expect(find.text('ಇಳಿ'), findsOneWidget); // source word W006
@@ -93,8 +92,8 @@ void main() {
     for (var index = 0; index < 5; index += 1) {
       await _answer(tester, 'ಪದವಲ್ಲ');
     }
-    await tester.tap(find.text('ಮುಂದುವರಿಸು'));
-    await tester.pump(const Duration(milliseconds: 250));
+    expect(find.text('ಇಳಿ'), findsOneWidget);
+    expect(find.text('ಚೆನ್ನಾಗಿದೆ!'), findsNothing);
 
     for (var index = 0; index < 10; index += 1) {
       await _answer(tester, index.isEven ? 'ಪದ' : 'ಪದವಲ್ಲ');
