@@ -18,7 +18,7 @@ void main() {
   Map<String, Object?> manifest(
     int ordinal, {
     String phase = 'test',
-    int phaseTrialNo = ordinal,
+    int? phaseTrialNo,
     String itemId = 'W001',
     String text = 'ಮನೆ',
     String type = 'word',
@@ -27,7 +27,7 @@ void main() {
         'session_uuid': sessionUuid,
         'ordinal': ordinal,
         'phase': phase,
-        'phase_trial_no': phaseTrialNo,
+        'phase_trial_no': phaseTrialNo ?? ordinal,
         'item_id': itemId,
         'item_text': text,
         'item_type': type,
@@ -45,14 +45,14 @@ void main() {
     String text = 'ಮನೆ',
     String type = 'word',
     String phase = 'test',
-    int phaseTrialNo = ordinal,
+    int? phaseTrialNo,
   }) =>
       <String, Object?>{
         'trial_uuid': 'trial-$ordinal',
         'session_uuid': sessionUuid,
         'ordinal': ordinal,
         'phase': phase,
-        'trial_no': phaseTrialNo,
+        'trial_no': phaseTrialNo ?? ordinal,
         'item_id': itemId,
         'item_text': text,
         'item_type': type,
