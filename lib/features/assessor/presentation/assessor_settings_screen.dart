@@ -6,6 +6,7 @@ import '../../../core/config/assessment_release_gate.dart';
 import '../../../core/config/study_protocol.dart';
 import '../../assessment/data/bundled_item_catalog.dart';
 import '../../assessment/domain/models/allocation_proposal.dart';
+import 'item_bank_draft_manager.dart';
 
 class AssessorSettingsScreen extends StatefulWidget {
   const AssessorSettingsScreen({super.key});
@@ -104,6 +105,8 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
                             ),
                           if (catalog != null) ...<Widget>[
                             _itemBankCard(catalog),
+                            const SizedBox(height: 14),
+                            ItemBankDraftManager(catalog: catalog),
                             const SizedBox(height: 14),
                             _sourceWordBrowser(catalog),
                             const SizedBox(height: 14),
@@ -250,9 +253,9 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
 
     return _sectionCard(
       icon: Icons.search_rounded,
-      title: 'Review supplied real words',
+      title: 'Original supplied real-word source · read-only',
       subtitle: catalog.realWords.length.toString() +
-          ' source entries · W001–W270 identifiers assigned in source order',
+          ' bundled source entries · edit working copies in Draft workspace',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -420,8 +423,8 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
 
     return _sectionCard(
       icon: Icons.fact_check_outlined,
-      title: 'Supplied non-word candidates',
-      subtitle: '193 bundled rows · all pending native Kannada review',
+      title: 'Original supplied non-word source · read-only',
+      subtitle: '193 bundled source rows · all pending native Kannada review · edit working copies in Draft workspace',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[

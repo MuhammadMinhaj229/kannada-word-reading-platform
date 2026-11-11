@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:path/path.dart' as path;
@@ -33,7 +34,7 @@ class AssessmentDatabase {
         _databaseFactory = factory ?? databaseFactory,
         _databasesPathProvider = databasesPathProvider ?? getDatabasesPath;
 
-  static const int schemaVersion = 1;
+  static const int schemaVersion = 2;
   static const String databaseFileName = 'padalab_assessment_secure.db';
   static const String legacyPlaintextDatabaseFileName =
       'padalab_assessment.db';
@@ -119,6 +120,10 @@ class AssessmentDatabase {
     int oldVersion,
     int newVersion,
   ) async {
+    if (oldVersion == 1 && newVersion == 2) {
+      await _createContentDraftSchema(db);
+      return;
+    }
     throw StateError(
       'No migration path exists from database version $oldVersion to '
       '$newVersion. The database has not been modified.',
@@ -265,6 +270,179 @@ class AssessmentDatabase {
         updated_at TEXT NOT NULL
       )
     ''');
+    await _createContentDraftSchema(db);
+  }
+
+  Future<void> _createContentDraftSchema(Database db) async {
+    await db.execute('''
+      CREATE TABLE content_draft_items (
+        item_id TEXT PRIMARY KEY,
+        item_type TEXT NOT NULL CHECK (item_type IN ('word', 'nonword')),
+        item_text TEXT NOT NULL,
+        metadata_json TEXT NOT NULL,
+        revision INTEGER NOT NULL CHECK (revision > 0),
+        status TEXT NOT NULL DEFAULT 'draft' CHECK (status = 'draft'),
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE content_draft_item_revisions (
+        revision_id TEXT PRIMARY KEY,
+        item_id TEXT NOT NULL,
+        revision INTEGER NOT NULL CHECK (revision > 0),
+        snapshot_json TEXT NOT NULL,
+        saved_at TEXT NOT NULL,
+        UNIQUE (item_id, revision),
+        FOREIGN KEY (item_id) REFERENCES content_draft_items(item_id)
+          ON DELETE RESTRICT
+      )
+    ''');
+    await db.execute('''
+      CREATE INDEX idx_content_draft_type_updated
+      ON content_draft_items(item_type, updated_at DESC)
+    ''');
+  }
+
+  /// Returns locally saved, non-approved content drafts only.
+  Future<List<Map<String, Object?>>> loadContentDraftItems() async {
+    final db = await database;
+    final rows = await db.query(
+      'content_draft_items',
+      where: 'status = ?',
+      whereArgs: <Object?>['draft'],
+      orderBy: 'item_type ASC, updated_at DESC, item_id ASC',
+    );
+    return rows.map(_draftRowToJson).toList(growable: false);
+  }
+
+  /// Saves a content edit and its immutable revision in one SQLCipher transaction.
+  /// A stale editor cannot overwrite a newer revision.
+  Future<Map<String, Object?>> saveContentDraftItem({
+    required String itemId,
+    required String itemType,
+    required String itemText,
+    required String metadataJson,
+    required int expectedRevision,
+  }) async {
+    final normalizedId = itemId.trim();
+    final normalizedText = itemText.trim();
+    if (normalizedId.isEmpty || normalizedText.isEmpty ||
+        (itemType != 'word' && itemType != 'nonword') ||
+        expectedRevision < 0) {
+      throw ArgumentError('Invalid content draft fields.');
+    }
+    final decodedMetadata = jsonDecode(metadataJson);
+    if (decodedMetadata is! Map ||
+        decodedMetadata.keys.any((key) => key is! String) ||
+        decodedMetadata.values.any((value) => value is! String)) {
+      throw const FormatException('Draft metadata must be a string map.');
+    }
+    final metadata = Map<String, String>.from(decodedMetadata);
+
+    final db = await database;
+    return db.transaction((txn) async {
+      final existingRows = await txn.query(
+        'content_draft_items',
+        where: 'item_id = ?',
+        whereArgs: <Object?>[normalizedId],
+        limit: 1,
+      );
+      final existing = existingRows.isEmpty ? null : existingRows.single;
+      final currentRevision = existing == null
+          ? 0
+          : existing['revision'] as int;
+      if (currentRevision != expectedRevision) {
+        throw StateError(
+          'This draft changed after it was opened. Reload it before saving.',
+        );
+      }
+      if (existing != null && existing['item_type'] != itemType) {
+        throw StateError('A draft item cannot change between Real Word and Non-Word.');
+      }
+
+      final now = _timestamp(DateTime.now());
+      final nextRevision = currentRevision + 1;
+      final createdAt = existing?['created_at'] as String? ?? now;
+      final snapshot = <String, Object?>{
+        'schema_version': 1,
+        'id': normalizedId,
+        'type': itemType,
+        'text': normalizedText,
+        'metadata': metadata,
+        'revision': nextRevision,
+        'created_at': createdAt,
+        'updated_at': now,
+      };
+      final values = <String, Object?>{
+        'item_id': normalizedId,
+        'item_type': itemType,
+        'item_text': normalizedText,
+        'metadata_json': jsonEncode(metadata),
+        'revision': nextRevision,
+        'status': 'draft',
+        'created_at': createdAt,
+        'updated_at': now,
+      };
+      if (existing == null) {
+        await txn.insert('content_draft_items', values);
+      } else {
+        final updated = await txn.update(
+          'content_draft_items',
+          values,
+          where: 'item_id = ? AND revision = ?',
+          whereArgs: <Object?>[normalizedId, currentRevision],
+        );
+        if (updated != 1) {
+          throw StateError('The draft changed during the save transaction.');
+        }
+      }
+      await txn.insert('content_draft_item_revisions', <String, Object?>{
+        'revision_id': _uuid.v4(),
+        'item_id': normalizedId,
+        'revision': nextRevision,
+        'snapshot_json': jsonEncode(snapshot),
+        'saved_at': now,
+      });
+      return snapshot;
+    });
+  }
+
+  Future<List<Map<String, Object?>>> loadContentDraftHistory(
+    String itemId,
+  ) async {
+    final db = await database;
+    final rows = await db.query(
+      'content_draft_item_revisions',
+      columns: <String>['snapshot_json'],
+      where: 'item_id = ?',
+      whereArgs: <Object?>[itemId],
+      orderBy: 'revision DESC',
+    );
+    return rows.map((row) {
+      final decoded = jsonDecode(row['snapshot_json'] as String);
+      if (decoded is! Map) {
+        throw const FormatException('A saved content revision is invalid.');
+      }
+      return Map<String, Object?>.from(decoded);
+    }).toList(growable: false);
+  }
+
+  Map<String, Object?> _draftRowToJson(Map<String, Object?> row) {
+    final decoded = jsonDecode(row['metadata_json'] as String);
+    if (decoded is! Map) {
+      throw const FormatException('A saved content draft has invalid metadata.');
+    }
+    return <String, Object?>{
+      'schema_version': 1,
+      'id': row['item_id'],
+      'type': row['item_type'],
+      'text': row['item_text'],
+      'metadata': Map<String, String>.from(decoded),
+      'revision': row['revision'],
+      'created_at': row['created_at'],
+      'updated_at': row['updated_at'],
+    };
   }
 
   /// Creates a child/session and freezes the complete item order in SQLite.

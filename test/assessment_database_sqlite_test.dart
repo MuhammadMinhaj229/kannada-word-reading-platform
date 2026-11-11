@@ -69,6 +69,8 @@ void main() {
         'item_bank_metadata',
         'exports',
         'app_metadata',
+        'content_draft_items',
+        'content_draft_item_revisions',
       }),
     );
 
@@ -78,6 +80,105 @@ void main() {
     expect(secureStore.writeCalls, 1);
 
     await database.close();
+  });
+
+  test('content draft revisions persist atomically and reject stale editors',
+      () async {
+    final database = createDatabase(_TestSecureStore());
+
+    final first = await database.saveContentDraftItem(
+      itemId: 'W001',
+      itemType: 'word',
+      itemText: 'ಮನೆ',
+      metadataJson: '{"meaning":"house"}',
+      expectedRevision: 0,
+    );
+    expect(first['revision'], 1);
+    expect(first['text'], 'ಮನೆ');
+
+    final second = await database.saveContentDraftItem(
+      itemId: 'W001',
+      itemType: 'word',
+      itemText: 'ಮನೆಯು',
+      metadataJson: '{"meaning":"house (nominative)"}',
+      expectedRevision: 1,
+    );
+    expect(second['revision'], 2);
+    expect(second['created_at'], first['created_at']);
+
+    await expectLater(
+      database.saveContentDraftItem(
+        itemId: 'W001',
+        itemType: 'word',
+        itemText: 'stale edit',
+        metadataJson: '{}',
+        expectedRevision: 1,
+      ),
+      throwsA(isA<StateError>()),
+    );
+
+    final current = await database.loadContentDraftItems();
+    expect(current, hasLength(1));
+    expect(current.single['revision'], 2);
+    expect(current.single['text'], 'ಮನೆಯು');
+
+    final history = await database.loadContentDraftHistory('W001');
+    expect(history.map((row) => row['revision']).toList(), <int>[2, 1]);
+    expect(history.last['text'], 'ಮನೆ');
+
+    await database.close();
+  });
+
+  test('content drafts keep Real Word and Non-Word types immutable', () async {
+    final database = createDatabase(_TestSecureStore());
+    await database.saveContentDraftItem(
+      itemId: 'NDRAFT-01',
+      itemType: 'nonword',
+      itemText: 'ಮನೆಕ',
+      metadataJson: '{"method":"A_vowel"}',
+      expectedRevision: 0,
+    );
+
+    await expectLater(
+      database.saveContentDraftItem(
+        itemId: 'NDRAFT-01',
+        itemType: 'word',
+        itemText: 'ಮನೆಕ',
+        metadataJson: '{}',
+        expectedRevision: 1,
+      ),
+      throwsA(isA<StateError>()),
+    );
+    await database.close();
+  });
+
+  test('upgrades a version-one database with the content draft tables',
+      () async {
+    final secureStore = _TestSecureStore();
+    final firstOpen = createDatabase(secureStore);
+    final oldVersionDatabase = await firstOpen.database;
+    await oldVersionDatabase.execute('DROP TABLE content_draft_item_revisions');
+    await oldVersionDatabase.execute('DROP INDEX idx_content_draft_type_updated');
+    await oldVersionDatabase.execute('DROP TABLE content_draft_items');
+    await oldVersionDatabase.execute('PRAGMA user_version = 1');
+    await firstOpen.close();
+
+    final upgradedDatabase = createDatabase(secureStore);
+    final db = await upgradedDatabase.database;
+    final rows = await db.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type = 'table'",
+    );
+    final tables = rows.map((row) => row['name'] as String).toSet();
+    expect(
+      tables,
+      containsAll(<String>{
+        'content_draft_items',
+        'content_draft_item_revisions',
+      }),
+    );
+    final version = await db.rawQuery('PRAGMA user_version');
+    expect(version.single['user_version'], 2);
+    await upgradedDatabase.close();
   });
 
   test('concurrent callers share one database opening and one key creation',

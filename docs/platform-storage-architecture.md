@@ -1,7 +1,7 @@
 # Platform storage architecture — Option C
 
 **Decision status:** Accepted as the product architecture on 10 November 2026  
-**Implementation status:** Partially implemented; browser-local persistence adapter and end-to-end platform integration remain engineering work  
+**Implementation status:** Content-only draft persistence is implemented separately on Web (IndexedDB) and Android (SQLCipher); participant persistence and end-to-end platform integration remain engineering work  
 **Scope:** PadLab Flutter Web on Vercel and PadLab Android APK
 
 ## Decision
@@ -30,11 +30,11 @@ PadLab remains one Flutter/Dart application with two independently operating pla
 
 ## Browser-local storage boundary
 
-The Web application may persist non-sensitive local workspace data and, after a separate governance decision, approved Web-local records in the user's browser profile. IndexedDB is the intended structured-storage mechanism; localStorage is reserved for small, non-sensitive preferences only.
+The Web application persists only non-sensitive content-authoring drafts in IndexedDB and the selected navigation preference in localStorage. Drafts may contain Kannada item text and linguistic/source metadata, but must not contain child information, participant responses, reviewer names, contact details or other personal data. Drafts are local to the browser origin/profile and are not synchronized. Participant research records remain prohibited in Web storage.
 
 Browser-local storage is not equivalent to SQLCipher or Android Keystore protection. It can be cleared by the user or browser, is scoped to an origin/profile, may be unavailable in private browsing or under quota pressure, and is exposed to same-origin script execution. It must not be described as encrypted or tamper-proof unless a separately reviewed cryptographic design is implemented and tested.
 
-**Current release restriction:** participant identifiers, child names, trial responses and research session records remain disabled in the Web build. The existing browser target is a review/QA surface until the institution explicitly approves browser-based collection, its threat model, access controls, retention, export, deletion and device-sharing procedures. The browser must not collect participant data merely because local storage is available.
+**Current release restriction:** participant identifiers, child names, trial responses and research session records remain disabled in the Web build. IndexedDB content drafts are non-participant authoring material, not a study record store. Browser storage is not encrypted, can be cleared or evicted, and must not be used for reviewer identity or participant information. The browser remains a review/QA surface until the institution separately approves any browser-based participant collection.
 
 ## Android local-storage boundary
 
@@ -69,7 +69,7 @@ The Vercel Web app is a static Flutter Web application. On first use, it needs a
 ### Web
 - Vercel production deploy is built from main and exposes the release manifest.
 - Browser-local storage is isolated by origin and does not make network requests to a participant API.
-- Reload preserves only explicitly supported Web-local data.
+- Reload preserves content-only drafts in IndexedDB and the selected navigation preference; participant data is never stored.
 - Clearing site data has a documented, user-visible effect.
 - Offline cold launch, update waiting/activation and cache recovery are tested in supported browsers.
 - No participant data collection is enabled until the separate governance approval is recorded.

@@ -12,10 +12,10 @@ PadLab has one Flutter application codebase. Android and Web are separate build 
 
 | Target | Intended role | Data boundary |
 |---|---|---|
-| Flutter Web | Independent browser application on Vercel | Browser-local, non-sensitive workspace preferences only; no participant identifiers or research records |
+| Flutter Web | Independent browser application on Vercel | IndexedDB content-only drafts and non-sensitive workspace preference; no participant identifiers or research records |
 | Android APK | Downloadable offline Android application | Intended field platform; encrypted local storage foundations, with participant use locked until approvals and end-to-end acceptance |
 
-Vercel is the working online workspace: users can inspect the bundled Kannada catalogue, review release readiness, configure available settings and run the interactive non-participant Task preview. The Web and Android applications share Flutter UI/domain code but use independent local data stores. The browser stores only non-sensitive workspace preferences; it does not accept or store participant identifiers or research responses. The Android APK is the downloadable offline build from the same Flutter source. It bundles the application and content so the app shell and review features work without a network connection after installation. No cloud database, remote participant API, analytics, telemetry, automatic upload or cross-device synchronization is part of the current architecture.
+Vercel is the working online workspace: users can inspect the bundled Kannada catalogue, review release readiness, configure available settings and run the interactive non-participant Task preview. The Web and Android applications share Flutter UI/domain code but use independent local data stores. The browser stores non-sensitive content drafts in IndexedDB and a navigation preference in localStorage; it does not accept or store participant identifiers or research responses. The Android APK is the downloadable offline build from the same Flutter source. It bundles the application and content so the app shell and review features work without a network connection after installation. No cloud database, remote participant API, analytics, telemetry, automatic upload or cross-device synchronization is part of the current architecture.
 
 ## Supplied study content
 
@@ -151,11 +151,11 @@ See [audio asset requirements](assets/audio/README.md).
 
 ## Current engineering status
 
-Implemented: a shared Flutter Web/Android codebase; responsive assessor workspace; 270 real-word catalogue parser; 193-row pending non-word review CSV with source references; 270-row original-workbook summary; the 45+32 engineering allocation proposal; catalogue-backed non-participant Task preview; Android SQLCipher schema and transactional session/trial persistence primitives; secure-key provider; manual Web PWA updates; and a protected signed-APK workflow.
+Implemented: a shared Flutter Web/Android codebase; responsive assessor workspace; 270 real-word catalogue parser; 193-row pending non-word review CSV with source references; 270-row original-workbook summary; the 45+32 engineering allocation proposal; catalogue-backed non-participant Task preview; local content-draft management for Real Words and Non-Words with add/edit, optimistic revision checks, revision history and JSON backup; Web IndexedDB and Android SQLCipher draft stores; Android SQLCipher schema and transactional session/trial persistence primitives; secure-key provider; manual Web PWA updates; and a protected signed-APK workflow.
 
 Not yet field-ready: the Android participant/session UI is not wired to the SQLCipher repository; the current approved item-bank model requires 270 approved non-words but none are approved; the study protocol and allocation conflict; practice/scoring/timing/reward/recovery decisions are unresolved; no approved Kannada instruction/word recordings are installed; exports and supervisor authorization are incomplete; target-tablet acceptance is not recorded; and institutional signing/ethics/data-governance evidence is absent.
 
-The browser remains a review/QA surface and stores only its non-sensitive workspace preference. It does not accept participant identifiers or research responses. No cloud participant database, API or synchronization exists under the accepted Option C architecture.
+The browser remains a review/QA surface and stores only non-sensitive content-authoring drafts in IndexedDB plus its navigation preference. Browser draft storage is not encrypted and must not contain reviewer identities or participant information. The browser does not accept participant identifiers or research responses. No cloud participant database, API or synchronization exists under the accepted Option C architecture.
 
 **The participant release gate intentionally remains closed.** A green CI run, ready Vercel deployment or debug-signed APK does not replace research approval, local persistence integration, approved content, field validation or institution-owned signing.
 

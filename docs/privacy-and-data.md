@@ -10,7 +10,7 @@
 - Child study ID is the default identifier. Child names are optional and excluded from default exports.
 - Trial persistence must complete before the next stimulus can be presented. Trial response and session-cursor advancement are committed in one database transaction.
 - The Web application is independent from Android storage and has no participant-data synchronization.
-- Browser-local storage is limited to non-sensitive workspace preferences; structured IndexedDB persistence is not implemented.
+- Web localStorage stores only the selected navigation preference. IndexedDB stores non-sensitive item-bank authoring drafts and revision history only; it is not encrypted, is origin/profile scoped, and may be cleared or evicted. Draft metadata must not contain reviewer identity or participant information.
 - Participant identifiers, child names, trial responses and research session records remain disabled in the Web build pending separate institutional approval.
 
 ## Important implementation boundary
@@ -30,4 +30,4 @@ The institution must approve the data controller, retention period, device custo
 
 Browser storage is scoped to an origin/profile, can be cleared or evicted, may be unavailable in private browsing, and is exposed to same-origin script execution. It is not equivalent to SQLCipher or Android Keystore protection. Do not describe browser records as encrypted, tamper-proof or suitable for participant data without a separately reviewed design and institutional approval.
 
-The Web and Android data stores are independent. No shared API, cloud database, background upload, import bridge or cross-device synchronization is part of this product architecture.
+The Web and Android data stores are independent. Content drafts are stored locally (IndexedDB on Web; SQLCipher on Android) and are not synchronized. No shared API, cloud database, background upload, import bridge or cross-device synchronization is part of this product architecture.
