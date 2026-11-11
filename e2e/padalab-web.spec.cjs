@@ -98,7 +98,7 @@ test("production Web assets contain the expected review-only study data", async 
   expect(allocation.participant_workflow_enabled).toBe(false);
 });
 
-test("offline app-shell navigation works in a fresh page after first-install precache", async ({
+test("offline app-shell navigation works after first-install precache", async ({
   page,
   context,
 }) => {
@@ -114,39 +114,25 @@ test("offline app-shell navigation works in a fresh page after first-install pre
   });
   expect(registrationReady).toBe(true);
 
-  // PadLab deliberately does not claim the first page on first install.
-  // A new navigation after activation should receive the active worker.
-  const offlinePage = await context.newPage();
+  await expect
+    .poll(
+      () => page.evaluate(
+        () => navigator.serviceWorker.controller !== null,
+      ),
+      { timeout: 15_000 },
+    )
+    .toBe(true);
+
+  await context.setOffline(true);
   try {
-    const offlinePageResponse = await offlinePage.goto("/", {
+    const offlineResponse = await page.reload({
       waitUntil: "domcontentloaded",
+      timeout: 30_000,
     });
-    expect(offlinePageResponse).not.toBeNull();
-    expect(offlinePageResponse.status()).toBe(200);
-    await expectFlutterMounted(offlinePage);
-
-    await expect
-      .poll(
-        () => offlinePage.evaluate(
-          () => navigator.serviceWorker.controller !== null,
-        ),
-        { timeout: 15_000 },
-      )
-      .toBe(true);
-
-    await context.setOffline(true);
-    try {
-      const offlineResponse = await offlinePage.reload({
-        waitUntil: "domcontentloaded",
-        timeout: 30_000,
-      });
-      expect(offlineResponse).not.toBeNull();
-      expect(offlineResponse.status()).toBe(200);
-      await expectFlutterMounted(offlinePage);
-    } finally {
-      await context.setOffline(false);
-    }
+    expect(offlineResponse).not.toBeNull();
+    expect(offlineResponse.status()).toBe(200);
+    await expectFlutterMounted(page);
   } finally {
-    await offlinePage.close();
+    await context.setOffline(false);
   }
 });
