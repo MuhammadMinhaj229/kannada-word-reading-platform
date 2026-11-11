@@ -98,7 +98,7 @@ test("production Web assets contain the expected review-only study data", async 
   expect(allocation.participant_workflow_enabled).toBe(false);
 });
 
-test("offline app-shell navigation works after the service worker takes control", async ({
+test("offline app-shell navigation works in a fresh page after first-install precache", async ({
   page,
   context,
 }) => {
@@ -114,25 +114,39 @@ test("offline app-shell navigation works after the service worker takes control"
   });
   expect(registrationReady).toBe(true);
 
-  // The worker intentionally does not claim the first open page. Reload once
-  // so the browser attaches the active worker before simulating offline mode.
-  await page.reload({ waitUntil: "domcontentloaded" });
-  await expectFlutterMounted(page);
-  const controlled = await page.evaluate(
-    () => navigator.serviceWorker.controller !== null,
-  );
-  expect(controlled).toBe(true);
-
-  await context.setOffline(true);
+  // PadLab deliberately does not claim the first page on first install.
+  // A new navigation after activation should receive the active worker.
+  const offlinePage = await context.newPage();
   try {
-    const offlineResponse = await page.reload({
+    const offlinePageResponse = await offlinePage.goto("/", {
       waitUntil: "domcontentloaded",
-      timeout: 30_000,
     });
-    expect(offlineResponse).not.toBeNull();
-    expect(offlineResponse.status()).toBe(200);
-    await expectFlutterMounted(page);
+    expect(offlinePageResponse).not.toBeNull();
+    expect(offlinePageResponse.status()).toBe(200);
+    await expectFlutterMounted(offlinePage);
+
+    await expect
+      .poll(
+        () => offlinePage.evaluate(
+          () => navigator.serviceWorker.controller !== null,
+        ),
+        { timeout: 15_000 },
+      )
+      .toBe(true);
+
+    await context.setOffline(true);
+    try {
+      const offlineResponse = await offlinePage.reload({
+        waitUntil: "domcontentloaded",
+        timeout: 30_000,
+      });
+      expect(offlineResponse).not.toBeNull();
+      expect(offlineResponse.status()).toBe(200);
+      await expectFlutterMounted(offlinePage);
+    } finally {
+      await context.setOffline(false);
+    }
   } finally {
-    await context.setOffline(false);
+    await offlinePage.close();
   }
 });
