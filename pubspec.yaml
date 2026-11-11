@@ -42,6 +42,8 @@ flutter:
   assets:
     - assets/item_bank/selected_words_list_v1.csv
     - assets/item_bank/nonword_candidate_summary_v1.json
+    - assets/item_bank/nonword_candidates_supplied_v1.csv
+    - assets/item_bank/allocation_proposal_v2.json
     - assets/audio/audio_manifest.json
   fonts:
     - family: NotoSansKannada
