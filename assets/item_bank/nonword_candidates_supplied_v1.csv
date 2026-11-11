@@ -186,7 +186,7 @@ source_row,nonword_id,nonword,method,source_word_1,source_id_1,source_word_2,sou
 185,N260,ಸ್ಥಾಪಿಗಡೆಯು,D_prefix_suffix,ಸ್ಥಾಪಿಸುತ್ತಾ,W244,ಎಡಗಡೆಯು,W212,prefix(1-2) + suffix(3-5),pending_native_kannada_review,
 186,N261,ಉಸಿರಾಪಟವು,D_prefix_suffix,ಉಸಿರಾಟವು,W214,ಗಾಳಿಪಟವು,W241,prefix(1-3) + suffix(3-5),pending_native_kannada_review,
 187,N262,ಅಕಸ್ಮಾಹಿಸುತ್ತಾ,D_prefix_suffix,ಅಕಸ್ಮಾತಾಗಿ,W242,ಕಳುಹಿಸುತ್ತಾ,W246,prefix(1-3) + suffix(3-5),pending_native_kannada_review,
-188,N264,ಉದ್ದೇಶಿಧ್ವನಿಯು,D_prefix_suffix,ಉದ್ದೇಶಿಸುತ್ತಾ,W250,ಪ್ರತಿಧ್ವನಿಯು,W254,prefix(1-3) + suffix(4-6),pending_native_kannada_review,
+188,N264,ಉದ್ದೇಶಿಧ್ವನಿಯು,D_prefix_suffix,ಉದ್ದೇಶಿಸುತ್ತಾ,W250,ಪ್ರತಿಧ್ವನಿಯು,W254,prefix(1-3) + suffix(3-5),pending_native_kannada_review,
 189,N265,ನಿಯಂತ್ರಿರದಿಂದ,D_prefix_suffix,ನಿಯಂತ್ರಿಸುತ್ತಾ,W260,ಅವಸರದಿಂದ,W255,prefix(1-3) + suffix(4-6),pending_native_kannada_review,
 190,N266,ಆರೋಗ್ಯಸೆಯಿಂದ,D_prefix_suffix,ಆರೋಗ್ಯಕರವು,W252,ಭರವಸೆಯಿಂದ,W258,prefix(1-3) + suffix(4-6),pending_native_kannada_review,
 191,N267,ಮುಜುಗಕೊಳ್ಳುತ್ತಾ,D_prefix_suffix,ಮುಜುಗರದಿಂದ,W259,ಕುಳಿತುಕೊಳ್ಳುತ್ತಾ,W262,prefix(1-3) + suffix(4-6),pending_native_kannada_review,
