@@ -1,6 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
-
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:padalab_android/core/audio/kannada_instruction_audio_service.dart';
@@ -14,7 +12,7 @@ class _MemoryAssetBundle extends CachingAssetBundle {
   @override
   Future<ByteData> load(String key) async {
     if (!availableAssets.contains(key)) {
-      throw FlutterError('Asset not found: ' + key);
+      throw StateError('Asset not found: ' + key);
     }
     return ByteData.sublistView(Uint8List.fromList(<int>[1, 2, 3]));
   }
@@ -22,7 +20,7 @@ class _MemoryAssetBundle extends CachingAssetBundle {
   @override
   Future<String> loadString(String key, {bool cache = true}) async {
     if (key != KannadaInstructionAudioService.manifestAsset) {
-      throw FlutterError('Unexpected manifest path: ' + key);
+      throw StateError('Unexpected manifest path: ' + key);
     }
     return jsonEncode(manifest);
   }
