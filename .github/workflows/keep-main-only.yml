@@ -63,19 +63,16 @@ jobs:
               const branch = branchesBefore.find(
                 (candidate) => candidate.name === expected.name
               );
-              if (!branch) {
-                core.info('Branch already absent: ' + expected.name);
-                continue;
-              }
-              if (branch.protected) {
+              if (branch && branch.protected) {
                 throw new Error('Refusing to delete protected branch: ' + expected.name);
               }
-              if (branch.commit.sha !== expected.sha) {
+              if (branch && branch.commit.sha !== expected.sha) {
                 throw new Error(
                   'Refusing to delete moved branch ' + expected.name +
                   ': expected ' + expected.sha + ', found ' + branch.commit.sha
                 );
               }
+
               const tagName =
                 'archive/branch-snapshots/' + expected.name.replaceAll('/', '--');
               const matchingRefs = await github.rest.git.listMatchingRefs({
@@ -89,10 +86,25 @@ jobs:
               if (existingTag && existingTag.object.sha !== expected.sha) {
                 throw new Error('Archive tag already points elsewhere: ' + tagName);
               }
-              snapshots.push({ ...expected, tagName, tagExists: Boolean(existingTag) });
+              if (!branch && !existingTag) {
+                throw new Error(
+                  'Branch is absent but its archive tag is missing: ' + tagName
+                );
+              }
+              if (branch) {
+                snapshots.push({
+                  ...expected,
+                  tagName,
+                  tagExists: Boolean(existingTag)
+                });
+              }
+              core.info(
+                (branch ? 'Branch requires archival: ' : 'Archive verified: ') +
+                expected.name + ' -> ' + expected.sha
+              );
             }
 
-            // Snapshot every old branch before deleting any branch ref.
+            // Snapshot every remaining old branch before deleting any ref.
             for (const snapshot of snapshots) {
               if (!snapshot.tagExists) {
                 await github.rest.git.createRef({
@@ -107,7 +119,7 @@ jobs:
               );
             }
 
-            // Delete only refs that passed the full preflight above.
+            // Delete only refs that passed the complete preflight above.
             for (const snapshot of snapshots) {
               await github.rest.git.deleteRef({
                 owner,
@@ -129,11 +141,24 @@ jobs:
               );
             }
 
-            await core.summary
-              .addHeading('Repository branch consolidation complete')
-              .addBulletList([
-                'main is the only remaining development branch.',
-                snapshots.length + ' former branch tips retained as archive tags.',
-                'All other refs were checked against the audited commit allowlist.'
-              ])
-              .write();
+            const archiveRefs = await github.rest.git.listMatchingRefs({
+              owner,
+              repo,
+              ref: 'tags/archive/branch-snapshots/'
+            });
+            for (const expected of expectedBranches) {
+              const tagName =
+                'refs/tags/archive/branch-snapshots/' +
+                expected.name.replaceAll('/', '--');
+              const tag = archiveRefs.data.find((item) => item.ref === tagName);
+              if (!tag || tag.object.sha !== expected.sha) {
+                throw new Error(
+                  'Archive tag verification failed: ' + tagName
+                );
+              }
+            }
+
+            core.info(
+              'Branch consolidation verified: main is the only branch; ' +
+              expectedBranches.length + ' audited branch tips are preserved as archive tags.'
+            );

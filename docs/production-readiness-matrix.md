@@ -1,7 +1,7 @@
 # PadLab production-readiness matrix
 
 **Status as of 11 November 2026**  
-**Source of truth:** `main` branch, commit `d24e1290d250c4805ced84997095423ae259c259`.
+**Source of truth:** the repository's `main` branch. The exact deployed commit is recorded in `app-release.json`.
 
 ## Release posture
 
