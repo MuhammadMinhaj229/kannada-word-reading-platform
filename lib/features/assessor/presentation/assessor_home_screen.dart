@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../app/app_theme.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/config/assessment_release_gate.dart';
+import '../../../core/config/study_protocol.dart';
 import '../../../core/update/play_update_service.dart';
 import '../../../core/update/web_update_service.dart';
 import '../../../core/update/apk_download_service.dart';
