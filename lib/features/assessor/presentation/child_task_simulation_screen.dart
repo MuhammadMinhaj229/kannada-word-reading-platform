@@ -31,7 +31,7 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
     with WidgetsBindingObserver {
   static const int _practiceCount = 5;
   static const int _previewTestCount = 10;
-  static const int _rewardEvery = 5;
+  static const int _rewardEvery = 10;
 
   late final Future<BundledItemCatalog> _catalogFuture;
   List<_PreviewStimulus> _stimuli = const <_PreviewStimulus>[];
