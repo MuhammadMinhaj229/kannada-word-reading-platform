@@ -237,10 +237,8 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
                   borderRadius: BorderRadius.circular(28),
                 ),
                 child: const Center(
-                  child: Text('ಪ', style: TextStyle(
-                    color: AppTheme.teal,
+                  child: Text('🐘', style: TextStyle(
                     fontSize: 48,
-                    fontWeight: FontWeight.w900,
                   )),
                 ),
               ),
@@ -331,11 +329,7 @@ class _ChildTaskSimulationScreenState extends State<ChildTaskSimulationScreen>
             const CircleAvatar(
               radius: 22,
               backgroundColor: AppTheme.mint,
-              child: Text('ಪ', style: TextStyle(
-                color: AppTheme.tealDark,
-                fontSize: 23,
-                fontWeight: FontWeight.w900,
-              )),
+              child: Text('🐘', style: TextStyle(fontSize: 24)),
             ),
             const SizedBox(width: 10),
             Expanded(
