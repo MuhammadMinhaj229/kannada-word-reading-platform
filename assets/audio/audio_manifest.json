@@ -20,5 +20,8 @@
     "Individual word recordings must be segmented, named by W001-W270/Nxxx item ID, approved and bundled before the catalogue speaker controls become active."
   ],
   "word_audio_status": "pending_study_team_audio_approval",
-  "word_clips": {}
+  "word_clips": {},
+  "word_audio_approved_by": null,
+  "word_audio_approval_reference": null,
+  "word_audio_item_approvals": {}
 }
