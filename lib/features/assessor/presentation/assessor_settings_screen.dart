@@ -22,7 +22,7 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
   late final Future<BundledItemCatalog> _catalogFuture;
   late final Future<AllocationProposal> _allocationProposalFuture;
   late final KannadaInstructionAudioService _audioService;
-  late final Future<bool> _audioReadyFuture;
+  late final Future<KannadaAudioPackageAudit> _audioAuditFuture;
   final _searchController = TextEditingController();
   String _search = '';
 
@@ -32,7 +32,11 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
     _catalogFuture = BundledItemCatalog.load();
     _allocationProposalFuture = AllocationProposal.load();
     _audioService = KannadaInstructionAudioService();
-    _audioReadyFuture = _audioService.isReady;
+    _audioAuditFuture = _catalogFuture.then(
+      (catalog) => _audioService.auditPackage(
+        wordItemIds: catalog.realWords.map((item) => item.id),
+      ),
+    );
     _searchController.addListener(() {
       setState(() => _search = _searchController.text.trim().toLowerCase());
     });
@@ -138,12 +142,11 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
                             ),
                           ],
                           const SizedBox(height: 14),
-                          FutureBuilder<bool>(
-                            future: _audioReadyFuture,
+                          FutureBuilder<KannadaAudioPackageAudit>(
+                            future: _audioAuditFuture,
                             builder: (context, audioSnapshot) {
-                              final ready = audioSnapshot.data == true;
                               return _audioCard(
-                                ready: ready,
+                                report: audioSnapshot.data,
                                 loading: audioSnapshot.connectionState ==
                                     ConnectionState.waiting,
                               );
@@ -619,36 +622,105 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
     );
   }
 
-  Widget _audioCard({required bool ready, required bool loading}) {
+  Widget _audioCard({
+    required KannadaAudioPackageAudit? report,
+    required bool loading,
+  }) {
+    final instructionReady = report?.instructionReady == true;
+    final wordReady = report?.wordAudioReady == true;
+    final instructionPresent = report?.instructionAssetPresentCount ?? 0;
+    final instructionMapped = report?.instructionMappedCount ?? 0;
+    final instructionApproved = report?.instructionApprovedAssetCount ?? 0;
+    final wordCount = report?.wordRequiredCount ?? 270;
+    final wordReadyCount = report?.wordReadyCount ?? 0;
+    final issues = <String>[
+      ...?report?.instructionIssues.take(3),
+      ...?report?.wordIssues.take(3),
+    ];
+    final moreIssues = (report?.instructionIssues.length ?? 0) +
+        (report?.wordIssues.length ?? 0) -
+        issues.length;
+    final missingExamples = report?.missingWordIds.take(5).toList() ??
+        const <String>[];
+
     return _sectionCard(
       icon: Icons.volume_up_outlined,
-      title: 'Kannada instruction recordings',
-      subtitle: 'Offline bundled audio · no device TTS fallback',
+      title: 'Kannada instruction and word recordings',
+      subtitle: 'Offline bundled audio · explicit batch and item approval · no TTS fallback',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           _statusLine(
-            label: 'Approved audio package',
+            label: 'Instruction clips',
             value: loading
-                ? 'Checking manifest'
-                : ready
-                    ? 'Installed'
-                    : 'Not ready',
-            good: ready,
+                ? 'Auditing 5 required clips'
+                : instructionApproved.toString() + ' / 5 approved and present · ' +
+                    instructionMapped.toString() + ' mapped · ' +
+                    instructionPresent.toString() + ' files found',
+            good: instructionReady,
           ),
           const SizedBox(height: 10),
-          const _Notice(
-            text: 'A source recording was supplied, but it has not yet been '
-                'transcribed, segmented into the required instruction clips, '
-                'and tied to a written PHFI/CDLR approval reference. The app '
-                'will not synthesize speech or play an unapproved source file '
-                'during participant sessions.',
+          _statusLine(
+            label: 'Real-word recordings',
+            value: loading
+                ? 'Auditing ' + wordCount.toString() + ' items'
+                : wordReadyCount.toString() + ' / ' + wordCount.toString() +
+                    ' fully approved and present',
+            good: wordReady,
           ),
+          const SizedBox(height: 10),
+          if (loading)
+            const LinearProgressIndicator(minHeight: 2)
+          else if (report == null || !report.manifestReadable)
+            const _Notice(
+              text: 'The audio manifest could not be validated. Playback remains disabled.',
+            )
+          else ...<Widget>[
+            _Notice(
+              text: instructionReady
+                  ? 'All five required instruction clips have an approved reference and a non-empty bundled asset.'
+                  : 'Instruction coverage is incomplete. Required keys: assessor_welcome, child_instructions, practice_instructions, completion_instruction and reward_instruction.',
+            ),
+            const SizedBox(height: 8),
+            _Notice(
+              text: wordReady
+                  ? 'Every supplied real-word item has a batch approval, an item-level approval reference and a bundled recording.'
+                  : 'Word recordings are not ready. Each item needs a mapped bundled file, word-audio batch approval and its own item-level review reference.',
+            ),
+            if (missingExamples.isNotEmpty) ...<Widget>[
+              const SizedBox(height: 8),
+              Text(
+                'Example missing word recordings: ' +
+                    missingExamples.join(', ') +
+                    (report.missingWordIds.length > missingExamples.length
+                        ? ', …'
+                        : ''),
+                style: const TextStyle(
+                  color: AppTheme.muted,
+                  fontSize: 11,
+                ),
+              ),
+            ],
+            if (issues.isNotEmpty) ...<Widget>[
+              const SizedBox(height: 8),
+              Text(
+                <String>[
+                  'Audio audit findings:',
+                  ...issues.map((issue) => '• ' + issue),
+                  if (moreIssues > 0)
+                    '…and ' + moreIssues.toString() + ' additional findings.',
+                ].join('\n'),
+                style: const TextStyle(
+                  color: AppTheme.muted,
+                  fontSize: 11,
+                  height: 1.45,
+                ),
+              ),
+            ],
+          ],
           const SizedBox(height: 12),
           const Text(
-            'Required clips: assessor welcome, child instructions, practice '
-            'instructions, completion instruction and reward instruction. '
-            'Scored stimuli remain silent unless the PI approves otherwise.',
+            'The supplied source recording has not been transcribed, segmented, linguistically reviewed or approved. This audit verifies manifest references and bundled file presence; it cannot judge pronunciation clarity or child comprehension. Scored stimuli remain silent unless the PI approves a protocol amendment.',
             style: TextStyle(
               color: AppTheme.muted,
               fontSize: 12,
