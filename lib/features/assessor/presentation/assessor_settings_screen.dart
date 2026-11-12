@@ -349,17 +349,30 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
       future: _audioService.hasWordRecording(itemId),
       builder: (context, snapshot) {
         final available = snapshot.data == true;
-        return IconButton(
-          tooltip: available
-              ? 'Play approved Kannada recording'
-              : 'Approved recording not installed',
-          icon: Icon(
-            available ? Icons.volume_up_rounded : Icons.volume_off_outlined,
-            color: available ? AppTheme.tealDark : AppTheme.muted,
-            size: 19,
-          ),
-          onPressed: available ? () => _playWord(itemId) : null,
-          visualDensity: VisualDensity.compact,
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            IconButton(
+              tooltip: available
+                  ? 'Play approved Kannada recording'
+                  : 'Approved recording not installed',
+              icon: Icon(
+                available ? Icons.volume_up_rounded : Icons.volume_off_outlined,
+                color: available ? AppTheme.tealDark : AppTheme.muted,
+                size: 19,
+              ),
+              onPressed: available ? () => _playWord(itemId) : null,
+              visualDensity: VisualDensity.compact,
+            ),
+            IconButton(
+              tooltip: available
+                  ? 'Download approved recording'
+                  : 'Recording download unavailable',
+              icon: const Icon(Icons.download_outlined, size: 18),
+              onPressed: available ? () => _downloadWord(itemId) : null,
+              visualDensity: VisualDensity.compact,
+            ),
+          ],
         );
       },
     );
@@ -368,14 +381,29 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
   Future<void> _playWord(String itemId) async {
     try {
       await _audioService.playWord(itemId);
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Approved word recordings are not installed yet. '
-            'The supplied source recording still needs review and segmentation.',
-          ),
+        SnackBar(
+          content: Text('Could not play approved recording $itemId: $error'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _downloadWord(String itemId) async {
+    try {
+      await _audioService.downloadWord(itemId);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Downloaded approved recording $itemId.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not download approved recording $itemId: $error'),
+          backgroundColor: AppTheme.coral,
         ),
       );
     }

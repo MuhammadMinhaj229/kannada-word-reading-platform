@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:file_saver/file_saver.dart';
 import 'package:flutter/services.dart';
 
 /// Read-only integrity report for the bundled Kannada audio package.
@@ -294,6 +296,35 @@ class KannadaInstructionAudioService {
       throw StateError('The approved recording for $itemId is missing or empty.');
     }
     await _audioPlayer.play(AssetSource(assetPath));
+  }
+
+  /// Downloads an individual recording only after batch and item approval.
+  Future<void> downloadWord(String itemId) async {
+    final manifest = await _readManifest();
+    final assetPath = _approvedWordAsset(manifest, itemId);
+    if (assetPath == null) {
+      throw StateError(
+        'This item has no recording with explicit word-audio and item-level approval.',
+      );
+    }
+    final bytes = await _bundle.load(assetPath);
+    if (bytes.lengthInBytes == 0) {
+      throw StateError('The approved recording for $itemId is empty.');
+    }
+    final extension = assetPath.split('.').last.toLowerCase();
+    const supportedExtensions = <String>{'mp3', 'wav', 'm4a', 'ogg', 'flac'};
+    if (!supportedExtensions.contains(extension)) {
+      throw StateError('Unsupported approved audio format: $extension.');
+    }
+    final audioBytes = Uint8List.fromList(
+      bytes.buffer.asUint8List(bytes.offsetInBytes, bytes.lengthInBytes),
+    );
+    await FileSaver.instance.saveAs(
+      name: 'padalab-$itemId',
+      bytes: audioBytes,
+      fileExtension: extension,
+      mimeType: MimeType.other,
+    );
   }
 
   String? _approvedWordAsset(
