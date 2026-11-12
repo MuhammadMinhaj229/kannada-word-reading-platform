@@ -168,6 +168,33 @@ void main() {
     expect(report.wordAudioReady, isFalse);
   });
 
+  test('duplicate word audio paths are reported and not counted ready',
+      () async {
+    final manifest = _manifest(
+      itemApprovals: <String, Object?>{
+        'W001': 'ITEM-REVIEW-W001',
+        'W002': 'ITEM-REVIEW-W002',
+      },
+      wordClips: <String, Object?>{
+        'W001': 'assets/audio/words/shared.mp3',
+        'W002': 'assets/audio/words/shared.mp3',
+      },
+    );
+    final report = await KannadaInstructionAudioService(
+      bundle: _MemoryAssetBundle(
+        manifest,
+        <String>{'assets/audio/words/shared.mp3'},
+      ),
+    ).auditPackage(wordItemIds: const <String>['W001', 'W002']);
+
+    expect(report.wordMappedCount, 2);
+    expect(report.wordApprovedCount, 2);
+    expect(report.wordAssetPresentCount, 2);
+    expect(report.wordReadyCount, 1);
+    expect(report.wordAudioReady, isFalse);
+    expect(report.wordIssues.any((issue) => issue.contains('also assigned')), isTrue);
+  });
+
   test('audio audit rejects paths outside bundled audio directory', () async {
     final manifest = _manifest(
       wordClips: <String, Object?>{

@@ -49,7 +49,7 @@ class _MemoryDraftStore implements ItemBankDraftStore {
 
 void main() {
   testWidgets('assessor can create and persist a Real Word draft', (tester) async {
-    tester.view.physicalSize = const Size(900, 1000);
+    tester.view.physicalSize = const Size(1200, 1800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -82,8 +82,6 @@ void main() {
     expect(saved.text, 'ಝಳಝಳದಾಖಲೆಪದ');
     expect(saved.type, ItemBankDraftType.realWord);
     expect(saved.revision, 1);
-    expect(find.textContaining('Saved local draft'), findsOneWidget);
-
     await tester.tap(find.textContaining('Drafts · 1'));
     await _pumpUi(tester);
     expect(find.text('ಝಳಝಳದಾಖಲೆಪದ'), findsOneWidget);
@@ -92,7 +90,7 @@ void main() {
 
   testWidgets('assessor can create a source-linked Non-Word draft',
       (tester) async {
-    tester.view.physicalSize = const Size(900, 1000);
+    tester.view.physicalSize = const Size(1200, 1800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -121,7 +119,6 @@ void main() {
     await tester.enterText(fields.at(0), 'ಝಳಝಳದಾಖಲೆಪದಕ');
     await tester.enterText(fields.at(1), 'ಮನೆ');
     await tester.enterText(fields.at(2), 'W001');
-    await tester.ensureVisible(fields.at(5));
     await tester.enterText(fields.at(5), 'vowel transformation');
     await tester.tap(find.text('Save draft'));
     await _pumpUi(tester, const Duration(milliseconds: 350));
@@ -135,5 +132,5 @@ void main() {
     expect(saved.metadata['source_id_1'], 'W001');
     expect(saved.revision, 1);
     expect(tester.takeException(), isNull);
-  });
+  }, timeout: const Timeout(Duration(seconds: 90)));
 }

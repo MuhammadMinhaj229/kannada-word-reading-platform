@@ -220,7 +220,9 @@ class KannadaInstructionAudioService {
       }
       wordMapped += 1;
       final previousOwner = pathOwners[assetPath];
+      var uniqueItemPath = true;
       if (previousOwner != null && previousOwner != id) {
+        uniqueItemPath = false;
         wordIssues.add('$id: recording path is also assigned to $previousOwner.');
       } else {
         pathOwners[assetPath] = id;
@@ -240,7 +242,7 @@ class KannadaInstructionAudioService {
         continue;
       }
       wordAssetsPresent += 1;
-      if (approved) wordReady += 1;
+      if (approved && uniqueItemPath) wordReady += 1;
     }
 
     return KannadaAudioPackageAudit(
