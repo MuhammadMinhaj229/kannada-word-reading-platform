@@ -101,7 +101,7 @@ class _ItemBankDraftManagerState extends State<ItemBankDraftManager> {
 
   Future<void> _importBackup() async {
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: const <String>['json'],
         withData: true,
