@@ -113,10 +113,12 @@ void main() {
     expect(find.text('First source word ID'), findsOneWidget);
     expect(find.textContaining('This saves an editable local draft only.'), findsOneWidget);
 
-    // Close the autofocus editor before the widget test ends. Leaving a
-    // focused TextFormField in an open dialog keeps the cursor blink timer
-    // alive and causes the test binding to wait until its global timeout.
-    await tester.tap(find.text('Cancel'));
+    // Defocus and close the editor deterministically. Simulating a tap on
+    // the dialog action can leave the editable cursor's periodic timer alive
+    // in the widget-test binding on headless CI runners.
+    tester.binding.focusManager.primaryFocus?.unfocus();
+    final managerContext = tester.element(find.byType(ItemBankDraftManager));
+    Navigator.of(managerContext).pop();
     await _pumpUi(tester);
     expect(find.text('Non-Word draft'), findsNothing);
     expect(tester.takeException(), isNull);
