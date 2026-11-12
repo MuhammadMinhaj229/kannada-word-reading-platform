@@ -5,6 +5,12 @@ import 'package:padalab_android/features/assessment/data/item_bank_draft_store_c
 import 'package:padalab_android/features/assessment/domain/models/item_bank_draft.dart';
 import 'package:padalab_android/features/assessor/presentation/item_bank_draft_manager.dart';
 
+Future<void> _pumpUi(WidgetTester tester,
+    [Duration duration = const Duration(milliseconds: 250)]) async {
+  await tester.pump(duration);
+  await tester.pump();
+}
+
 class _MemoryDraftStore implements ItemBankDraftStore {
   final Map<String, ItemBankDraft> items = <String, ItemBankDraft>{};
   final Map<String, List<ItemBankDraft>> history =
@@ -57,18 +63,20 @@ void main() {
         ),
       ),
     ));
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
 
     expect(find.textContaining('Real Words · 270'), findsOneWidget);
     expect(find.textContaining('Non-Words · 193'), findsOneWidget);
 
     await tester.tap(find.text('Add Real Word'));
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
 
     await tester.enterText(find.byType(TextFormField).first, 'ಝಳಝಳದಾಖಲೆಪದ');
     await tester.tap(find.text('Save draft'));
-    await tester.pumpAndSettle();
+    await _pumpUi(tester, const Duration(milliseconds: 350));
+    await tester.pump();
 
+    expect(find.text('Real Word draft'), findsNothing);
     expect(store.items, hasLength(1));
     final saved = store.items.values.single;
     expect(saved.text, 'ಝಳಝಳದಾಖಲೆಪದ');
@@ -77,7 +85,7 @@ void main() {
     expect(find.textContaining('Saved local draft'), findsOneWidget);
 
     await tester.tap(find.textContaining('Drafts · 1'));
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
     expect(find.text('ಝಳಝಳದಾಖಲೆಪದ'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -98,24 +106,28 @@ void main() {
         ),
       ),
     ));
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
 
     await tester.tap(find.text('Add Non-Word'));
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
 
     await tester.tap(find.byType(DropdownButtonFormField<String>));
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
     await tester.tap(find.text('A · Vowel replacement').last);
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
 
     final fields = find.byType(TextFormField);
+    expect(fields, findsNWidgets(6));
     await tester.enterText(fields.at(0), 'ಝಳಝಳದಾಖಲೆಪದಕ');
     await tester.enterText(fields.at(1), 'ಮನೆ');
     await tester.enterText(fields.at(2), 'W001');
+    await tester.ensureVisible(fields.at(5));
     await tester.enterText(fields.at(5), 'vowel transformation');
     await tester.tap(find.text('Save draft'));
-    await tester.pumpAndSettle();
+    await _pumpUi(tester, const Duration(milliseconds: 350));
+    await tester.pump();
 
+    expect(find.text('Non-Word draft'), findsNothing);
     expect(store.items, hasLength(1));
     final saved = store.items.values.single;
     expect(saved.type, ItemBankDraftType.nonWord);
