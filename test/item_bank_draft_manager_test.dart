@@ -112,6 +112,13 @@ void main() {
     expect(find.text('First source word'), findsOneWidget);
     expect(find.text('First source word ID'), findsOneWidget);
     expect(find.textContaining('This saves an editable local draft only.'), findsOneWidget);
+
+    // Close the autofocus editor before the widget test ends. Leaving a
+    // focused TextFormField in an open dialog keeps the cursor blink timer
+    // alive and causes the test binding to wait until its global timeout.
+    await tester.tap(find.text('Cancel'));
+    await _pumpUi(tester);
+    expect(find.text('Non-Word draft'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
