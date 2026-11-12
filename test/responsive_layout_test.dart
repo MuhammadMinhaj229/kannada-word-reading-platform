@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:padalab_android/app/padalab_app.dart';
+import 'helpers/empty_item_bank_draft_store.dart';
 
 const _viewports = <Size>[
   Size(320, 568),
@@ -21,7 +22,7 @@ const _viewports = <Size>[
 ];
 
 Future<void> _pumpWorkspace(WidgetTester tester) async {
-  await tester.pumpWidget(const PadalabApp());
+  await tester.pumpWidget(const PadalabApp(contentDraftStore: EmptyItemBankDraftStore()));
   // Avoid pumpAndSettle: the loading indicators are intentionally animated.
   await tester.pump(const Duration(milliseconds: 300));
   await tester.pump();

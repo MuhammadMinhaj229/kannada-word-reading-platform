@@ -4,13 +4,16 @@ import 'package:flutter/material.dart';
 
 import '../../../app/app_theme.dart';
 import '../../../core/storage/browser_workspace_preferences.dart';
+import '../../assessment/data/item_bank_draft_store_contract.dart';
 import 'assessor_home_screen.dart';
 import 'assessor_settings_screen.dart';
 import 'child_task_simulation_screen.dart';
 
 /// Shared responsive navigation for Android tablets and browser review.
 class AssessorWorkspace extends StatefulWidget {
-  const AssessorWorkspace({super.key});
+  const AssessorWorkspace({super.key, this.draftStore});
+
+  final ItemBankDraftStore? draftStore;
 
   @override
   State<AssessorWorkspace> createState() => _AssessorWorkspaceState();
@@ -70,7 +73,7 @@ class _AssessorWorkspaceState extends State<AssessorWorkspace> {
               onOpenSettings: () => _selectDestination(2),
             ),
             ChildTaskSimulationScreen(isActive: _selectedIndex == 1),
-            const AssessorSettingsScreen(),
+            AssessorSettingsScreen(draftStore: widget.draftStore),
           ],
         );
 

@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../features/assessment/data/item_bank_draft_store_contract.dart';
 import '../features/assessor/presentation/assessor_workspace.dart';
 import 'app_theme.dart';
 
 class PadalabApp extends StatelessWidget {
-  const PadalabApp({super.key});
+  const PadalabApp({super.key, this.contentDraftStore});
+
+  /// Optional persistence adapter for deterministic tests and controlled
+  /// embedding. Production uses the platform adapter by default.
+  final ItemBankDraftStore? contentDraftStore;
 
   @override
   Widget build(BuildContext context) {
@@ -12,7 +17,7 @@ class PadalabApp extends StatelessWidget {
       title: 'ಪದLab',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      home: const AssessorWorkspace(),
+      home: AssessorWorkspace(draftStore: contentDraftStore),
     );
   }
 }

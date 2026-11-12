@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:padalab_android/app/padalab_app.dart';
+import 'helpers/empty_item_bank_draft_store.dart';
 
 void main() {
   testWidgets('renders the real assessor workspace with field capture locked', (tester) async {
@@ -9,7 +10,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const PadalabApp());
+    await tester.pumpWidget(const PadalabApp(contentDraftStore: EmptyItemBankDraftStore()));
     await tester.pump(const Duration(milliseconds: 350));
     await tester.pump();
 

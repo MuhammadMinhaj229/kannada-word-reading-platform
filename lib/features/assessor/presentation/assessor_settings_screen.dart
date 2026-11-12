@@ -5,11 +5,14 @@ import '../../../core/audio/kannada_instruction_audio_service.dart';
 import '../../../core/config/assessment_release_gate.dart';
 import '../../../core/config/study_protocol.dart';
 import '../../assessment/data/bundled_item_catalog.dart';
+import '../../assessment/data/item_bank_draft_store_contract.dart';
 import '../../assessment/domain/models/allocation_proposal.dart';
 import 'item_bank_draft_manager.dart';
 
 class AssessorSettingsScreen extends StatefulWidget {
-  const AssessorSettingsScreen({super.key});
+  const AssessorSettingsScreen({super.key, this.draftStore});
+
+  final ItemBankDraftStore? draftStore;
 
   @override
   State<AssessorSettingsScreen> createState() => _AssessorSettingsScreenState();
@@ -106,7 +109,10 @@ class _AssessorSettingsScreenState extends State<AssessorSettingsScreen> {
                           if (catalog != null) ...<Widget>[
                             _itemBankCard(catalog),
                             const SizedBox(height: 14),
-                            ItemBankDraftManager(catalog: catalog),
+                            ItemBankDraftManager(
+                              catalog: catalog,
+                              store: widget.draftStore,
+                            ),
                             const SizedBox(height: 14),
                             _sourceWordBrowser(catalog),
                             const SizedBox(height: 14),

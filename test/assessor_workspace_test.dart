@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:padalab_android/app/padalab_app.dart';
+import 'helpers/empty_item_bank_draft_store.dart';
 
 Future<void> _pumpWorkspace(WidgetTester tester) async {
-  await tester.pumpWidget(const PadalabApp());
+  await tester.pumpWidget(const PadalabApp(contentDraftStore: EmptyItemBankDraftStore()));
   // The assessor workspace contains indeterminate loading indicators while
   // local assets are being read, so pump fixed frames instead of settling.
   await tester.pump(const Duration(milliseconds: 300));
