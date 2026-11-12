@@ -838,7 +838,7 @@ class _ItemBankDraftEditorDialogState
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _text,
-                  autofocus: true,
+                  autofocus: false,
                   minLines: 1,
                   maxLines: 2,
                   decoration: const InputDecoration(
