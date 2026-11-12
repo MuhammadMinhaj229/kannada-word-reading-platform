@@ -113,13 +113,12 @@ void main() {
     expect(find.text('First source word ID'), findsOneWidget);
     expect(find.textContaining('This saves an editable local draft only.'), findsOneWidget);
 
-    // Defocus and close the editor deterministically. Simulating a tap on
-    // the dialog action can leave the editable cursor's periodic timer alive
-    // in the widget-test binding on headless CI runners.
+    // This test covers editor fields, not dialog-button interaction. Unfocus
+    // and unmount the app so text-editing cursor timers and dialog controllers
+    // are disposed deterministically on headless CI runners.
     tester.binding.focusManager.primaryFocus?.unfocus();
-    final managerContext = tester.element(find.byType(ItemBankDraftManager));
-    Navigator.of(managerContext).pop();
-    await _pumpUi(tester);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
     expect(find.text('Non-Word draft'), findsNothing);
     expect(tester.takeException(), isNull);
   });
