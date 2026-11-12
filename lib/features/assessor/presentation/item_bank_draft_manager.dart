@@ -1,12 +1,14 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:file_saver/file_saver.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../app/app_theme.dart';
 import '../../assessment/data/bundled_item_catalog.dart';
+import '../../assessment/data/item_bank_draft_backup.dart';
 import '../../assessment/data/item_bank_draft_store.dart';
 import '../../assessment/domain/models/item_bank_draft.dart';
 
@@ -54,24 +56,18 @@ class _ItemBankDraftManagerState extends State<ItemBankDraftManager> {
   Future<void> _downloadBackup() async {
     try {
       final drafts = await _store.loadAll();
-      final payload = const JsonEncoder.withIndent('  ').convert(
-        <String, Object?>{
-          'schema_version': 1,
-          'application': 'PadLab content drafts',
-          'exported_at': DateTime.now().toUtc().toIso8601String(),
-          'approved_for_gameplay': false,
-          'items': drafts.map((draft) => draft.toJson()).toList(growable: false),
-        },
-      );
+      final bytes = ItemBankDraftBackup.encode(drafts);
       await FileSaver.instance.saveAs(
         name: 'padalab-content-drafts-backup',
-        bytes: Uint8List.fromList(utf8.encode(payload)),
+        bytes: bytes,
         fileExtension: 'json',
         mimeType: MimeType.other,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Draft backup prepared. It contains no participant records.')),
+        const SnackBar(
+          content: Text('Draft backup downloaded. It contains no participant records.'),
+        ),
       );
     } catch (error) {
       if (!mounted) return;
@@ -79,6 +75,145 @@ class _ItemBankDraftManagerState extends State<ItemBankDraftManager> {
         SnackBar(
           content: Text('Draft backup failed: $error'),
           backgroundColor: AppTheme.coral,
+        ),
+      );
+    }
+  }
+
+  bool _sameDraftContent(ItemBankDraft left, ItemBankDraft right) {
+    if (left.type != right.type || left.text.trim() != right.text.trim()) {
+      return false;
+    }
+    if (left.metadata.length != right.metadata.length) return false;
+    for (final entry in left.metadata.entries) {
+      if (right.metadata[entry.key] != entry.value) return false;
+    }
+    return true;
+  }
+
+  ItemBankDraftType? _bundledTypeForId(String id) {
+    if (widget.catalog.realWords.any((item) => item.id == id)) {
+      return ItemBankDraftType.realWord;
+    }
+    if (widget.catalog.suppliedNonWordCandidates.any((item) => item.id == id)) {
+      return ItemBankDraftType.nonWord;
+    }
+    return null;
+  }
+
+  Future<void> _importBackup() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const <String>['json'],
+        withData: true,
+        allowMultiple: false,
+      );
+      if (result == null) return;
+      final file = result.files.single;
+      final bytes = file.bytes;
+      if (bytes == null) {
+        throw StateError('The selected file could not be read. Try downloading it again.');
+      }
+
+      final imported = ItemBankDraftBackup.decode(bytes);
+      final localDrafts = await _store.loadAll();
+      final localById = <String, ItemBankDraft>{
+        for (final draft in localDrafts) draft.id: draft,
+      };
+      final prepared = <ItemBankDraft>[];
+      final incomingIds = <String>{};
+      final incomingText = <String, String>{};
+      var unchanged = 0;
+      var conflicts = 0;
+
+      // Validate the complete package before writing any record.
+      for (final draft in imported) {
+        if (!incomingIds.add(draft.id)) {
+          throw StateError('Duplicate item ID in backup: ${draft.id}.');
+        }
+        final bundledType = _bundledTypeForId(draft.id);
+        if (bundledType != null && bundledType != draft.type) {
+          throw StateError(
+            'Item ${draft.id} is a bundled ${bundledType.name} but the backup changes its type.',
+          );
+        }
+
+        final existing = localById[draft.id];
+        if (existing != null && existing.type != draft.type) {
+          throw StateError('Item ${draft.id} changes type between Real Word and Non-Word.');
+        }
+        if (existing != null && _sameDraftContent(existing, draft)) {
+          unchanged += 1;
+          continue;
+        }
+        if (existing != null &&
+            (draft.revision <= existing.revision ||
+                !draft.updatedAt.isAfter(existing.updatedAt))) {
+          conflicts += 1;
+          continue;
+        }
+
+        final normalizedText = draft.text.trim();
+        final previousIncomingId = incomingText[normalizedText];
+        if (previousIncomingId != null && previousIncomingId != draft.id) {
+          throw StateError(
+            'The backup contains duplicate Kannada text under ${previousIncomingId} and ${draft.id}.',
+          );
+        }
+        incomingText[normalizedText] = draft.id;
+
+        final duplicateBundledWord = widget.catalog.realWords.any(
+          (item) => item.id != draft.id && item.text.trim() == normalizedText,
+        );
+        final duplicateBundledNonWord =
+            widget.catalog.suppliedNonWordCandidates.any(
+          (item) => item.id != draft.id && item.text.trim() == normalizedText,
+        );
+        final duplicateLocalDraft = localDrafts.any(
+          (item) => item.id != draft.id && item.text.trim() == normalizedText,
+        );
+        if (duplicateBundledWord ||
+            duplicateBundledNonWord ||
+            duplicateLocalDraft) {
+          throw StateError(
+            'Kannada text for ${draft.id} already exists under another item ID.',
+          );
+        }
+
+        prepared.add(
+          existing == null
+              ? draft.copyWith(revision: 0)
+              : draft.copyWith(
+                  revision: existing.revision,
+                  createdAt: existing.createdAt,
+                ),
+        );
+      }
+
+      var savedCount = 0;
+      for (final draft in prepared) {
+        await _store.save(draft);
+        savedCount += 1;
+      }
+      if (!mounted) return;
+      await _refresh();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Imported $savedCount draft(s). $unchanged unchanged; $conflicts skipped because the local version is newer.',
+          ),
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Draft backup import failed: $error'),
+          backgroundColor: AppTheme.coral,
+          duration: const Duration(seconds: 6),
         ),
       );
     }
@@ -329,9 +464,14 @@ class _ItemBankDraftManagerState extends State<ItemBankDraftManager> {
                       label: const Text('Add Non-Word'),
                     ),
                     OutlinedButton.icon(
+                      onPressed: _importBackup,
+                      icon: const Icon(Icons.upload_file_outlined, size: 17),
+                      label: const Text('Import draft backup'),
+                    ),
+                    OutlinedButton.icon(
                       onPressed: drafts.isEmpty ? null : _downloadBackup,
                       icon: const Icon(Icons.download_outlined, size: 17),
-                      label: const Text('Download draft backup'),
+                      label: const Text('Export draft backup'),
                     ),
                   ],
                 ),
