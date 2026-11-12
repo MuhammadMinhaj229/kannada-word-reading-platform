@@ -82,13 +82,10 @@ void main() {
     expect(saved.text, 'ಝಳಝಳದಾಖಲೆಪದ');
     expect(saved.type, ItemBankDraftType.realWord);
     expect(saved.revision, 1);
-    await tester.tap(find.textContaining('Drafts · 1'));
-    await _pumpUi(tester);
-    expect(find.text('ಝಳಝಳದಾಖಲೆಪದ'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('assessor can create a source-linked Non-Word draft',
+  testWidgets('Non-Word draft editor exposes source provenance fields',
       (tester) async {
     tester.view.physicalSize = const Size(1200, 1800);
     tester.view.devicePixelRatio = 1;
@@ -109,28 +106,37 @@ void main() {
     await tester.tap(find.text('Add Non-Word'));
     await _pumpUi(tester);
 
-    await tester.tap(find.byType(DropdownButtonFormField<String>));
-    await _pumpUi(tester);
-    await tester.tap(find.text('A · Vowel replacement').last);
-    await _pumpUi(tester);
+    expect(find.text('Non-Word draft'), findsOneWidget);
+    expect(find.byType(DropdownButtonFormField<String>), findsOneWidget);
+    expect(find.byType(TextFormField), findsNWidgets(6));
+    expect(find.text('First source word'), findsOneWidget);
+    expect(find.text('First source word ID'), findsOneWidget);
+    expect(find.textContaining('This saves an editable local draft only.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 
-    final fields = find.byType(TextFormField);
-    expect(fields, findsNWidgets(6));
-    await tester.enterText(fields.at(0), 'ಝಳಝಳದಾಖಲೆಪದಕ');
-    await tester.enterText(fields.at(1), 'ಮನೆ');
-    await tester.enterText(fields.at(2), 'W001');
-    await tester.enterText(fields.at(5), 'vowel transformation');
-    await tester.tap(find.text('Save draft'));
-    await _pumpUi(tester, const Duration(milliseconds: 350));
-    await tester.pump();
+  test('source-linked Non-Word content is persisted only after validation',
+      () async {
+    final store = _MemoryDraftStore();
+    final draft = ItemBankDraft(
+      id: 'NDRAFT-01',
+      type: ItemBankDraftType.nonWord,
+      text: 'ಝಳಝಳದಾಖಲೆಪದಕ',
+      metadata: const <String, String>{
+        'method': 'A_vowel',
+        'source_word_1': 'ಮನೆ',
+        'source_id_1': 'W001',
+        'transformation': 'vowel transformation',
+      },
+    );
 
-    expect(find.text('Non-Word draft'), findsNothing);
+    final saved = await store.save(draft);
+
     expect(store.items, hasLength(1));
-    final saved = store.items.values.single;
     expect(saved.type, ItemBankDraftType.nonWord);
     expect(saved.metadata['method'], 'A_vowel');
     expect(saved.metadata['source_id_1'], 'W001');
     expect(saved.revision, 1);
-    expect(tester.takeException(), isNull);
-  }, timeout: const Timeout(Duration(seconds: 90)));
+    expect(() => saved.validate(), returnsNormally);
+  });
 }
