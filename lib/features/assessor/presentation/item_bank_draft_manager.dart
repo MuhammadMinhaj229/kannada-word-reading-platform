@@ -101,19 +101,16 @@ class _ItemBankDraftManagerState extends State<ItemBankDraftManager> {
 
   Future<void> _importBackup() async {
     try {
-      final result = await FilePicker.pickFiles(
+      final file = await FilePicker.pickFile(
         type: FileType.custom,
         allowedExtensions: const <String>['json'],
-        withData: true,
-        allowMultiple: false,
       );
-      if (result == null) return;
-      final file = result.files.single;
-      final bytes = file.bytes;
-      if (bytes == null) {
-        throw StateError('The selected file could not be read. Try downloading it again.');
+      if (file == null) return;
+      final fileLength = file.lengthSync() ?? await file.length();
+      if (fileLength != null && fileLength > ItemBankDraftBackup.maxBytes) {
+        throw StateError('Draft backup exceeds the 5 MB safety limit.');
       }
-
+      final bytes = await file.readAsBytes();
       final imported = ItemBankDraftBackup.decode(bytes);
       final localDrafts = await _store.loadAll();
       final localById = <String, ItemBankDraft>{
